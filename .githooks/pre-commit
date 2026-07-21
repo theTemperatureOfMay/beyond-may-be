@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -eu
+
+repository_root=$(git rev-parse --show-toplevel)
+cd "$repository_root"
+
+if ! ./gradlew spotlessCheck; then
+  echo "Spotless 검사에 실패했습니다. 코드를 수정하거나 './gradlew spotlessApply'를 실행한 뒤 다시 커밋하세요." >&2
+  exit 1
+fi
