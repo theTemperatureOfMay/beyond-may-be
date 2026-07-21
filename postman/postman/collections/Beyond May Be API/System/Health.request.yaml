@@ -1,0 +1,5 @@
+$kind: http-request
+url: "{{baseUrl}}/actuator/health"
+method: GET
+examples: ./.resources/Health.resources/examples
+order: 1000

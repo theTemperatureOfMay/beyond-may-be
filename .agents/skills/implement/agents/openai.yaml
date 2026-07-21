@@ -1,0 +1,4 @@
+interface:
+  display_name: "승인 계획 구현"
+  short_description: "승인된 계획을 따라 구현하고 전체 검증을 수행합니다"
+  default_prompt: "Use $implement to execute the approved plan, verify the result, and document the implementation."

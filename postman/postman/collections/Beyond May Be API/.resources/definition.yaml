@@ -1,0 +1,9 @@
+$kind: collection
+description: |-
+  ## 사용 방법
+
+  이 파일은 팀의 API 요청·문서·예시 응답 원본입니다. 최신 파일을 개인 Postman Workspace로 import해 사용합니다. 공용 변수는 `baseUrl`뿐이며, 토큰·비밀번호·실사용자 정보는 기록하지 않습니다.
+
+  각 API에는 요청 설명, 성공 saved example, 실제로 적용되는 대표 오류 saved example을 함께 기록합니다.
+variables:
+  baseUrl: http://localhost:8080

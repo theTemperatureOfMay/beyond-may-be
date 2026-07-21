@@ -1,0 +1,3 @@
+$kind: collection
+description: 운영 상태를 확인하는 시스템 endpoint입니다. 이 폴더의 endpoint는 일반 API 공통 응답 형식(`message`, `code`, `data`, `success`)을 사용하지 않을 수 있습니다.
+order: 1000

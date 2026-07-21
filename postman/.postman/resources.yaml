@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: 952c03c1-a73c-41fe-88e5-0aaafbd5c7b2
+
+localResources:
+  collections:
+    - ../Beyond May Be API.postman_collection.json
+
+cloudResources:
+  collections:
+    ../postman/collections/Beyond May Be API: 82b6f437-fcad-4962-8c51-407609f043fe

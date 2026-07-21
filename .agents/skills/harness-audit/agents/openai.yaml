@@ -1,0 +1,5 @@
+interface:
+  display_name: "하네스 평가"
+  short_description: "완성 기준에 따라 하네스를 점검하고 근거와 점수를 보고합니다"
+  default_prompt: "Use $harness-audit to evaluate this repository's harness against the official completion criteria and report evidence, blockers, and score."
+
