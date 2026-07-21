@@ -1,6 +1,6 @@
 # 하네스 단계별 구축 로드맵
 
-- 상태: 현재 세션 완료 · 로컬 검증 기준선 Green
+- 상태: 현재 세션 구현 완료 · CI 필수 관문 Pull Request Green · 미병합
 - 결정 일자: 2026-07-22
 - 기준 문서: [하네스 완성 기준 및 평가표](completion-criteria.md)
 
@@ -12,70 +12,93 @@
 
 ## 현재 세션의 우선 작업
 
-로컬 검증 기준선을 Green 상태로 복구했다.
-
-최소 CI와 Git 훅을 추가하기 전에 애플리케이션 기동, `spotlessCheck`, 전체 테스트와
-전체 빌드가 반복 실행 가능한 상태인지 확인했다. 중복 API 매핑을 제거하고 전체 검증과
-실제 기동 스모크 검사를 통과해 다음 세션에서 자동화할 수 있는 Green 기준선을 확보했다.
-
-이 작업은 API 경로의 소유권, 다수 Java 파일의 포맷과 테스트 실행 환경에 영향을 주는
-큰 작업이다. 실제 코드 변경 전 `design-spec`으로 중복 API 경로의 책임과 검증 범위를
-정하고, 승인된 설계와 계획을 거쳐 구현한다.
+복구한 Green 검증 기준선을 Git 훅, GitHub Actions와 `main` Ruleset에서 강제한다.
+Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Request로 로컬 commit
+차단, 원격 CI 실패, merge 차단과 동일 체크의 Green 전환을 확인했다.
 
 ### 포함 범위
 
-다음 문제를 서로 구분하여 조사하고 복구한다.
-
-1. `ScheduleController`와 `CoursePlaceController`의 중복 API 매핑 소유권 결정 및 기동 복구
-2. 기존 Java 파일의 Spotless 위반 정리와 `spotlessCheck` 통과
-3. 전체 테스트가 제한 시간 안에 끝나지 않는 원인 조사
-4. 안정적으로 반복 실행할 수 있는 관련 테스트와 전체 테스트 범위 확정
-5. 애플리케이션 기동, Health, Swagger/OpenAPI, 테스트, 코드 품질 검사와 빌드 재검증
-6. 실제 검증 결과와 남은 제한을 `README.md`에 갱신
+1. `theTemperatureOfMay/beyond-may-be` Public repository 초기화와 관리자 권한 구성
+2. Ubuntu·Java 21에서 `./gradlew build`를 실행하는 최소 GitHub Actions CI 추가
+3. 명시적 Gradle task로 설치하는 Spotless pre-commit 훅 복구
+4. `main`의 Pull Request, conversation 해결, 최신 branch와 실제 `build` 체크 강제
+5. 의도적 Spotless 위반의 로컬 commit 차단, 원격 실패·merge 차단과 복구 후 Green 검증
+6. 실제 설정과 검증 결과를 `README.md`와 이 로드맵에 기록
 
 ### 작업 원칙
 
-- 중복 API 경로는 현재 테스트만 통과하도록 임의로 이동하지 않고 제품 책임과 API 계약을
-  확인하여 한 Controller의 책임으로 정한다.
-- 포맷 변경과 동작 변경을 구분하여 검토한다.
-- 전체 테스트 대기를 단순 실패로 단정하지 않고 환경, Testcontainers, 애플리케이션
-  컨텍스트와 개별 테스트 문제를 나누어 확인한다.
-- 기존 실패, 이번 작업으로 해결한 실패와 아직 남은 실패를 구분해 기록한다.
+- `main` 최초 bootstrap push 이후에는 Pull Request 경로만 사용한다.
+- required check 이름은 추측하지 않고 실제 CI run의 `build` context를 등록한다.
+- 실패 검증용 포맷 위반은 동작을 바꾸지 않고, 원격 실패 확인 직후 정상 포맷으로
+  복구한다.
+- 관리자 bypass를 두지 않으며 삭제나 force push를 실제로 시도하지 않는다.
 - 비밀번호, API 키, 접근 토큰, 개인정보와 실제 환경 변수 값은 출력하거나 기록하지 않는다.
 
 ### 이번 세션에서 제외하는 작업
 
-- `.githooks` 복구 또는 Git 훅 설치 방식 변경
-- GitHub Actions 등 CI 추가
 - Claude Code와 Codex 권한 설정 추가
 - 배포, 외부 쓰기, MCP와 플러그인 안전 정책 구현
 - Claude Code와 Codex 회귀 시험 실행
 - 하네스 담당자와 리뷰 절차 확정
-- 포맷 전 기준선 커밋 외의 커밋, 브랜치 변경, push, Pull Request 생성
+- required approval 1명, 커버리지와 보안 검사 강제
+- 프런트엔드 저장소, Organization base permission, merge 방식과 secret 변경
+- Pull Request #1 merge
 
 ## 완료 조건
 
 다음을 모두 만족하면 현재 우선 작업이 완료된 것으로 본다.
 
-- 애플리케이션이 PostgreSQL에 연결되어 정상 기동한다.
-- Health가 HTTP 200과 `UP` 상태를 반환한다.
-- Swagger UI와 OpenAPI JSON에 접근할 수 있다.
-- `.\gradlew.bat spotlessCheck`가 통과한다.
-- 관련 테스트가 제한 시간 안에 완료되고 모두 통과한다.
-- 전체 테스트와 `.\gradlew.bat build`가 통과하거나, 완료하지 못한 원인과 재현 절차가
-  관련 테스트 수준으로 좁혀져 별도 후속 작업으로 분리된다.
-- 변경한 diff를 다시 읽고 API 계약, 테스트와 문서가 일치하는지 확인한다.
-- `README.md`의 실행 제한과 검증 결과가 실제 상태와 일치한다.
+- 새 clone에서 `installGitHooks` task로 pre-commit 훅을 설치할 수 있다.
+- Spotless 위반은 일반 commit과 원격 `./gradlew build`에서 모두 차단된다.
+- 위반 복구 후 로컬 전체 테스트, Spotless, build와 동일한 원격 `build` 체크가 통과한다.
+- `main-protection`이 `main`만 대상으로 PR, conversation 해결, 최신 branch와 실제
+  `build` 체크를 강제한다.
+- 삭제와 force push가 차단되고 required approval과 bypass는 없다.
+- 최종 Pull Request는 Green, Ready for review, 미병합 상태다.
+- `README.md`와 이 문서가 실제 설정 및 검증 결과와 일치한다.
 
 ## 후속 세션 우선순위
 
-1. 누락된 `.githooks` 문제를 해결하고 Green 검증 기준선을 최소 CI에서 강제한다.
-2. 보호 영역, 외부 콘텐츠, MCP·플러그인과 외부 쓰기 승인 기준을 양 도구의 권한
+1. 보호 영역, 외부 콘텐츠, MCP·플러그인과 외부 쓰기 승인 기준을 양 도구의 권한
    설정과 공통 지침에 연결한다.
-3. Claude Code와 Codex에서 회귀 시험을 실행하고 결과를 기록한다.
-4. 하네스 담당 역할, 리뷰 절차, 변경과 재평가 절차를 확정한다.
+2. Claude Code와 Codex에서 회귀 시험을 실행하고 결과를 기록한다.
+3. 하네스 담당 역할, 리뷰 절차, 변경과 재평가 절차를 확정한다.
+4. 팀 협업이 안정되면 required approval 1명과 커버리지·보안 검사를 단계적으로 검토한다.
 
 후속 세션을 시작하기 전에는 직전 단계의 완료 조건을 먼저 확인한다.
+
+## 2026-07-22 CI 필수 관문 구축 결과
+
+### 구현 결과
+
+- 빈 Public repository `theTemperatureOfMay/beyond-may-be`를 만들고 기존 로컬 `main`
+  기준 이력을 한 번 bootstrap push했다.
+- Organization Owner인 `LJYeon12`와 direct Admin인 `chhyejin`만 관리자 범위에 두고
+  다른 member나 team에는 이 저장소의 direct access를 추가하지 않았다.
+- `CI / build`가 `main` Pull Request, `main` push와 수동 실행에서 Ubuntu·Java 21의
+  `./gradlew build`를 실행하도록 구성했다.
+- `.githooks/pre-commit`과 `installGitHooks` Gradle task를 추가했다. 훅은
+  `spotlessCheck`만 실행하며 자동 수정하지 않는다.
+- Active `main-protection` Ruleset에 approvals 0, bypass 없음, PR과 conversation 해결,
+  최신 branch, GitHub Actions `build`, 삭제 제한과 force push 차단을 설정했다.
+
+### 검증 결과
+
+- 의도적 Spotless 위반으로 로컬 `spotlessCheck`와 일반 commit이 차단됐고, 원격 첫
+  build run `29861594363`도 `spotlessJavaCheck`에서 1분 16초 만에 실패했다.
+- 실패 상태의 Ready Pull Request #1에서 `CI / build (pull_request)`가 Required로
+  표시되고 merge 버튼이 비활성화되는 것을 확인했다.
+- 위반을 복구한 commit `7444425`는 pre-commit 훅을 정상 통과했다. 로컬 전체 테스트를
+  `--rerun-tasks`로 실행해 1분 39초에 통과했고 `spotlessCheck`와 전체 build도 통과했다.
+- 동일 체크의 run `29862648816`은 `spotlessCheck`, test와 build task를 실제 실행해
+  1분 21초에 성공했다. 전체 GitHub Actions job은 1분 28초가 걸렸다.
+- Pull Request #1은 Green, Ready for review, 미병합 상태로 유지했다.
+
+### 남은 작업
+
+- required approval 1명 강제는 초기 하네스 세팅 merge 이후 팀 협업 방식과 함께
+  검토한다.
+- 커버리지와 보안 검사는 현재 필수 관문에 포함하지 않았으며 후속 단계로 유지한다.
 
 ## 2026-07-22 검증 기준선 복구 결과
 
