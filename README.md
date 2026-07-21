@@ -218,6 +218,9 @@ Ubuntu·Java 21 환경의 `./gradlew build`를 실행한다.
 현재 required approval은 0명이고 bypass 대상은 없다. 승인 리뷰 1명 강제, 커버리지와
 보안 검사는 후속 하네스 작업으로 남아 있다.
 
+의존성 업데이트의 검토 주기, 보안 업데이트 대응, Gradle lock state와 PostgreSQL image
+동기화 기준은 [의존성 관리 운영 기준](docs/operations/dependency-management.md)에서 확인한다.
+
 ## 보호 영역과 변경 주의사항
 
 - `.env`와 실제 비밀값은 출력하거나 커밋하지 않는다.
