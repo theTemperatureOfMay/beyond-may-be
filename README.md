@@ -19,20 +19,19 @@ Beyond May Be는 여행 취향이 서로 다른 친구들이 함께 국내 여�
   존재한다는 사실이 해당 기능의 구현 완료를 뜻하지 않는다.
 - API 요청·응답 계약은 구현 과정에서 변경될 수 있는 초안이다.
 
-### 현재 확인된 실행 제한
+### 현재 확인된 실행 상태와 제한
 
-2026-07-22 기준으로 다음 기존 문제가 확인되었다.
+2026-07-22 기준으로 로컬 검증 기준선은 Green 상태다.
 
-- `ScheduleController`와 `CoursePlaceController`가 같은
-  `PATCH /api/schedules/{scheduleId}/places/{placeId}/visit` 경로를 등록하여
-  애플리케이션 시작이 실패한다. 따라서 Health와 Swagger/OpenAPI의 실제 응답 검증은
-  아직 완료되지 않았다.
-- 전체 테스트는 검증 환경에서 4분 동안 출력 없이 대기하여 완료 여부를 확인하지
-  못했다.
-- Spotless는 기존 Java 파일 53개의 줄바꿈·포맷 위반으로 실패하며, 전체 빌드도 같은
-  `spotlessJavaCheck` 단계에서 실패한다. Java 컴파일과 패키지 조립은 완료된다.
-
-이 항목은 관련 코드 문제가 해결되고 검증을 다시 통과하면 갱신한다.
+- 방문 인증 경로는 `CoursePlaceController`만 소유하며 애플리케이션이 정상 기동한다.
+- Docker Desktop의 Testcontainers PostgreSQL을 사용하는 전체 테스트가 2분 11초에
+  통과했다.
+- `spotlessCheck`와 전체 빌드가 통과했다. 전체 빌드는 테스트를 포함해 1분 56초가
+  걸렸다.
+- 실제 기동 환경에서 Health는 HTTP 200과 `UP`, Swagger UI와 OpenAPI JSON은 HTTP
+  200을 반환했다. 방문 인증 경로는 OpenAPI에 한 번만 노출된다.
+- 방문 인증은 GPS 요청·응답 계약과 고정 응답만 제공하는 스켈레톤이다. DB 저장, GPS
+  거리 판정, 인증과 실제 사용자 식별은 아직 구현하지 않았다.
 
 ## 주요 사용자와 권한
 
@@ -142,7 +141,7 @@ docker compose ps
 Windows:
 
 ```powershell
-gradlew.bat bootRun
+.\gradlew.bat bootRun
 ```
 
 macOS/Linux:
@@ -174,10 +173,10 @@ Health가 HTTP 200과 `UP` 상태를 반환하고 Swagger UI 및 OpenAPI JSON에
 
 | 목적 | Windows | macOS/Linux | 성공 조건 |
 |---|---|---|---|
-| 관련 테스트 | `gradlew.bat test --tests "전체.테스트.클래스명"` | `./gradlew test --tests "전체.테스트.클래스명"` | 선택한 테스트가 모두 통과한다. |
-| 전체 테스트 | `gradlew.bat test` | `./gradlew test` | 모든 테스트가 통과한다. |
-| 코드 품질 검사 | `gradlew.bat spotlessCheck` | `./gradlew spotlessCheck` | Spotless 위반이 없다. |
-| 전체 빌드 | `gradlew.bat build` | `./gradlew build` | 빌드가 성공하고 테스트와 품질 검사가 통과한다. |
+| 관련 테스트 | `.\gradlew.bat test --tests "전체.테스트.클래스명"` | `./gradlew test --tests "전체.테스트.클래스명"` | 선택한 테스트가 모두 통과한다. |
+| 전체 테스트 | `.\gradlew.bat test` | `./gradlew test` | 모든 테스트가 통과한다. |
+| 코드 품질 검사 | `.\gradlew.bat spotlessCheck` | `./gradlew spotlessCheck` | Spotless 위반이 없다. |
+| 전체 빌드 | `.\gradlew.bat build` | `./gradlew build` | 빌드가 성공하고 테스트와 품질 검사가 통과한다. |
 
 환경 문제나 기존 실패 때문에 검사를 실행하지 못한 경우 완료로 간주하지 않고 원인과
 미실행 검사를 구분해 보고한다.

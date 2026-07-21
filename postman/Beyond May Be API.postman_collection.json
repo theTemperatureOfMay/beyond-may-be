@@ -1021,7 +1021,7 @@
         },
         {
           "name": "방문 인증",
-          "description": "방문 인증 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "description": "방문 인증 GPS 요청·응답 스켈레톤입니다. 현재는 DB 저장, GPS 거리 판정, 인증 및 실제 사용자 식별을 수행하지 않고 고정 응답을 반환합니다.",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1030,10 +1030,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/schedules/1/places/1/visit",
+            "url": "{{baseUrl}}/api/schedules/schedule_01J/places/place_001/visit",
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526,\n  \"hasGpsPermission\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1043,7 +1043,7 @@
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 방문 인증 스켈레톤",
               "originalRequest": {
                 "method": "PATCH",
                 "header": [
@@ -1052,10 +1052,10 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/schedules/1/places/1/visit",
+                "url": "{{baseUrl}}/api/schedules/schedule_01J/places/place_001/visit",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526,\n  \"hasGpsPermission\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1073,40 +1073,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
-            },
-            {
-              "name": "500 - 내부 로직 미구현",
-              "originalRequest": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/schedules/1/places/1/visit",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "Internal Server Error",
-              "code": 500,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"placeId\": \"place_001\",\n    \"visited\": true,\n    \"visitedAt\": \"1970-01-01T00:00:00\",\n    \"visitedBy\": \"temporary-user-id\"\n  },\n  \"success\": true\n}"
             }
           ]
         },
@@ -1449,4 +1416,3 @@
     }
   ]
 }
-

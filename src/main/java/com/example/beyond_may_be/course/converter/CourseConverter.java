@@ -14,7 +14,6 @@ import com.example.beyond_may_be.course.dto.CourseDtos.RouteResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.ShareResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.TeamMemberResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.TripScheduleResponse;
-import com.example.beyond_may_be.course.dto.CourseDtos.VisitPlaceResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.VisitStatusResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -104,9 +103,5 @@ public final class CourseConverter {
   public static CompleteResponse toCompleteResponse(Long scheduleId) {
     return new CompleteResponse(
         String.valueOf(scheduleId), "completed", LocalDateTime.parse("2026-06-30T12:00:00"), 4, 7);
-  }
-
-  public static VisitPlaceResponse toVisitPlaceResponse(String placeId) {
-    return new VisitPlaceResponse(placeId, true, "1970-01-01T00:00:00", "temporary-user-id");
   }
 }

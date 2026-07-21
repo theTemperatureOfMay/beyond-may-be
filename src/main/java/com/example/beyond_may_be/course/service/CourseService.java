@@ -9,8 +9,6 @@ import com.example.beyond_may_be.course.dto.CourseDtos.ConfirmResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.CourseResponse;
 import com.example.beyond_may_be.course.dto.CourseDtos.TripScheduleRequest;
 import com.example.beyond_may_be.course.dto.CourseDtos.TripScheduleResponse;
-import com.example.beyond_may_be.course.dto.CourseDtos.VisitPlaceRequest;
-import com.example.beyond_may_be.course.dto.CourseDtos.VisitPlaceResponse;
 import java.time.OffsetDateTime;
 import org.springframework.stereotype.Service;
 
@@ -40,10 +38,5 @@ public class CourseService {
 
   public CompleteResponse completeCourse(Long scheduleId) {
     return CourseConverter.toCompleteResponse(scheduleId);
-  }
-
-  public VisitPlaceResponse visitPlace(
-      String scheduleId, String placeId, VisitPlaceRequest request) {
-    return CourseConverter.toVisitPlaceResponse(placeId);
   }
 }

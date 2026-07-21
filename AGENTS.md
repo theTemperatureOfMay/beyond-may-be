@@ -92,10 +92,10 @@
 
 Windows에서는 다음 명령을 사용한다.
 
-- 관련 테스트: `gradlew.bat test --tests "전체.테스트.클래스명"`
-- 전체 테스트: `gradlew.bat test`
-- 코드 품질 검사: `gradlew.bat spotlessCheck`
-- 전체 빌드: `gradlew.bat build`
+- 관련 테스트: `.\gradlew.bat test --tests "전체.테스트.클래스명"`
+- 전체 테스트: `.\gradlew.bat test`
+- 코드 품질 검사: `.\gradlew.bat spotlessCheck`
+- 전체 빌드: `.\gradlew.bat build`
 
 macOS와 Linux에서는 `gradlew.bat` 대신 `./gradlew`를 사용한다.
 

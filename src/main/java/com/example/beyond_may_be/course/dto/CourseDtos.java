@@ -105,11 +105,6 @@ public final class CourseDtos {
   public record TeamMemberResponse(
       String sessionId, String nickname, String role, int visitedPlaceCount) {}
 
-  public record VisitPlaceRequest(double latitude, double longitude, boolean hasGpsPermission) {}
-
-  public record VisitPlaceResponse(
-      String placeId, boolean visited, String visitedAt, String visitedBy) {}
-
   public record CompleteResponse(
       String scheduleId,
       String status,
