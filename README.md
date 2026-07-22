@@ -21,13 +21,16 @@ Beyond May Be는 여행 취향이 서로 다른 친구들이 함께 국내 여�
 
 ### 현재 확인된 실행 상태와 제한
 
-2026-07-22 기준으로 로컬 검증 기준선은 Green 상태다.
+2026-07-22 기준으로 로컬과 GitHub Actions 검증 기준선은 Green 상태다.
 
 - 방문 인증 경로는 `CoursePlaceController`만 소유하며 애플리케이션이 정상 기동한다.
 - Docker Desktop의 Testcontainers PostgreSQL을 사용하는 전체 테스트가 2분 11초에
   통과했다.
 - `spotlessCheck`와 전체 빌드가 통과했다. 전체 빌드는 테스트를 포함해 1분 56초가
   걸렸다.
+- Pull Request #1의 Ubuntu·Java 21 환경에서 `./gradlew build`가 1분 21초에
+  통과했다. 같은 Pull Request의 의도적 Spotless 위반은 먼저 실패했고, 위반을 복구한
+  후 동일한 필수 `build` 체크가 Green이 됐다.
 - 실제 기동 환경에서 Health는 HTTP 200과 `UP`, Swagger UI와 OpenAPI JSON은 HTTP
   200을 반환했다. 방문 인증 경로는 OpenAPI에 한 번만 노출된다.
 - 방문 인증은 GPS 요청·응답 계약과 고정 응답만 제공하는 스켈레톤이다. DB 저장, GPS
@@ -126,6 +129,26 @@ cp .env.example .env
 `.env`에는 로컬 환경의 실제 값을 기록하며 Git에 추가하지 않는다. `.env.example`에는
 실제 비밀번호, API 키, 접근 토큰이나 실사용자 정보를 기록하지 않는다.
 
+### Git 훅 설치
+
+새로 clone한 저장소에서는 한 번 다음 명령을 실행한다.
+
+Windows:
+
+```powershell
+.\gradlew.bat installGitHooks
+```
+
+macOS/Linux:
+
+```bash
+./gradlew installGitHooks
+```
+
+이 task는 현재 저장소의 local `core.hooksPath`만 `.githooks`로 설정한다. 설치된
+pre-commit 훅은 commit 전에 `spotlessCheck`만 실행하며 소스를 자동 수정하지 않는다.
+검사가 실패하면 포맷 위반을 수정한 뒤 다시 commit한다.
+
 ### PostgreSQL 실행
 
 ```bash
@@ -180,6 +203,20 @@ Health가 HTTP 200과 `UP` 상태를 반환하고 Swagger UI 및 OpenAPI JSON에
 
 환경 문제나 기존 실패 때문에 검사를 실행하지 못한 경우 완료로 간주하지 않고 원인과
 미실행 검사를 구분해 보고한다.
+
+### CI와 `main` 보호
+
+GitHub Actions의 `CI / build`는 `main` 대상 Pull Request, `main` push와 수동 실행에서
+Ubuntu·Java 21 환경의 `./gradlew build`를 실행한다.
+
+`main-protection` Ruleset은 `main`만 대상으로 다음을 강제한다.
+
+- Pull Request와 모든 conversation 해결
+- 최신 `main` 기준의 GitHub Actions `build` 성공
+- branch 삭제와 force push 차단
+
+현재 required approval은 0명이고 bypass 대상은 없다. 승인 리뷰 1명 강제, 커버리지와
+보안 검사는 후속 하네스 작업으로 남아 있다.
 
 ## 보호 영역과 변경 주의사항
 

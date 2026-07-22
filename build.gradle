@@ -67,5 +67,12 @@ tasks.named('check') {
 tasks.register('installGitHooks', Exec) {
 	group = 'setup'
 	description = 'Configures this clone to use the repository Git hooks.'
+	def preCommitHook = layout.projectDirectory.file('.githooks/pre-commit')
+	inputs.file(preCommitHook)
+	doFirst {
+		if (!preCommitHook.asFile.isFile()) {
+			throw new GradleException('Git hook 파일이 없습니다: .githooks/pre-commit')
+		}
+	}
 	commandLine 'git', 'config', '--local', 'core.hooksPath', file('.githooks').absolutePath
 }
