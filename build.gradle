@@ -18,6 +18,10 @@ repositories {
 	mavenCentral()
 }
 
+dependencyLocking {
+	lockAllConfigurations()
+}
+
 spotless {
 	java {
 		target 'src/*/java/**/*.java'
