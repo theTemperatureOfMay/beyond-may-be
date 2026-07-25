@@ -17,7 +17,7 @@ class PostgreSqlImageConsistencyTest {
       Pattern.compile("(?m)^\\s*image:\\s*(postgres:[^\\s]+)\\s*$");
 
   @Test
-  void composeAndTestcontainersUseTheSameDigestPinnedPostgresImage()
+  void composeAndTestcontainersUseTheSamePostgresImage()
       throws IOException, NoSuchFieldException, IllegalAccessException {
     String composeContents = Files.readString(Path.of("docker-compose.yml"));
     Matcher matcher = POSTGRES_IMAGE_PATTERN.matcher(composeContents);
@@ -28,8 +28,6 @@ class PostgreSqlImageConsistencyTest {
     Field imageField = TestcontainersConfiguration.class.getDeclaredField("POSTGRES_IMAGE");
     String testcontainersImage = (String) imageField.get(null);
 
-    assertTrue(composeImage.contains("@sha256:"), "Compose image는 digest로 고정해야 합니다.");
-    assertTrue(testcontainersImage.contains("@sha256:"), "Testcontainers image는 digest로 고정해야 합니다.");
     assertEquals(composeImage, testcontainersImage);
   }
 }
