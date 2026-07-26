@@ -1,7 +1,9 @@
 # 하네스 단계별 구축 로드맵
 
-- 상태: 현재 세션 구현 완료 · CI 필수 관문 Pull Request Green · 미병합
+- 상태: CI 필수 관문과 재현성 기준선 구현·병합 완료
 - 결정 일자: 2026-07-22
+- 현재 상태 확인 일자: 2026-07-25
+- 병합 근거: Pull Request #1 (`bbcf6f7`), Pull Request #3 (`5a9ed83`)
 - 기준 문서: [하네스 완성 기준 및 평가표](completion-criteria.md)
 
 ## 목적
@@ -10,9 +12,10 @@
 세션 단위로 구축한다. 각 세션은 하나의 명확한 목표와 완료 조건을 가지며, 완료된
 내용을 확인한 뒤 다음 우선순위로 이동한다.
 
-## 현재 세션의 우선 작업
+## 완료된 우선 작업
 
-복구한 Green 검증 기준선을 Git 훅, GitHub Actions와 `main` Ruleset에서 강제한다.
+복구한 Green 검증 기준선을 Git 훅, GitHub Actions와 `main` Ruleset에서 강제하도록
+구성했다.
 Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Request로 로컬 commit
 차단, 원격 CI 실패, merge 차단과 동일 체크의 Green 전환을 확인했다.
 
@@ -42,7 +45,7 @@ Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Re
 - 하네스 담당자와 리뷰 절차 확정
 - required approval 1명, 커버리지와 보안 검사 강제
 - 프런트엔드 저장소, Organization base permission, merge 방식과 secret 변경
-- Pull Request #1 merge
+- Pull Request #1 merge — 당시 세션에서는 제외했으며 이후 `bbcf6f7`에서 완료
 
 ## 완료 조건
 
@@ -54,16 +57,26 @@ Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Re
 - `main-protection`이 `main`만 대상으로 PR, conversation 해결, 최신 branch와 실제
   `build` 체크를 강제한다.
 - 삭제와 force push가 차단되고 required approval과 bypass는 없다.
-- 최종 Pull Request는 Green, Ready for review, 미병합 상태다.
+- 최종 Pull Request는 Green, Ready for review 상태를 거쳐 `main`에 병합됐다.
 - `README.md`와 이 문서가 실제 설정 및 검증 결과와 일치한다.
 
 ## 후속 세션 우선순위
 
-1. 보호 영역, 외부 콘텐츠, MCP·플러그인과 외부 쓰기 승인 기준을 양 도구의 권한
-   설정과 공통 지침에 연결한다.
-2. Claude Code와 Codex에서 회귀 시험을 실행하고 결과를 기록한다.
-3. 하네스 담당 역할, 리뷰 절차, 변경과 재평가 절차를 확정한다.
-4. 팀 협업이 안정되면 required approval 1명과 커버리지·보안 검사를 단계적으로 검토한다.
+하네스 담당 역할, 갱신 조건과 재검사 조건은
+[완성 기준의 운영과 유지관리 정책](completion-criteria.md#g6-운영과-유지관리)에서
+확정했다.
+
+1. 보호 영역, 외부 콘텐츠, MCP·플러그인과 외부 쓰기 승인 기준을 공통 지침과 상세
+   안전 정책으로 문서화했다. Codex·Claude 프로젝트 권한 설정은 제외하고 기술적
+   강제가 없다는 남은 위험을 기록했다.
+2. Windows PowerShell 5.1에서 실행되는 semantic 검증과 선택적 behavioral 시험
+   준비·판정 기반을 추가했다. semantic 검증은 기존 CI `build`에 연결하고
+   behavioral 검증은 자동 실행하지 않는다.
+3. 사용자가 요청하면 하네스 구축 완료 직전에 Codex 회귀 시험 10개를 실행하고
+   결과를 기록한다.
+   Claude Code는 공통 규칙 연결만 정적으로 확인하고 행동 회귀 대상으로 삼지 않는다.
+4. 완성 기준과 회귀 시험을 통과하면 required approval을 1명으로 전환한다.
+5. 팀 협업이 안정되면 커버리지와 보안 검사를 단계적으로 검토한다.
 
 후속 세션을 시작하기 전에는 직전 단계의 완료 조건을 먼저 확인한다.
 
@@ -92,12 +105,13 @@ Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Re
   `--rerun-tasks`로 실행해 1분 39초에 통과했고 `spotlessCheck`와 전체 build도 통과했다.
 - 동일 체크의 run `29862648816`은 `spotlessCheck`, test와 build task를 실제 실행해
   1분 21초에 성공했다. 전체 GitHub Actions job은 1분 28초가 걸렸다.
-- Pull Request #1은 Green, Ready for review, 미병합 상태로 유지했다.
+- Pull Request #1은 당시 Green, Ready for review, 미병합 상태로 유지했으며 이후
+  merge commit `bbcf6f7`로 `main`에 병합됐다.
 
 ### 남은 작업
 
-- required approval 1명 강제는 초기 하네스 세팅 merge 이후 팀 협업 방식과 함께
-  검토한다.
+- required approval 1명 강제는 G1부터 G6까지의 관문과 Codex 회귀 시험을 모두
+  통과해 하네스 구축 완료를 판정한 뒤 적용한다.
 - 커버리지와 보안 검사는 현재 필수 관문에 포함하지 않았으며 후속 단계로 유지한다.
 
 ## 2026-07-22 검증 기준선 복구 결과

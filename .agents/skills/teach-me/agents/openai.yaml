@@ -1,0 +1,4 @@
+interface:
+  display_name: "깊이 이해하기"
+  short_description: "질문과 적용으로 이해를 검증합니다"
+  default_prompt: "$teach-me를 사용해 이 주제를 내 말로 설명하고 적용할 수 있을 때까지 가르쳐 주세요."

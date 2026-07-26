@@ -196,8 +196,10 @@ Health가 HTTP 200과 `UP` 상태를 반환하고 Swagger UI 및 OpenAPI JSON에
 
 | 목적 | Windows | macOS/Linux | 성공 조건 |
 |---|---|---|---|
+| 하네스 semantic 검사 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\harness\verify-harness.ps1` | `pwsh -File ./scripts/harness/verify-harness.ps1` | 공통 원본, 링크, 안전·운영 계약, 시나리오 구조와 CI 연결 검사가 통과한다. |
 | 관련 테스트 | `.\gradlew.bat test --tests "전체.테스트.클래스명"` | `./gradlew test --tests "전체.테스트.클래스명"` | 선택한 테스트가 모두 통과한다. |
 | 전체 테스트 | `.\gradlew.bat test` | `./gradlew test` | 모든 테스트가 통과한다. |
+| JaCoCo 커버리지 리포트 | `.\gradlew.bat jacocoTestReport` | `./gradlew jacocoTestReport` | `build/reports/jacoco/test/html/index.html`과 XML 리포트가 생성된다. |
 | 코드 품질 검사 | `.\gradlew.bat spotlessCheck` | `./gradlew spotlessCheck` | Spotless 위반이 없다. |
 | 전체 빌드 | `.\gradlew.bat build` | `./gradlew build` | 빌드가 성공하고 테스트와 품질 검사가 통과한다. |
 
@@ -206,8 +208,11 @@ Health가 HTTP 200과 `UP` 상태를 반환하고 Swagger UI 및 OpenAPI JSON에
 
 ### CI와 `main` 보호
 
-GitHub Actions의 `CI / build`는 `main` 대상 Pull Request, `main` push와 수동 실행에서
-Ubuntu·Java 21 환경의 `./gradlew build`를 실행한다.
+GitHub Actions의 `CI / build`는 `main` 대상 Pull Request, `main` push와 수동
+실행에서 PowerShell Core로 하네스 semantic 검증을 먼저 수행하고 Ubuntu·Java 21
+환경의 `./gradlew build`를 실행한다. 빌드가 통과하면 JaCoCo HTML·XML 리포트를
+`jacoco-report` artifact로 7일간 보관한다. 커버리지는 참고용이며 기준 미달로 빌드를
+실패시키지 않는다. Codex behavioral 검증은 CI에서 실행하지 않는다.
 
 `main-protection` Ruleset은 `main`만 대상으로 다음을 강제한다.
 
