@@ -1,23 +1,18 @@
 package com.example.beyond_may_be.user.converter;
 
-import com.example.beyond_may_be.user.dto.UserDtos.LoginResponse;
-import com.example.beyond_may_be.user.dto.UserDtos.NicknameResponse;
-import com.example.beyond_may_be.user.dto.UserDtos.PreferenceResponse;
+import com.example.beyond_may_be.user.domain.User;
+import com.example.beyond_may_be.user.dto.UserLoginResponseDto;
+import com.example.beyond_may_be.user.dto.UserSignUpResponseDto;
 
 public final class UserConverter {
   private UserConverter() {}
 
-  public static NicknameResponse toNicknameResponse(
-      String userId, String nickname, String accessToken, String createdAt) {
-    return new NicknameResponse(userId, nickname, accessToken, createdAt);
+  public static UserSignUpResponseDto toSignUpResponse(User user) {
+    return new UserSignUpResponseDto(
+        user.getId(), user.getNickname(), user.getIdentificationCode());
   }
 
-  public static LoginResponse toLoginResponse(String userId, String nickname, String accessToken) {
-    return new LoginResponse(userId, nickname, accessToken);
-  }
-
-  public static PreferenceResponse toPreferenceResponse(
-      String preferenceType, String description, String testedAt) {
-    return new PreferenceResponse(preferenceType, description, testedAt);
+  public static UserLoginResponseDto toLoginResponse(User user) {
+    return new UserLoginResponseDto(user.getId(), user.getNickname());
   }
 }
