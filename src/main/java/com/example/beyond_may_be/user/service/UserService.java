@@ -19,35 +19,35 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class UserService {
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    public UserSignUpResponseDto signUp(UserSignUpRequestDto requestDto) {
-        String nickname = requestDto.getNickname();
-        Integer identificationCode = generateUniqueIdentificationCode(nickname);
+  public UserSignUpResponseDto signUp(UserSignUpRequestDto requestDto) {
+    String nickname = requestDto.getNickname();
+    Integer identificationCode = generateUniqueIdentificationCode(nickname);
 
-        User user = User.builder()
-            .nickname(nickname)
-            .identificationCode(identificationCode)
-            .build();
+    User user = User.builder().nickname(nickname).identificationCode(identificationCode).build();
 
-        User savedUser = userRepository.save(user);
+    User savedUser = userRepository.save(user);
 
-        return UserConverter.toSignUpResponse(savedUser);
-    }
+    return UserConverter.toSignUpResponse(savedUser);
+  }
 
-    private Integer generateUniqueIdentificationCode(String nickname) {
-        Random random = new Random();
-        Integer code;
-        do {
-            code = random.nextInt(99) + 1;
-        } while (userRepository.existsByNicknameAndIdentificationCode(nickname, code));
-        return code;
-    }
+  private Integer generateUniqueIdentificationCode(String nickname) {
+    Random random = new Random();
+    Integer code;
+    do {
+      code = random.nextInt(99) + 1;
+    } while (userRepository.existsByNicknameAndIdentificationCode(nickname, code));
+    return code;
+  }
 
-    @Transactional(readOnly = true)
-    public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
-        User user = userRepository.findByNicknameAndIdentificationCode(requestDto.getNickname(), requestDto.getIdentificationCode())
+  @Transactional(readOnly = true)
+  public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
+    User user =
+        userRepository
+            .findByNicknameAndIdentificationCode(
+                requestDto.getNickname(), requestDto.getIdentificationCode())
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_LOGIN_FAILED));
-        return UserConverter.toLoginResponse(user);
-    }
+    return UserConverter.toLoginResponse(user);
+  }
 }

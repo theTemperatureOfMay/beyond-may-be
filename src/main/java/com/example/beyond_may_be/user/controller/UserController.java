@@ -16,15 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
 public class UserController {
-    private final UserService userService;
+  private final UserService userService;
 
-    @PostMapping("/sign-up")
-    public ApiResponse<UserSignUpResponseDto> signUp(@RequestBody UserSignUpRequestDto requestDto) {
-        return ApiResponse.onSuccess(userService.signUp(requestDto));
-    }
+  @PostMapping("/sign-up")
+  public ApiResponse<UserSignUpResponseDto> signUp(@RequestBody UserSignUpRequestDto requestDto) {
+    return ApiResponse.onSuccess(userService.signUp(requestDto));
+  }
 
-    @PostMapping("/login")
-    public ApiResponse<UserLoginResponseDto> login(@RequestBody UserLoginRequestDto requestDto) {
-        return ApiResponse.onSuccess(userService.login(requestDto));
-    }
+  @PostMapping("/login")
+  public ApiResponse<UserLoginResponseDto> login(@RequestBody UserLoginRequestDto requestDto) {
+    return ApiResponse.onSuccess(userService.login(requestDto));
+  }
 }

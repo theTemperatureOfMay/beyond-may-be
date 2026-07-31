@@ -15,26 +15,26 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"nickname", "identification_code"})
-})
+@Table(
+    name = "users",
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"nickname", "identification_code"})})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
-    @Id
-    @Column(name = "user_id")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @Column(name = "user_id")
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false, length = 10)
-    private String nickname;
+  @Column(nullable = false, length = 10)
+  private String nickname;
 
-    @Column(name = "identification_code", nullable = false)
-    private Integer identificationCode;
+  @Column(name = "identification_code", nullable = false)
+  private Integer identificationCode;
 
-    @Builder
-    public User(String nickname, Integer identificationCode) {
-        this.nickname = nickname;
-        this.identificationCode = identificationCode;
-    }
+  @Builder
+  public User(String nickname, Integer identificationCode) {
+    this.nickname = nickname;
+    this.identificationCode = identificationCode;
+  }
 }

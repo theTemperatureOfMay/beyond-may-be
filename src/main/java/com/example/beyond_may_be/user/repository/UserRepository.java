@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    boolean existsByNicknameAndIdentificationCode(String nickname, Integer identificationCode);
-    Optional<User> findByNicknameAndIdentificationCode(String nickname, Integer identificationCode);
+  boolean existsByNicknameAndIdentificationCode(String nickname, Integer identificationCode);
+
+  Optional<User> findByNicknameAndIdentificationCode(String nickname, Integer identificationCode);
 }

@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class UserLoginResponseDto {
-    private Long userId;
-    private String nickname;
+  private Long userId;
+  private String nickname;
 }
