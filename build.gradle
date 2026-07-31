@@ -27,6 +27,10 @@ dependencyLocking {
 	lockAllConfigurations()
 }
 
+configurations {
+	mockitoAgent
+}
+
 spotless {
 	java {
 		target 'src/*/java/**/*.java'
@@ -58,11 +62,15 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	mockitoAgent('org.mockito:mockito-core') {
+		transitive = false
+	}
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 	systemProperty 'spring.profiles.active', 'test'
+	jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
 	finalizedBy tasks.named('jacocoTestReport')
 }
 
