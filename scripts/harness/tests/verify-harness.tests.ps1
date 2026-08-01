@@ -31,6 +31,82 @@ function Write-TestFile {
     [System.IO.File]::WriteAllText($path, $Content, $utf8WithoutBom)
 }
 
+function Write-ProductKnowledgeFixture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Root
+    )
+
+    $groups = [ordered]@{
+        "onboarding-preference.md" = @(
+            "1.1.1", "1.1.2", "1.1.3", "1.2.1", "1.2.2", "1.2.3", "1.3.1"
+        )
+        "place-selection.md" = @(
+            "2.1.1", "2.1.2", "2.1.3", "2.2.1", "2.2.2", "2.2.3", "2.2.4",
+            "2.3.1", "2.3.2"
+        )
+        "course-design.md" = @(
+            "3.1.0", "3.1.1", "3.1.2", "3.2.1", "3.2.2", "3.3.1", "3.3.2", "3.3.3"
+        )
+        "exploration.md" = @(
+            "4.1.1", "4.2.1", "4.2.2", "4.2.3", "4.2.4", "4.3.1", "4.3.2",
+            "4.3.3", "4.3.4", "4.4.1", "4.4.2"
+        )
+        "travel-records.md" = @("5.1.1", "5.1.2", "5.2.1", "5.2.2")
+        "common-policies.md" = @(
+            "6.1.1", "6.1.2", "6.1.3", "6.1.4", "6.1.5", "6.3.1", "6.4.1",
+            "6.5.1", "6.5.2", "6.5.3"
+        )
+    }
+    $hubLinks = @()
+    $mvpRows = @()
+
+    foreach ($entry in $groups.GetEnumerator()) {
+        $featureLines = @(
+            "# 시험 기능 영역",
+            "",
+            "[전체 명세](../feature-spec.md) · [MVP](../mvp.md) · [논의 필요](../open-questions.md)",
+            ""
+        )
+        foreach ($id in $entry.Value) {
+            $featureLines += "#### $id 기능 $id"
+            $featureLines += ""
+            $featureLines += "- 상세 동작"
+            $featureLines += ""
+            $mvpRows += "| ``$id`` | 기능 $id | 책임 | 일반 | 미구현 | 근거 |"
+        }
+        Write-TestFile $Root "docs\product\features\$($entry.Key)" (
+            ($featureLines -join [Environment]::NewLine) + [Environment]::NewLine
+        )
+        $hubLinks += "- [영역 $($entry.Key)](features/$($entry.Key))"
+    }
+
+    $hubContent = @(
+        "# 상세 기능 명세",
+        "",
+        "## 기능 영역",
+        ""
+    ) + $hubLinks + @(
+        "",
+        "[논의 필요](open-questions.md)",
+        ""
+    )
+    Write-TestFile $Root "docs\product\feature-spec.md" (
+        $hubContent -join [Environment]::NewLine
+    )
+
+    $mvpContent = @(
+        "# MVP",
+        "",
+        "| ID | 기능 | 책임 | 우선순위 | 상태 | 근거 |",
+        "|---|---|---|---|---|---|"
+    ) + $mvpRows + @("")
+    Write-TestFile $Root "docs\product\mvp.md" (
+        $mvpContent -join [Environment]::NewLine
+    )
+    Write-TestFile $Root "docs\product\open-questions.md" "# 논의 필요`n"
+}
+
 function Invoke-Git {
     param(
         [Parameter(Mandatory = $true)]
@@ -99,6 +175,21 @@ function New-ValidFixture {
 - [안전 정책](safety-policy.md)
 - [행동 검증](behavioral-validation.md)
 - [로드맵](setup-roadmap.md)
+- [변경 영향 지도](change-impact-map.md)
+'@
+    Write-TestFile $root 'docs\harness\change-impact-map.md' @'
+# 변경 영향 지도
+
+## 변경 유형별 영향
+
+| change_type | trigger_examples | canonical_sources | candidate_impacts | required_checks | stop_conditions |
+|---|---|---|---|---|---|
+| `product` | 제품 행동 | 정본 | 영향 | 검사 | 충돌 |
+| `api` | API 계약 | 정본 | 영향 | 검사 | 충돌 |
+| `data` | 데이터 구조 | 정본 | 영향 | 검사 | 충돌 |
+| `architecture` | 구조 결정 | 정본 | 영향 | 검사 | 충돌 |
+| `security` | 보안 규칙 | 정본 | 영향 | 검사 | 충돌 |
+| `harness` | 하네스 규칙 | 정본 | 영향 | 검사 | 충돌 |
 '@
     Write-TestFile $root "docs\harness\safety-policy.md" @'
 # 안전 정책
@@ -192,6 +283,8 @@ jobs:
         run: ./gradlew build
 '@
 
+    Write-ProductKnowledgeFixture $root
+
     Invoke-Git $root @("init", "--quiet") | Out-Null
     Invoke-Git $root @("config", "user.email", "fixture@example.invalid") | Out-Null
     Invoke-Git $root @("config", "user.name", "Harness Fixture") | Out-Null
@@ -284,6 +377,60 @@ try {
         $root = New-ValidFixture "valid"
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-True ($result.ExitCode -eq 0) "정상 fixture 실패`n$($result.Output)"
+    }
+
+    Invoke-TestCase '변경 영향 지도 누락' {
+        $root = New-ValidFixture 'missing-change-impact-map'
+        Remove-Item -LiteralPath (Join-Path $root 'docs\harness\change-impact-map.md')
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result 'CHANGE-IMPACT-FILE'
+    }
+
+    Invoke-TestCase '변경 영향 유형 누락' {
+        $root = New-ValidFixture 'missing-change-impact-type'
+        $path = Join-Path $root 'docs\harness\change-impact-map.md'
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace '\| `security` \|', '| `other` |'
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result 'CHANGE-IMPACT-TYPES'
+    }
+
+    Invoke-TestCase '변경 영향 지도 구조 누락' {
+        $root = New-ValidFixture 'missing-change-impact-schema'
+        $path = Join-Path $root 'docs\harness\change-impact-map.md'
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace 'canonical_sources', 'sources'
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result 'CHANGE-IMPACT-SCHEMA'
+    }
+
+    Invoke-TestCase '변경 영향 지도 링크 누락' {
+        $root = New-ValidFixture 'broken-change-impact-link'
+        $path = Join-Path $root 'docs\harness\README.md'
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace 'change-impact-map\.md', 'missing-change-impact-map.md'
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result 'LINK-TARGET'
+    }
+
+    Invoke-TestCase "제품 지식 베이스 실패 전파" {
+        $root = New-ValidFixture "product-knowledge-failure"
+        $path = Join-Path $root "docs\product\features\travel-records.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = [regex]::Replace(
+            $content,
+            "(?ms)^#### 5\.2\.2 .+?\r?\n\r?\n- 상세 동작\r?\n?",
+            ""
+        )
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "PRODUCT-KNOWLEDGE"
+        Assert-True ($result.Output -match "PRODUCT-ID-COUNT") (
+            "하위 제품 검사 실패 원인이 보존되지 않았다.`n$($result.Output)"
+        )
     }
 
     Invoke-TestCase "공통 원본 연결 누락" {

@@ -116,11 +116,52 @@ try {
     $resolvedRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
     $rootPrefix = $resolvedRoot.TrimEnd("\", "/") + [System.IO.Path]::DirectorySeparatorChar
 
+    $productVerifier = Join-Path $PSScriptRoot "verify-product-knowledge.ps1"
+    if (-not (Test-Path -LiteralPath $productVerifier -PathType Leaf)) {
+        Add-RuleFailure "PRODUCT-KNOWLEDGE" "scripts/harness/verify-product-knowledge.ps1" (
+            "제품 지식 베이스 검증 스크립트가 없다."
+        )
+    }
+    else {
+        $currentPowerShell = (Get-Process -Id $PID).Path
+        $productArguments = @("-NoProfile")
+        if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+            $productArguments += @("-ExecutionPolicy", "Bypass")
+        }
+        $productArguments += @(
+            "-File",
+            $productVerifier,
+            "-RepositoryRoot",
+            $resolvedRoot
+        )
+
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $productOutput = & $currentPowerShell @productArguments 2>&1
+            $productExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        foreach ($line in $productOutput) {
+            Write-Output $line
+        }
+        if ($productExitCode -ne 0) {
+            Add-RuleFailure "PRODUCT-KNOWLEDGE" "docs/product" (
+                "제품 지식 베이스 검증이 실패했다."
+            )
+        }
+    }
+
+    $changeImpactMapRelativePath = "docs/harness/change-impact-map.md"
     $allowedTextFiles = @(
         "AGENTS.md",
         "CLAUDE.md",
         "README.md",
         "docs/harness/README.md",
+        $changeImpactMapRelativePath,
         "docs/harness/completion-criteria.md",
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
@@ -131,13 +172,35 @@ try {
         "AGENTS.md",
         "CLAUDE.md",
         "docs/harness/README.md",
+        $changeImpactMapRelativePath,
         "docs/harness/completion-criteria.md",
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
         "docs/harness/setup-roadmap.md"
     )
-    $requiredFiles = $allowedTextFiles
+    $requiredFiles = @(
+        $allowedTextFiles | Where-Object { $_ -ne $changeImpactMapRelativePath }
+    )
     $contents = @{}
+
+    $changeImpactMapFullPath = Join-Path $resolvedRoot $changeImpactMapRelativePath
+    if (-not (Test-Path -LiteralPath $changeImpactMapFullPath -PathType Leaf)) {
+        Add-RuleFailure "CHANGE-IMPACT-FILE" $changeImpactMapRelativePath "변경 영향 지도가 없다."
+    }
+    elseif (Test-ProtectedPath $changeImpactMapRelativePath) {
+        Add-RuleFailure "CHANGE-IMPACT-FILE" $changeImpactMapRelativePath "보호 경로는 변경 영향 지도 검사 입력으로 읽을 수 없다."
+    }
+    else {
+        try {
+            $contents[$changeImpactMapRelativePath] = [System.IO.File]::ReadAllText(
+                $changeImpactMapFullPath,
+                $utf8
+            )
+        }
+        catch {
+            Add-RuleFailure "CHANGE-IMPACT-FILE" $changeImpactMapRelativePath "UTF-8 문서로 읽을 수 없다."
+        }
+    }
 
     foreach ($relativePath in $requiredFiles) {
         $fullPath = Join-Path $resolvedRoot $relativePath
@@ -265,6 +328,37 @@ try {
                     Add-RuleFailure "LINK-ANCHOR" $sourceRelativePath "링크 anchor가 없다: $target"
                 }
             }
+        }
+    }
+
+    if ($contents.ContainsKey($changeImpactMapRelativePath)) {
+        $impactMapText = $contents[$changeImpactMapRelativePath]
+        $impactMapSchemaPattern = '(?m)^\|\s*change_type\s*\|\s*trigger_examples\s*\|\s*canonical_sources\s*\|\s*candidate_impacts\s*\|\s*required_checks\s*\|\s*stop_conditions\s*\|'
+        if (
+            $impactMapText -notmatch '(?m)^##\s+변경 유형별 영향\s*$' -or
+            $impactMapText -notmatch $impactMapSchemaPattern
+        ) {
+            Add-RuleFailure 'CHANGE-IMPACT-SCHEMA' $changeImpactMapRelativePath '변경 영향 지도에 heading 또는 필수 field 표가 없다.'
+        }
+
+        $requiredImpactTypes = @(
+            'product',
+            'api',
+            'data',
+            'architecture',
+            'security',
+            'harness'
+        )
+        $missingImpactTypes = @(
+            $requiredImpactTypes | Where-Object {
+                $impactTypePattern = '(?m)^\|\s*`' + [regex]::Escape($_) + '`\s*\|'
+                $impactMapText -notmatch $impactTypePattern
+            }
+        )
+        if ($missingImpactTypes.Count -gt 0) {
+            Add-RuleFailure 'CHANGE-IMPACT-TYPES' $changeImpactMapRelativePath (
+                '변경 영향 유형이 누락됐다: ' + ($missingImpactTypes -join ', ')
+            )
         }
     }
 
