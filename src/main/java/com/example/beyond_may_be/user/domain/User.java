@@ -1,8 +1,11 @@
 package com.example.beyond_may_be.user.domain;
 
 import com.example.beyond_may_be.common.domain.BaseEntity;
+import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,9 +35,41 @@ public class User extends BaseEntity {
   @Column(name = "identification_code", nullable = false)
   private Integer identificationCode;
 
-  @Builder
+  @Enumerated(EnumType.STRING)
+  @Column(name = "preference_type")
+  private TravelPreferenceType preferenceType;
+
+  @Column(name = "thinker_score")
+  private Integer thinkerScore;
+
+  @Column(name = "foodie_score")
+  private Integer foodieScore;
+
+  @Column(name = "artist_score")
+  private Integer artistScore;
+
+  @Column(name = "rememberer_score")
+  private Integer remembererScore;
+
   public User(String nickname, Integer identificationCode) {
+    this(nickname, identificationCode, null, null, null, null, null);
+  }
+
+  @Builder
+  public User(
+      String nickname,
+      Integer identificationCode,
+      TravelPreferenceType preferenceType,
+      Integer thinkerScore,
+      Integer foodieScore,
+      Integer artistScore,
+      Integer remembererScore) {
     this.nickname = nickname;
     this.identificationCode = identificationCode;
+    this.preferenceType = preferenceType;
+    this.thinkerScore = thinkerScore;
+    this.foodieScore = foodieScore;
+    this.artistScore = artistScore;
+    this.remembererScore = remembererScore;
   }
 }
