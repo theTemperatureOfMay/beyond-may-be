@@ -1,0 +1,4 @@
+interface:
+  display_name: "템플릿 이슈 생성"
+  short_description: "저장소 이슈 템플릿과 이모지를 보존해 GitHub 이슈 생성"
+  default_prompt: "$gh-create-issue-from-template로 이슈 템플릿을 그대로 채워 GitHub 이슈를 생성해줘."
