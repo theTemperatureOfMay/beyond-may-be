@@ -41,9 +41,9 @@
 | `DRAFT` 코스 수정·확정 | 해당 `Course` 소유자 |
 | 공유 코스 합류 | 인증된 사용자, 활성 참여 없음, 유효한 공유 만료 시각 |
 | 탐험 시작·팀원 조회·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
-| 방문 인증·사진 첨부 | 해당 코스의 `ACTIVE Participant` |
-| 팀 방문 기록 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
-| 개인 누적 기록·밝힌 지도 조회 | 본인 사용자 |
+| 방문 인증·사진 첨부 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
+| 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
 
 인증된 요청의 사용자·참여자 식별자는 body나 query 값이 아니라 서버가 확인한
 인증 컨텍스트와 참여 관계에서 결정한다. 구체적인 인증 토큰·세션 방식은 별도 인증
@@ -64,7 +64,8 @@ erDiagram
     EXPLORATIONS ||--|{ EXPLORATION_PARTICIPANTS : has
     USERS ||--o{ EXPLORATION_PARTICIPANTS : joins
     EXPLORATION_PARTICIPANTS o|--o| EXPLORATIONS : starts
-    COURSE_PLACES ||--o{ VISITS : visited_at
+    PLACES ||--o{ VISITS : visited_at
+    COURSE_PLACES o|--o{ VISITS : course_context
     EXPLORATION_PARTICIPANTS ||--o{ VISITS : records
     VISITS ||--o{ VISIT_PHOTOS : has
 ```
@@ -74,12 +75,15 @@ erDiagram
 ### `users`
 
 - `user_id`가 내부 식별자다.
-- `(nickname, identifier_code)`가 표시·간편 로그인 식별자이며 복합 유일하다.
+- `(nickname, identification_code)`가 표시·간편 로그인 식별자이며 복합 유일하다.
 - 같은 닉네임에서 비어 있는 `1~99`를 무작위 배정하고, 모두 사용 중이면 `100`부터
   순차 배정한다.
-- `identifier_code`는 공개 가능한 자연수이며 강한 인증 수단으로 간주하지 않는다.
+- `identification_code`는 공개 가능한 자연수이며 강한 인증 수단으로 간주하지 않는다.
 - `preference_type`과 네 유형 점수는 성향 검사 전에는 모두 null이고, 검사 완료 후에는
   모두 값이 있어야 한다.
+- `preference_type`은 `THINKER`, `FOODIE`, `ARTIST`, `REMEMBERER` 중 하나이며,
+  네 유형 점수는 각각 `thinker_score`, `foodie_score`, `artist_score`,
+  `rememberer_score`에 저장한다.
 - `Mbti`와 `Team`을 직접 참조하지 않는다.
 
 인증 구현과 토큰·세션 저장 방식은 별도 인증 설계 범위다. 이 문서는 인증 방식이
@@ -95,10 +99,15 @@ erDiagram
 
 - 이름, 카테고리, 단일 `TravelMbti` 유형, 태그 배열, 주소, 좌표, 운영시간, 설명,
   썸네일과 활성 상태를 보존한다.
+- `travel_mbti_type`은 사용자 `preference_type`과 같은
+  `THINKER`, `FOODIE`, `ARTIST`, `REMEMBERER` 값 중 하나를 저장한다.
 - `tags`는 PostgreSQL JSONB 문자열 배열로 저장한다.
 - 5·18 연관 의미는 별도 컬럼 없이 검수된 `description`에 포함한다.
 - 외부 제공자와 콘텐츠 ID, 추천 점수, 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
+- 방문 인증 반경 100m를 검증하려면 위도·경도에 소수점 이하 최소 6자리 정밀도가
+  필요하다. 현재 `numeric(38,2)` 스키마는 후속 마이그레이션 전까지 이 기준을
+  충족하지 못한다.
 
 ### `recommendation_sets`
 
@@ -109,9 +118,15 @@ erDiagram
   조회할 수 있다.
 - 기간을 바꾸면 `recommendation_set_id`는 유지하고 같은 행의 기간·추천 ID를
   덮어쓰며 좋아요·싫어요 배열은 초기화한다.
-- 전체 스와이프가 끝난 뒤 프런트엔드가 좋아요·싫어요를 한 번에 전송한다.
-- 추가 추천은 기존 추천 ID를 제외해 같은 배열 뒤에 붙인다.
+- 회차당 장소 20곳을 제공하고, 회차가 끝날 때 프런트엔드가 해당 회차의
+  좋아요·싫어요를 한 번에 전송한다.
+- 회차 종료 시 최소 선택 수를 충족하지 못하면 기존 추천 ID를 제외한 다음 20곳을
+  같은 배열 뒤에 붙인다. 제공 가능한 장소가 남아 있는 동안 최소 기준 충족까지
+  반복한다.
 - `recommendation_items` 하위 테이블은 두지 않는다.
+
+상태 소유권과 회차 경계는
+[ADR-0008](../adr/0008-recommendation-batches.md)을 따른다.
 
 ### `courses`, `course_places`
 
@@ -125,8 +140,11 @@ erDiagram
 - CoursePlace는 Place 참조, 일자, 일자 내 순서, 예상 체류시간과 이전 장소에서의
   이동수단을 가진다.
 - `(course_id, place_id)`와 `(course_id, day_number, visit_order)`는 유일하다.
-- 폴리라인, 거리, 이동시간과 예상 도착시간은 저장하지 않는다. 프런트엔드가
-  CoursePlace 순서와 좌표로 Kakao Maps 경로 API를 호출한다.
+- 폴리라인과 경로 계산 결과는 저장하지 않는다. 프런트엔드는 Kakao Maps API로
+  지도를 렌더링하고 CoursePlace 순서와 좌표로 TMAP API의 도보 경로를 조회한다.
+
+외부 지도·경로 제공자 경계는
+[ADR-0009](../adr/0009-kakao-map-tmap-walking-route.md)을 따른다.
 
 ### `explorations`, `exploration_participants`
 
@@ -143,15 +161,23 @@ erDiagram
 
 ### `visits`, `visit_photos`
 
-- Visit은 `participant_id`, `course_place_id`, `visited_at`을 가진다.
-- `(participant_id, course_place_id)`가 유일해 같은 참여자의 동일 장소 재인증을
-  막는다.
+- Visit은 `participant_id`, `place_id`, 선택적 `course_place_id`, `visited_at`을
+  가진다. `course_place_id`가 없으면 코스에 포함되지 않은 주변 장소 방문이다.
+- Participant는 Exploration 하나에 속하므로 `(participant_id, place_id)`가 유일해
+  같은 탐험에서 같은 참여자의 동일 장소 재인증을 막는다.
 - 서버는 요청 GPS와 Place 좌표의 거리를 검사하지만 원본 GPS는 저장하지 않는다.
-- 팀 지도 완료 여부는 해당 CoursePlace Visit 존재 여부, 개인 완료 여부는 현재
-  Participant의 Visit 존재 여부로 계산한다.
+- 팀 코스 장소 완료 여부와 완료율은 해당 CoursePlace 문맥의 Visit 존재 여부로
+  계산한다. 한 명이 먼저 인증해 팀 완료가 된 뒤에도 다른 참여자는 같은 Place의
+  개인 Visit을 남길 수 있다.
+- 팀 방문 기록과 팀 누적 밝힌 지도는 해당 Exploration의 모든 Participant Visit을
+  합쳐 계산한다. CoursePlace 문맥이 없는 주변 장소 Visit도 두 조회에는 포함하지만
+  코스 완료율에서는 제외한다.
 - Visit에는 사진을 선택적으로 여러 장 연결할 수 있다.
 - 사진 파일은 객체 저장소, DB에는 비공개 `object_key`와 표시 순서를 저장한다.
 - `(visit_id, display_order)`는 유일하다.
+
+방문 대상과 조회 파생 규칙은
+[ADR-0010](../adr/0010-place-based-visits.md)을 따른다.
 
 ## 상태 전환
 
@@ -165,7 +191,7 @@ AI 생성 성공
 → 공유 링크 생성 시 share_expires_at 설정
 → 활성 Participant의 시작 요청
 → Exploration(ONGOING)
-→ 완료 조건 충족 또는 완료 요청
+→ 전체 CoursePlace 팀 완료 또는 OWNER 조기 완료 요청
 → Exploration(COMPLETED)
 ```
 
@@ -175,6 +201,8 @@ AI 생성 성공
 - 공유 URL은 `/explore/{course_id}`로 조합하며 문자열을 저장하지 않는다.
 - 링크 생성 시 3일 뒤를 `share_expires_at`으로 저장하고, 재발급 시 같은 URL의
   만료 시각만 연장한다.
+- 모든 CoursePlace에 팀 Visit이 존재하면 Exploration을 자동 완료한다.
+- `OWNER Participant`만 미방문 CoursePlace가 남아 있어도 탐험을 조기 완료할 수 있다.
 
 ### Participant
 
@@ -194,7 +222,8 @@ Exploration 완료 → COMPLETED
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
 | 한국관광공사 OpenAPI | 초기 광주 장소 수집 입력. 런타임 정본이 아님 |
-| Kakao Maps API | 프런트엔드 지도, 경로, 거리, 이동시간과 예상 도착시간 계산 |
+| Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
+| TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
 | WebSocket | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. 위치 이벤트는 10m 이동 기준으로 갱신 |
 
@@ -203,36 +232,46 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 
 ## 무결성과 오류 처리
 
-- 식별코드 배정은 `(nickname, identifier_code)` 유일 제약 충돌 시 재시도한다.
+- 식별코드 배정은 `(nickname, identification_code)` 유일 제약 충돌 시 재시도한다.
 - 추천 세트에 저장하는 Place ID는 모두 `places` 존재 여부를 검증한다.
 - Course 확정·취소, Exploration 시작과 AI 수정 카운트는 현재 상태를 조건으로
   갱신한다.
 - 공유 링크 만료는 `share_expires_at`으로 판정하며 만료된 신규 합류 요청은 410으로
   거부한다.
-- 방문 인증은 Participant가 활성 상태이고 CoursePlace가 같은 Exploration의
-  Course에 포함되는지 한 트랜잭션에서 검사한다.
+- 방문 인증은 Participant가 활성 상태이고 Place가 유효한지 검사한다. CoursePlace
+  문맥이 있으면 같은 Exploration의 Course에 포함되는지도 한 트랜잭션에서 검사한다.
 - 사진 업로드 실패는 Visit을 취소하지 않는다. 객체 업로드 후 DB 저장이 실패하면
   객체 삭제를 시도하고 남은 고아 객체는 운영 정리 대상으로 처리한다.
+
+## 운영 배포 구조
+
+백엔드는 AWS ALB 뒤의 ECS Fargate에서 실행하고 RDS PostgreSQL을 서버 데이터 정본으로
+사용한다. GitHub Actions는 OIDC로 AWS 역할을 맡아 `main` 변경 후 새 컨테이너 이미지를
+자동 배포한다. 구조와 승인 결정은
+[ADR-0011](../adr/0011-aws-main-continuous-deployment.md), 상태 확인과 복구는
+[AWS 배포·운영 절차](../operations/deployment.md)를 따른다.
 
 ## 현재 구현과 스키마 변경
 
 - 현재 JPA Entity와 API 골격은 목표 구조와 다를 수 있다. 기능별 진행 상태는
   [백엔드 MVP 상태](../product/mvp.md)에서 확인한다.
-- `ddl-auto=update`만으로 삭제·rename·데이터 변환을 적용하지 않는다.
-- 실제 반영 전 버전 마이그레이션 도구를 결정하고, 새 테이블과 nullable FK를 먼저
-  추가하는 additive migration을 우선한다.
+- Hibernate는 `ddl-auto=validate`로 Entity와 스키마를 검증하고 Flyway version
+  migration으로 스키마를 변경한다.
+- 적용된 migration은 수정하지 않고 새 버전 파일을 추가한다. 새 테이블과 nullable FK를
+  먼저 추가하는 additive migration을 우선한다.
+- `V2__place_based_visits.sql`이 기존 CoursePlace 기반 Visit의 `place_id`를 보강하고
+  `course_place_id`를 nullable로 전환했으며, `(participant_id, place_id)` 유일 조건을
+  적용한다.
+- 방문 인증 구현 전 `places.latitude`, `places.longitude`를 소수점 이하 최소 6자리를
+  보존하는 타입으로 변경해야 한다. 좌표 정밀도 변경은 별도 후속 작업이다.
 - 기존 테이블 삭제나 공유 Docker volume 초기화는 별도 구현 계획과 실행 직전 승인을
   거친다.
 
 ## 아직 확정되지 않은 정책
 
-다음 조건은 테이블 관계를 다시 설계하지 않고 검증·조회 규칙으로 수용한다. 현재
-상태와 상세 쟁점은 [제품 논의 필요](../product/open-questions.md)를 정본으로 사용한다.
-
-- 추천 장소 10개·20개 중 최종 개수
-- 참여자별 동일 장소 인증과 팀원의 개인 기록 공개 범위
-- 방문 인증 반경과 GPS 미허용 처리
-- 전체 방문 자동 완료와 별도 완료 버튼 중 최종 방식
+추천 회차, 참여자별 방문, 인증 반경과 완료 방식은 기능 명세에서 확정되었다. 남은
+API 상세와 운영 정책은 [제품 논의 필요](../product/open-questions.md)를 정본으로
+사용한다.
 
 ## 갱신 규칙
 
