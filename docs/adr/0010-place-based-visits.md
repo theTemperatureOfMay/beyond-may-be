@@ -6,8 +6,6 @@ recorded-date: 2026-08-07
 
 # ADR-0010 Visit의 방문 대상을 Place로 일반화하고 팀 상태를 파생한다
 
-구현 계획: [Place 기반 Visit 모델 전환](../../.dev/plan/260807-02-place-based-visit-migration-plan.md)
-
 `Visit`은 Participant가 Exploration 중 인증한 `Place` 방문의 정본이다. 코스 장소
 방문은 선택적 `CoursePlace` 문맥을 함께 가지며 코스 미포함 주변 장소 방문은 이 값이
 없다. 동일 Participant의 같은 Place 인증은 Exploration 안에서 한 번만 허용하고,
