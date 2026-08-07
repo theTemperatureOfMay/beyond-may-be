@@ -69,23 +69,23 @@
     },
     {
       "name": "성향 검사",
-      "description": "성향 검사 질문과 결과 저장 API 템플릿입니다.",
+      "description": "성향 검사 질문 조회 API입니다. 성향 검사는 로그인 전에 진행하며, 클라이언트가 이 질문·선택지를 로컬스토리지에서 답하고 유형별 가중치를 직접 합산합니다. 서버는 개별 응답을 저장하지 않고, 최종 계산된 점수는 회원가입(`사용자 / 회원가입`) 요청에 함께 담아 보냅니다.",
       "item": [
         {
-          "name": "성향 검사 질문 반환",
-          "description": "성향 검사 질문 반환 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "name": "성향 검사 질문 조회",
+          "description": "성향 검사 질문 21개를 선택지·유형별 가중치와 함께 한 번에 반환합니다. 인증이 필요 없습니다 (로그인 전 접근).",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/preference-test/questions"
+            "url": "{{baseUrl}}/api/v1/preference-tests/questions"
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 질문 목록",
               "originalRequest": {
                 "method": "GET",
                 "header": [],
-                "url": "{{baseUrl}}/api/preference-test/questions"
+                "url": "{{baseUrl}}/api/v1/preference-tests/questions"
               },
               "status": "OK",
               "code": 200,
@@ -97,117 +97,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
-            },
-            {
-              "name": "500 - 내부 로직 미구현",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/preference-test/questions"
-              },
-              "status": "Internal Server Error",
-              "code": 500,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
-            }
-          ]
-        },
-        {
-          "name": "성향 검사 결과 저장",
-          "description": "성향 검사 결과 저장 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/preference-test/result",
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [
-            {
-              "name": "200 - 목표 빈 응답",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/preference-test/result",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
-            },
-            {
-              "name": "500 - 내부 로직 미구현",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/preference-test/result",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "Internal Server Error",
-              "code": 500,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"questions\": [\n      {\n        \"questionId\": 1,\n        \"content\": \"여행 첫날, 광주에 도착하면 가장 먼저 가고 싶은 곳은?\",\n        \"options\": [\n          {\n            \"optionId\": 1,\n            \"displayOrder\": 1,\n            \"content\": \"한글 이름이 예쁜 동네 책방\",\n            \"thinkerWeight\": 1,\n            \"foodieWeight\": 0,\n            \"artistWeight\": 0,\n            \"remembererWeight\": 0\n          },\n          {\n            \"optionId\": 2,\n            \"displayOrder\": 2,\n            \"content\": \"SNS에서 본 그 빵집 줄서기\",\n            \"thinkerWeight\": 0,\n            \"foodieWeight\": 1,\n            \"artistWeight\": 0,\n            \"remembererWeight\": 0\n          },\n          {\n            \"optionId\": 3,\n            \"displayOrder\": 3,\n            \"content\": \"국립아시아문화전당 전시\",\n            \"thinkerWeight\": 0,\n            \"foodieWeight\": 0,\n            \"artistWeight\": 1,\n            \"remembererWeight\": 0\n          },\n          {\n            \"optionId\": 4,\n            \"displayOrder\": 4,\n            \"content\": \"옛 전남도청 앞 광장\",\n            \"thinkerWeight\": 0,\n            \"foodieWeight\": 0,\n            \"artistWeight\": 0,\n            \"remembererWeight\": 1\n          }\n        ]\n      }\n    ]\n  },\n  \"success\": true\n}"
             }
           ]
         }
@@ -215,11 +105,11 @@
     },
     {
       "name": "사용자",
-      "description": "닉네임과 로그인 API 템플릿입니다.",
+      "description": "회원가입과 로그인 API입니다. 닉네임 중복은 허용하며, 서버가 발급한 식별 코드(1~99)와의 조합이 실제 계정 식별자입니다.",
       "item": [
         {
-          "name": "닉네임 생성",
-          "description": "닉네임 생성 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "name": "회원가입",
+          "description": "닉네임으로 회원가입합니다. 성향 검사를 마쳤다면 유형별 점수 4개를 함께 보내 preferenceType을 계산·저장할 수 있습니다. 점수 4개는 모두 선택값이며, 전부 생략하면 preferenceType은 null입니다. 인증이 필요 없습니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -228,10 +118,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/users/nickname",
+            "url": "{{baseUrl}}/api/v1/users/sign-up",
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"nickname\": \"여행자\",\n  \"thinkerScore\": 3,\n  \"foodieScore\": 5,\n  \"artistScore\": 9,\n  \"remembererScore\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -241,7 +131,7 @@
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 회원가입 성공",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -250,10 +140,10 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/users/nickname",
+                "url": "{{baseUrl}}/api/v1/users/sign-up",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"nickname\": \"여행자\",\n  \"thinkerScore\": 3,\n  \"foodieScore\": 5,\n  \"artistScore\": 9,\n  \"remembererScore\": 2\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -271,46 +161,13 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
-            },
-            {
-              "name": "500 - 내부 로직 미구현",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/users/nickname",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "Internal Server Error",
-              "code": 500,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\",\n    \"identificationCode\": 42,\n    \"preferenceType\": \"ARTIST\"\n  },\n  \"success\": true\n}"
             }
           ]
         },
         {
-          "name": "로그인(닉네임)",
-          "description": "로그인(닉네임) API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "name": "로그인",
+          "description": "닉네임과 식별 코드로 로그인합니다. 인증이 필요 없습니다. 닉네임/식별 코드가 일치하지 않으면 계정 열거 방지를 위해 어느 쪽이 틀렸는지 구분하지 않는 통합 오류를 반환합니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -319,10 +176,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/auth/login",
+            "url": "{{baseUrl}}/api/v1/users/login",
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"nickname\": \"여행자\",\n  \"identificationCode\": 42\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -332,7 +189,7 @@
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 로그인 성공",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -341,10 +198,10 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/auth/login",
+                "url": "{{baseUrl}}/api/v1/users/login",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"nickname\": \"여행자\",\n  \"identificationCode\": 42\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -362,10 +219,10 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\"\n  },\n  \"success\": true\n}"
             },
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "401 - 닉네임 또는 식별 코드 불일치",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -374,10 +231,10 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/auth/login",
+                "url": "{{baseUrl}}/api/v1/users/login",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"nickname\": \"여행자\",\n  \"identificationCode\": 99\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -385,8 +242,8 @@
                   }
                 }
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -395,7 +252,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"닉네임 또는 식별 코드가 올바르지 않습니다.\",\n  \"code\": \"USER401\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         }

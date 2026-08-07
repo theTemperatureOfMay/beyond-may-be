@@ -23,6 +23,8 @@ public class SecurityConfig {
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/users/sign-up", "/api/v1/users/login")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/preference-tests/questions")
+                    .permitAll()
                     .anyRequest()
                     .denyAll())
         .build();

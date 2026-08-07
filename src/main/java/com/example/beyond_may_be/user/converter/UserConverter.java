@@ -9,7 +9,7 @@ public final class UserConverter {
 
   public static UserSignUpResponseDto toSignUpResponse(User user) {
     return new UserSignUpResponseDto(
-        user.getId(), user.getNickname(), user.getIdentificationCode());
+        user.getId(), user.getNickname(), user.getIdentificationCode(), user.getPreferenceType());
   }
 
   public static UserLoginResponseDto toLoginResponse(User user) {

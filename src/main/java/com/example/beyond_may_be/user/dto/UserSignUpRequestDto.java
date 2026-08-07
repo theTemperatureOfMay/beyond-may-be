@@ -9,4 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserSignUpRequestDto {
   private String nickname;
+  private Integer thinkerScore;
+  private Integer foodieScore;
+  private Integer artistScore;
+  private Integer remembererScore;
 }
