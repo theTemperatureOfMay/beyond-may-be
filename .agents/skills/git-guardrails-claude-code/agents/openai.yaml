@@ -1,0 +1,3 @@
+interface:
+  display_name: "Git Guardrails for Claude Code"
+  short_description: "위험한 Git 명령 차단"

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Claude Handoff"
+  short_description: "백그라운드 에이전트에게 작업 인계"
+policy:
+  allow_implicit_invocation: false

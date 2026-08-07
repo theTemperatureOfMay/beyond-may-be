@@ -1,7 +1,9 @@
 # Terraform 인프라
 
 `beyond-may-be` 백엔드를 AWS(ECS Fargate + RDS PostgreSQL + ALB)에 배포하기 위한
-Terraform 구성이다. 설계는 [`.dev/specs/260806-01-aws-deploy-infra-design.md`](../.dev/specs/260806-01-aws-deploy-infra-design.md)를 따른다.
+Terraform 구성이다. 구조와 자동 배포 결정은
+[ADR-0011](../docs/adr/0011-aws-main-continuous-deployment.md), 배포 상태 확인과 복구는
+[AWS 배포·운영 절차](../docs/operations/deployment.md)를 따른다.
 
 ## 사전 준비 (사람이 직접)
 

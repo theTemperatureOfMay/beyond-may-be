@@ -103,6 +103,7 @@ API 변경 시 Swagger/OpenAPI, 관련 테스트와 Postman 자료를 함께 검
 | 목적 | Windows | macOS/Linux |
 |---|---|---|
 | 하네스 semantic 검사 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\harness\verify-harness.ps1` | `pwsh -File ./scripts/harness/verify-harness.ps1` |
+| 하네스 환경 doctor | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\harness\harness-doctor.ps1` | `pwsh -File ./scripts/harness/harness-doctor.ps1` |
 | 관련 테스트 | `.\gradlew.bat test --tests "전체.테스트.클래스명"` | `./gradlew test --tests "전체.테스트.클래스명"` |
 | 전체 테스트 | `.\gradlew.bat test` | `./gradlew test` |
 | JaCoCo 리포트 | `.\gradlew.bat jacocoTestReport` | `./gradlew jacocoTestReport` |

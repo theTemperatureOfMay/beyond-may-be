@@ -1,4 +1,0 @@
-interface:
-  display_name: "의도 구체화"
-  short_description: "핵심 질문으로 목적과 요구사항을 실행 가능한 수준까지 구체화합니다"
-  default_prompt: "Use $clarify-intent to clarify my intent and requirements one question at a time."

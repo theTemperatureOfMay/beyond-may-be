@@ -1,4 +1,4 @@
 interface:
-  display_name: '변경 영향 검사'
+  display_name: 'change-impact-review'
   short_description: '변경된 기획·문서·코드·테스트의 정합성을 수동으로 검사'
   default_prompt: 'Use $change-impact-review to inspect the current changes for documentation, code, and test consistency.'

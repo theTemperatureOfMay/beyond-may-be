@@ -156,6 +156,7 @@ try {
     }
 
     $changeImpactMapRelativePath = "docs/harness/change-impact-map.md"
+    $doctorScriptRelativePath = "scripts/harness/harness-doctor.ps1"
     $allowedTextFiles = @(
         "AGENTS.md",
         "CLAUDE.md",
@@ -166,22 +167,37 @@ try {
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
         "docs/harness/setup-roadmap.md",
-        ".github/workflows/ci.yml"
+        "docs/adr/0011-aws-main-continuous-deployment.md",
+        "docs/operations/deployment.md",
+        "terraform/README.md",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy.yml"
     )
     $markdownSources = @(
         "AGENTS.md",
         "CLAUDE.md",
+        "README.md",
         "docs/harness/README.md",
         $changeImpactMapRelativePath,
         "docs/harness/completion-criteria.md",
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
-        "docs/harness/setup-roadmap.md"
+        "docs/harness/setup-roadmap.md",
+        "docs/adr/0011-aws-main-continuous-deployment.md",
+        "docs/operations/deployment.md",
+        "terraform/README.md",
+        ".github/PULL_REQUEST_TEMPLATE.md"
     )
     $requiredFiles = @(
         $allowedTextFiles | Where-Object { $_ -ne $changeImpactMapRelativePath }
     )
     $contents = @{}
+
+    $doctorScriptFullPath = Join-Path $resolvedRoot $doctorScriptRelativePath
+    if (-not (Test-Path -LiteralPath $doctorScriptFullPath -PathType Leaf)) {
+        Add-RuleFailure "HARNESS-DOCTOR" $doctorScriptRelativePath "하네스 환경 doctor 스크립트가 없다."
+    }
 
     $changeImpactMapFullPath = Join-Path $resolvedRoot $changeImpactMapRelativePath
     if (-not (Test-Path -LiteralPath $changeImpactMapFullPath -PathType Leaf)) {
@@ -219,6 +235,73 @@ try {
         }
         catch {
             Add-RuleFailure "COMMON-FILES" $relativePath "UTF-8 문서로 읽을 수 없다."
+        }
+    }
+
+    $routingContractPaths = @(
+        "AGENTS.md",
+        ".agents/skills/plan/SKILL.md",
+        ".agents/skills/to-spec/SKILL.md",
+        ".agents/skills/implement/SKILL.md",
+        ".agents/skills/grill/SKILL.md"
+    )
+    $routingContracts = @{
+        "AGENTS.md" = @(
+            "작은 작업",
+            "일반 구현",
+            "큰 작업",
+            "(?s)일반 구현.*?plan.*?계획 승인.*?implement",
+            "(?s)큰 작업.*?wayfinder.*?to-spec.*?to-tickets.*?implement",
+            "(?s)작업 중.*?다시 승인"
+        )
+        ".agents/skills/plan/SKILL.md" = @("일반 구현", "대화 요구사항", "implement")
+        ".agents/skills/to-spec/SKILL.md" = @(
+            "(?s)target repository.*?final title.*?full body.*?labels.*?approval",
+            "(?s)intended implementation target.*?current implemented state.*?code.*?canonical documentation"
+        )
+        ".agents/skills/implement/SKILL.md" = @("일반 구현", "승인된 일반 구현")
+        ".agents/skills/grill/SKILL.md" = @(
+            "grilling", "grill-with-docs", "batch-grill-me", "batch-grill-with-docs",
+            "(?s)조합안.*?승인할 때까지.*?질문 절차.*?문서 기록.*?시작하지 않는다",
+            "(?s)문서화 경로.*?domain-modeling",
+            "(?s)대화에서 종합.*?별도.*?결과 파일.*?만들지 않는다"
+        )
+    }
+    foreach ($routingPath in $routingContractPaths) {
+        $routingFullPath = Join-Path $resolvedRoot ($routingPath -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $routingFullPath -PathType Leaf)) {
+            Add-RuleFailure "ROUTING-CONTRACT" $routingPath "작업 라우팅 계약 원본이 없다."
+            continue
+        }
+        try { $routingText = [System.IO.File]::ReadAllText($routingFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "ROUTING-CONTRACT" $routingPath "작업 라우팅 계약을 UTF-8로 읽을 수 없다."
+            continue
+        }
+        foreach ($contractPattern in $routingContracts[$routingPath]) {
+            if ($routingText -notmatch $contractPattern) {
+                Add-RuleFailure "ROUTING-CONTRACT" $routingPath "라우팅 계약이 없다: $contractPattern"
+            }
+        }
+    }
+
+    $projectSkillsRoot = Join-Path $resolvedRoot ".agents\skills"
+    $claudeSkillsRoot = Join-Path $resolvedRoot ".claude\skills"
+    if (Test-Path -LiteralPath $projectSkillsRoot -PathType Container) {
+        if (-not (Test-Path -LiteralPath $claudeSkillsRoot -PathType Container)) {
+            Add-RuleFailure "SKILL-PARITY" ".claude/skills" "프로젝트 스킬 연결 디렉터리가 없다."
+        }
+        else {
+            $projectSkillNames = @(Get-ChildItem -LiteralPath $projectSkillsRoot -Directory -Force | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "SKILL.md") } | ForEach-Object { $_.Name } | Sort-Object)
+            $claudeSkillNames = @(Get-ChildItem -LiteralPath $claudeSkillsRoot -Directory -Force | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "SKILL.md") } | ForEach-Object { $_.Name } | Sort-Object)
+            $missingClaudeSkills = @($projectSkillNames | Where-Object { $claudeSkillNames -notcontains $_ })
+            $orphanClaudeSkills = @($claudeSkillNames | Where-Object { $projectSkillNames -notcontains $_ })
+            if ($missingClaudeSkills.Count -gt 0 -or $orphanClaudeSkills.Count -gt 0) {
+                $details = @()
+                if ($missingClaudeSkills.Count -gt 0) { $details += "Claude 연결 누락: $($missingClaudeSkills -join ', ')" }
+                if ($orphanClaudeSkills.Count -gt 0) { $details += "원본 없는 Claude 스킬: $($orphanClaudeSkills -join ', ')" }
+                Add-RuleFailure "SKILL-PARITY" ".agents/skills, .claude/skills" ($details -join "; ")
+            }
         }
     }
 
@@ -291,7 +374,7 @@ try {
                 continue
             }
 
-            if (-not (Test-Path -LiteralPath $targetFullPath -PathType Leaf)) {
+            if (-not (Test-Path -LiteralPath $targetFullPath)) {
                 Add-RuleFailure "LINK-TARGET" $sourceRelativePath "링크 대상 파일이 없다: $target"
                 continue
             }
@@ -388,6 +471,43 @@ try {
             Add-RuleFailure "SAFETY-CONTRACT" "AGENTS.md, docs/harness/safety-policy.md" (
                 "핵심 안전 계약이 누락됐다: " + ($missingSafetyContracts -join ", ")
             )
+        }
+    }
+
+    $deploymentContracts = [ordered]@{
+        "AGENTS.md" = "(?s)(?=.*main)(?=.*(merge|병합))(?=.*push)(?=.*workflow_dispatch)(?=.*운영 배포 승인)(?=.*실행 직전)(?=.*복구)"
+        "docs/harness/safety-policy.md" = "(?s)(?=.*main)(?=.*(merge|병합))(?=.*push)(?=.*workflow_dispatch)(?=.*운영 배포 승인)(?=.*실행 직전)(?=.*복구)"
+        "docs/adr/0011-aws-main-continuous-deployment.md" = "(?s)main.*push.*workflow_dispatch.*운영 배포 승인"
+        "docs/operations/deployment.md" = "(?s)main.*push.*workflow_dispatch.*ECS.*(이전|rollback|롤백).*task definition"
+        ".github/PULL_REQUEST_TEMPLATE.md" = "(?s)main.*병합.*운영.*자동 배포.*복구"
+    }
+    foreach ($contract in $deploymentContracts.GetEnumerator()) {
+        if ($contents.ContainsKey($contract.Key) -and $contents[$contract.Key] -notmatch $contract.Value) {
+            Add-RuleFailure "DEPLOYMENT-CONTRACT" $contract.Key "자동 배포 승인 계약이 누락되거나 현재 결정과 다르다."
+        }
+    }
+
+    if ($contents.ContainsKey(".github/workflows/deploy.yml")) {
+        $deployWorkflowText = $contents[".github/workflows/deploy.yml"]
+        $deployWorkflowContracts = [ordered]@{
+            "main push trigger" = "(?ms)^on:\s*.*?push:\s*.*?branches:\s*.*?-\s*main\s*$"
+            "수동 trigger" = "(?m)^\s{2}workflow_dispatch:\s*$"
+            "OIDC 최소 권한" = "(?ms)^permissions:\s*.*?id-token:\s*write\s*.*?contents:\s*read\s*$"
+            "테스트 선행" = "(?ms)^\s{2}deploy:\s*.*?needs:\s*test\s*$"
+            "AWS OIDC 인증" = "Configure AWS credentials"
+            "ECS 배포" = "Deploy to ECS"
+        }
+        $missingDeployContracts = @()
+        foreach ($contract in $deployWorkflowContracts.GetEnumerator()) {
+            if ($deployWorkflowText -notmatch $contract.Value) { $missingDeployContracts += $contract.Key }
+        }
+        if ($missingDeployContracts.Count -gt 0) {
+            Add-RuleFailure "DEPLOYMENT-CONTRACT" ".github/workflows/deploy.yml" (
+                "자동 배포 workflow 계약이 누락됐다: " + ($missingDeployContracts -join ", ")
+            )
+        }
+        if ($deployWorkflowText -match "(?m)^\s+environment:\s*production\s*$") {
+            Add-RuleFailure "DEPLOYMENT-CONTRACT" ".github/workflows/deploy.yml" "ADR-0011과 달리 별도 production Environment 승인 관문이 있다."
         }
     }
 
@@ -546,6 +666,11 @@ try {
             $workflowText -notmatch $semanticStepPattern
         ) {
             Add-RuleFailure "CI-SEMANTIC" ".github/workflows/ci.yml" "기존 build job에 pwsh semantic 검증 단계가 없다."
+        }
+
+        $doctorStepPattern = "(?ms)-\s+name:\s*Verify harness environment.*?shell:\s*pwsh.*?run:\s*\.\/scripts/harness/harness-doctor\.ps1(?:\s|$)"
+        if ($workflowText -notmatch $doctorStepPattern) {
+            Add-RuleFailure "CI-DOCTOR" ".github/workflows/ci.yml" "pwsh harness doctor 검증 단계가 없다."
         }
 
         if (

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Diagnosing Bugs"
+  short_description: "어려운 버그와 회귀 문제 진단"
