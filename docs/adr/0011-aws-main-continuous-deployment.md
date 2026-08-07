@@ -18,18 +18,21 @@ Store에서 주입한다. 비용과 운영 복잡도를 줄이기 위해 NAT Gat
 
 ### 영향 대상
 
-- 현재 구현: `.github/workflows/deploy.yml`, `terraform/`, `Dockerfile`,
-  `application-prod.yml`, Flyway baseline migration
-- 후속 수정: `AGENTS.md`, 안전 정책, 변경 영향 지도, 하네스 완료 기준과 검증기,
-  프로젝트 README, 백엔드 아키텍처, 배포·운영 문서, 데모 Runbook,
-  `terraform/README.md`
+- 변경한 대상: `.github/workflows/deploy.yml`, `terraform/`, `Dockerfile`,
+  `application-prod.yml`, Flyway baseline migration, `AGENTS.md`, 안전 정책,
+  변경 영향 지도, 하네스 완료 기준과 검증기, 프로젝트 README,
+  백엔드 아키텍처, 배포·운영 문서, 데모 Runbook, `terraform/README.md`
 - 확인했지만 변경하지 않음: 제품 기능 명세와 API 계약
+- 확인한 운영 결과: 2026-08-07 `main` push에서 AWS OIDC 인증·ECR 이미지 게시·
+  ECS 배포 성공
+- 확인하지 못함: 이전 task definition 롤백
 - 미해결: 저장소 플랜 제한으로 `main` Ruleset·Branch Protection을 기술적으로 강제하지
-  못하는 위험, 운영 배포 상태 확인과 이전 task definition 복구 절차
+  못하는 위험, `workflow_dispatch` 실행 브랜치를 `main`으로 제한하지 않은 상태
 
 ### 변경 영향 검사
 
 - 검사: `change-impact-review`
-- 결과: 관련 정본과 하네스 수정 필요
-- 근거: PR #22와 병합 커밋 `cb19bc0`, 배포 workflow·Terraform·Flyway 설정,
-  안전 정책·변경 영향 지도·README·백엔드 아키텍처·데모 Runbook·하네스 검증기 대조
+- 결과: 정본과 하네스 갱신 완료, `main` 자동 배포 정상 동작 확인
+- 근거: 배포 workflow·Terraform·Flyway 설정, 안전 정책·변경 영향 지도·README·
+  백엔드 아키텍처·데모 Runbook·배포 운영 문서·하네스 검증기 대조,
+  GitHub Actions 실행 `31157329020`
