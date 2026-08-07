@@ -95,6 +95,13 @@ Health가 <http://localhost:8080/actuator/health>에서 HTTP 200과 `UP`을 반�
 
 API 변경 시 Swagger/OpenAPI, 관련 테스트와 Postman 자료를 함께 검토한다.
 
+## 배포와 운영
+
+운영 환경은 AWS ALB·ECS Fargate·RDS PostgreSQL로 구성한다. `main` merge·push와
+수동 `workflow_dispatch`는 테스트 통과 후 운영 ECS 자동 배포를 시작한다. 배포 전제,
+상태 확인과 이전 버전 복구는 [AWS 배포·운영 절차](docs/operations/deployment.md)를
+따른다.
+
 ## 검증
 
 모든 명령은 저장소 루트에서 실행한다. 통합 테스트와 전체 테스트에는 Docker가
@@ -129,8 +136,9 @@ CI와 `main` 보호 규칙은 [하네스 문서 안내](docs/harness/README.md)�
 ## 주의사항
 
 - `.env`와 실제 비밀값을 출력하거나 커밋하지 않는다.
-- 로컬 설정은 Hibernate `ddl-auto=update`를 사용하므로 `DB_URL`을 공유·운영 DB로
-  지정하지 않는다.
+- 모든 환경은 Hibernate `ddl-auto=validate`와 Flyway version migration을 사용한다.
+  스키마를 바꿀 때는 기존 migration을 수정하지 않고 새 버전 파일을 추가한다.
+- 로컬 `DB_URL`을 공유·운영 DB로 지정하지 않는다.
 - DB 스키마·데이터 삭제와 외부 서비스 쓰기는 실행 직전에 명시적인 승인을 받는다.
 
 자세한 보호 영역과 외부 작업 기준은

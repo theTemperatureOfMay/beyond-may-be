@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
     name = "visits",
-    uniqueConstraints = {@UniqueConstraint(columnNames = {"participant_id", "course_place_id"})})
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"participant_id", "place_id"})})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Visit extends BaseEntity {
 
@@ -27,7 +27,10 @@ public class Visit extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "course_place_id", nullable = false)
+  @Column(name = "place_id", nullable = false)
+  private Long placeId;
+
+  @Column(name = "course_place_id")
   private Long coursePlaceId;
 
   @Column(name = "participant_id", nullable = false)
@@ -37,9 +40,10 @@ public class Visit extends BaseEntity {
   private LocalDateTime visitedAt;
 
   @Builder
-  public Visit(Long coursePlaceId, Long participantId, LocalDateTime visitedAt) {
-    this.coursePlaceId = coursePlaceId;
+  public Visit(Long participantId, Long placeId, Long coursePlaceId, LocalDateTime visitedAt) {
     this.participantId = participantId;
+    this.placeId = placeId;
+    this.coursePlaceId = coursePlaceId;
     this.visitedAt = visitedAt;
   }
 }
