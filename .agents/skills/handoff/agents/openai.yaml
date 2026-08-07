@@ -1,0 +1,5 @@
+interface:
+  display_name: "Handoff"
+  short_description: "대화를 압축해 인계 문서로 정리"
+policy:
+  allow_implicit_invocation: false

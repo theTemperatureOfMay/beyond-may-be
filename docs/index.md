@@ -16,12 +16,14 @@
 | 현재 API 요청·응답 계약은 무엇인가? | 실행 중인 애플리케이션이 생성하는 OpenAPI. 접근 방법은 [README의 API 문서](../README.md#api-문서)를 따른다. |
 | Controller·Service·Converter·DTO를 어떻게 작성하는가? | [API 계층 코딩 컨벤션](api-layer-convention.md) |
 | 커밋 메시지를 어떻게 작성하는가? | [커밋 컨벤션](development/commit-convention.md) |
-| 중요한 제품·구조 변경의 이유는 무엇인가? | [핵심 의사결정](architecture/decisions.md) |
+| 중요한 제품·구조 변경의 이유는 무엇인가? | [개별 ADR](adr/) |
 | 변경이 여러 문서·코드·검증에 영향을 주는가? | [변경 영향 지도](harness/change-impact-map.md) |
+| 운영 환경은 어떻게 배포·확인·복구하는가? | [AWS 배포·운영 절차](operations/deployment.md) |
 | 공모전 데모를 어떻게 실행하고 복구하는가? | [공모전 데모 Runbook](demo/runbook.md) |
 | AI 에이전트는 어떤 규칙과 검증 절차를 따르는가? | [AI 작업 규칙](../AGENTS.md) |
 | 보호 영역과 외부 작업의 안전 기준은 무엇인가? | [AI 에이전트 안전 정책](harness/safety-policy.md) |
 | 하네스의 상세 문서와 검증 방법은 어디에 있는가? | [하네스 문서 안내](harness/README.md) |
+| 설치된 AI 스킬의 역할과 호출 시점은 어디에서 확인하는가? | [프로젝트 AI 스킬 사용 안내](harness/skill-catalog.md) |
 
 ## 정본 관리 원칙
 
@@ -37,3 +39,5 @@
   개발 작업의 진행 상태를 관리한다.
 - `.dev/`의 개인 설계·계획은 정본이 아니며, 지속해서 필요한 결론만 정본 문서로
   옮긴다.
+
+| 설치 스킬의 중복과 재구성 방향 | [스킬 재구성 분석 기록](harness/skill-reorganization-analysis.md) |

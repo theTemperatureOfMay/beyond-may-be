@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ask Matt"
+  short_description: "적합한 스킬 또는 작업 흐름 찾기"
+policy:
+  allow_implicit_invocation: false

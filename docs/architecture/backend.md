@@ -32,7 +32,7 @@
 
 다음은 목표 백엔드 구조의 권한 경계다. 현재 구현 여부는
 [백엔드 MVP 상태](../product/mvp.md)에서 확인하며, 사용자 식별 원칙은
-[ADR-007](decisions.md#adr-007-추천-작업-상태는-user-소유이며-인증-구현과-분리한다)을 따른다.
+[ADR-0007](../adr/0007-recommendation-set-user-ownership.md)을 따른다.
 
 | 작업 | 권한 |
 |---|---|

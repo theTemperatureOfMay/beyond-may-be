@@ -1,0 +1,5 @@
+interface:
+  display_name: "To Spec"
+  short_description: "대화를 명세로 정리"
+policy:
+  allow_implicit_invocation: false

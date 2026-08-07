@@ -31,6 +31,8 @@ AI 작업 하네스 자체를 설명한다.
 - [AI 에이전트 보호 영역·외부 작업 안전 정책](safety-policy.md)
 - [Codex behavioral 검증 실행 설명서](behavioral-validation.md)
 - [하네스 단계별 구축 로드맵](setup-roadmap.md)
+- [프로젝트 AI 스킬 사용 안내](skill-catalog.md)
+- [스킬 재구성 분석 기록](skill-reorganization-analysis.md)
 
 ## 문서 상태와 보존 범위
 
@@ -42,6 +44,8 @@ AI 작업 하네스 자체를 설명한다.
 | safety-policy.md | 현행 정본 | 보호 영역과 외부 작업 승인 기준을 관리한다. |
 | behavioral-validation.md | 현행 절차 | Codex 행동 시험 절차를 관리하며 결과는 완성 기준에 기록한다. |
 | setup-roadmap.md | 동결된 역사 기록 | 2026-07-25까지의 구축 이력과 검증 근거를 보존하며 신규 진행 상태는 추가하지 않는다. |
+| skill-catalog.md | 현행 사용 안내 | `.agents/skills/` 목록·호출 시점·프로젝트별 튜닝 기준이 바뀔 때 갱신한다. |
+| skill-reorganization-analysis.md | 설계 입력 기록 | 설치 스킬의 그룹·중복·차이·재구성 후보를 확인한다. |
 
 현행 프로젝트 상태·실행 결과·제품 정책은 README.md와 docs/의 해당 정본을
 따른다. 동결 문서의 과거 내용은 삭제하거나 최신 상태로 덮어쓰지 않고, 사실 오류나
@@ -56,11 +60,24 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\scripts\harness\verify-harness.ps1
 ```
 
+버전·환경·저장소 접근 권한·프로젝트 스킬 해시는 다음 doctor로 확인한다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\harness\harness-doctor.ps1
+```
+
+doctor는 `build.gradle`과 Gradle Wrapper에 선언된 버전, 현재 PowerShell·Git·Java·Docker
+환경, Git ignore·추적 정책과 현재 권한 상태, `.agents/skills/` 전체 파일의 SHA-256과
+`.claude/skills/` 원본 연결을 읽기 전용으로 검사한다. `WARN`은 관리자 권한이나 작업
+트리 변경처럼 실행을 막지 않는 상태이며, `FAIL`은 환경 정합성 문제다.
+
 이 검사는 behavioral 시나리오를 실행하지 않는다. Codex 10개 행동 시험은 사용자가
 요청한 경우에만 실행하며, 하네스 완성 판정 직전에는 전체 통과가 필요하다.
 실행과 판정 방법은 [behavioral 검증 실행 설명서](behavioral-validation.md)를 따른다.
 기본 semantic 검증에는 제품 기능 ID, MVP 상태표, 제품 문서 링크와 anchor의
-정합성 검사도 포함된다.
+정합성 및 `.agents/skills/`와 `.claude/skills/`의 프로젝트 스킬 집합 일치 검사가
+포함된다.
 
 ## 관리 원칙
 

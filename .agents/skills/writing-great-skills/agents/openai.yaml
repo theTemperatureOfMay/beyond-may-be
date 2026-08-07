@@ -1,0 +1,5 @@
+interface:
+  display_name: "Writing Great Skills"
+  short_description: "예측 가능한 스킬 작성 원칙 제공"
+policy:
+  allow_implicit_invocation: false

@@ -25,7 +25,7 @@
 | 미확정 제품 정책 | [제품 논의 필요](../product/open-questions.md) | PR·Issue 논의 |
 | 백엔드 책임과 현재 상태 | [백엔드 MVP 상태](../product/mvp.md) | README·기능 명세 |
 | 목표 백엔드 구조 | [백엔드 아키텍처](../architecture/backend.md) | 코드·테스트 |
-| 아키텍처 결정 | [핵심 의사결정](../architecture/decisions.md) | 관련 설계·코드 |
+| 아키텍처 결정 | [개별 ADR](../adr/) | 관련 설계·코드 |
 | 실제 API 계약 | `Controller`, DTO와 실행 시 생성되는 OpenAPI | [README API 안내](../../README.md), Swagger UI, `/v3/api-docs`, [Postman 안내](../../postman/README.md) |
 | 하네스 규칙과 안전 | [AI 작업 규칙](../../AGENTS.md), [안전 정책](safety-policy.md) | [하네스 안내](README.md), [검증기](../../scripts/harness/verify-harness.ps1), CI |
 | 변경 이력 | 저장소 정본 | PR·Issue·커밋 |
@@ -38,11 +38,11 @@ PR·Issue는 현재 사실을 보관하는 정본이 아니다. 기록이 닫혔
 | change_type | trigger_examples | canonical_sources | candidate_impacts | required_checks | stop_conditions |
 |---|---|---|---|---|---|
 | `product` | 기능 행동, 사용자 역할, 정책, 성공 조건 변경 | `docs/product/feature-spec.md`, `docs/product/features/*.md`, `docs/product/open-questions.md` | `docs/product/mvp.md`, `docs/product/user-flow.md`, 관련 `Controller`·DTO·Service·테스트·Postman·아키텍처 문서 | 제품 ID·link·anchor 검사, 의미 검토, 관련 테스트, 필요한 수동 흐름 확인 | 정책 충돌, 미확정 요구사항, 승인 범위 초과 |
-| `api` | endpoint, request/response, 오류, 상태 코드, 인증 계약 변경 | 실제 `Controller`·DTO, 실행 OpenAPI | 관련 기능 명세·`mvp.md`, `backend.md`, `decisions.md`, Postman, API 테스트 | 컴파일, 관련 테스트, OpenAPI·Postman 예시 검토, 공개 의미 검토 | 계약 변경 의도 불명확, 관련 기능·아키텍처 영향 미확인 |
-| `data` | Entity, 저장 형식, Repository, 마이그레이션, 데이터 수명 변경 | `backend.md`, 관련 `decisions.md`, 실제 데이터 코드 | Entity·Repository·Service·설정·테스트·API·기능 명세·안전 문서 | 아키텍처 테스트, 관련 테스트, 품질 검사·빌드, 저장 방식 수동 확인 | 데이터 손실 위험, 마이그레이션 범위 불명확, 운영 DB 영향 |
-| `architecture` | 패키지 경계, 도메인 책임, 의존 방향, 핵심 구조 결정 변경 | `docs/architecture/backend.md`, `docs/architecture/decisions.md` | 도메인 코드, 패키지, ArchUnit 테스트, API, 제품 문서, 관련 설계 | 결정 기록·코드 구조·ArchUnit·관련 테스트 의미 비교 | 기존 결정과 충돌, 목표와 현재 상태 혼동, 큰 구조 변경 |
-| `security` | 인증·인가, 개인정보, 비밀값, 외부 쓰기, 보호 영역 규칙 변경 | `AGENTS.md`, `docs/harness/safety-policy.md`, 실제 보안 코드 | 설정, 인증·인가 경로, 로그, README·runbook, 테스트, CI | 보호 경로 검사, 관련 테스트, 비밀값 노출 검토, 안전 정책 의미 검토 | 승인 없는 외부 쓰기, 비밀값 접근·출력, 보호 규칙 충돌 |
-| `harness` | 공통 지침, skill, 검증 명령, CI, 회귀 기준, 문서 책임 변경 | `AGENTS.md`, 활성 `docs/harness/*`, 관련 `.agents/skills/` | 검증 scripts, 회귀 tests, README·docs index, PR template, CI | `verify-harness.ps1`, 관련 회귀 테스트, G6 재검사, 필요 시 전체 검증 | 규칙 충돌, 보호 정책 약화, 실행하지 않은 검증을 완료로 기록 |
+| `api` | endpoint, request/response, 오류, 상태 코드, 인증 계약 변경 | 실제 `Controller`·DTO, 실행 OpenAPI | 관련 기능 명세·`mvp.md`, `backend.md`, `docs/adr/`, Postman, API 테스트 | 컴파일, 관련 테스트, OpenAPI·Postman 예시 검토, 공개 의미 검토 | 계약 변경 의도 불명확, 관련 기능·아키텍처 영향 미확인 |
+| `data` | Entity, 저장 형식, Repository, Flyway migration, 데이터 수명 변경 | `backend.md`, 관련 `docs/adr/`, 실제 Entity·migration·`application*.yml` | Repository·Service·테스트·API·기능 명세·안전 문서·운영 절차 | 아키텍처·애플리케이션 컨텍스트 테스트, 품질 검사·빌드, migration 적용 순서 검토 | 데이터 손실 위험, migration 범위 불명확, 운영 DB 영향 |
+| `architecture` | 패키지·도메인 경계, 의존 방향, 배포 대상·인프라 구조, ADR 생성·수정·대체 | `docs/architecture/backend.md`, `docs/adr/` | 도메인 코드, Terraform·Docker, 배포 workflow, 운영 문서, ArchUnit 테스트, 제품 문서, `AGENTS.md`, `docs/harness/*`, `.agents/skills/`, `.claude/skills/` | `change-impact-review`, 결정 기록·코드·인프라·운영 흐름과 관련 테스트 의미 비교, ADR 영향 대상·미해결 항목 확인 | 기존 결정과 충돌, 목표와 현재 상태 혼동, 활성 하네스에 이전 결정 잔존, 큰 구조 변경 |
+| `security` | 인증·인가, 개인정보, 비밀값, OIDC·외부 쓰기·자동 배포 승인, 보호 영역 변경 | `AGENTS.md`, `docs/harness/safety-policy.md`, 실제 보안·배포 설정 | `application*.yml`, Terraform IAM·SSM, 배포 workflow, 로그, README·runbook·운영 문서, 테스트 | 보호 경로 검사, 관련 테스트, 비밀값 노출·최소 권한·배포 승인 경계 검토 | 승인 없는 외부 쓰기, 비밀값 접근·출력, 보호 규칙 충돌 |
+| `harness` | 공통 지침, skill, 검증 명령, CI·자동 배포 workflow, 회귀 기준, 문서 책임 변경 | `AGENTS.md`, 활성 `docs/harness/*`, 관련 `.agents/skills/` | 검증 scripts, 회귀 tests, README·docs index, PR template, CI·배포 workflow, ADR·운영 문서 | `verify-harness.ps1`, 관련 회귀 테스트, G6 재검사, 필요 시 전체 검증 | 규칙 충돌, 보호 정책 약화, 실행하지 않은 검증을 완료로 기록 |
 
 ## 검증 결과 기록
 

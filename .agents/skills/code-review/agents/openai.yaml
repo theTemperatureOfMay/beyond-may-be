@@ -1,0 +1,3 @@
+interface:
+  display_name: "Code Review"
+  short_description: "표준과 명세를 기준으로 변경 사항 검토"
