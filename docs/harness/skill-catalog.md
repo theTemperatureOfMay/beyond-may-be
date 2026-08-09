@@ -33,13 +33,13 @@
 |---|---|---|
 | 어떤 스킬을 써야 할지 모름 | `ask-matt` | 상황에 맞는 흐름으로 이동 |
 | 요구사항·의사결정이 모호함 | `grill` | 요청 의도에 따라 1문 1답·batch·문서화 경로를 선택한 뒤 일반 구현이면 `plan`, 큰 작업이면 `wayfinder` |
-| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` | `to-spec` → `to-tickets` → `implement` |
+| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` | tracker 최종 변경안 승인 → `to-spec` → `to-tickets` → `implement` |
 | 승인된 일반 구현 | `plan` | 승인 후 `implement` → `code-review` |
-| 어려운 버그·성능 회귀 | `diagnosing-bugs` | 회귀 테스트와 승인된 수정 |
+| 어려운 버그·성능 회귀 | `diagnosing-bugs` | `.dev` 진단 보고서에서 종료; 수정은 별도 요청 |
 | 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 실제 seam에서 red → green |
 | 현재 변경의 정합성 검토 | `change-impact-review` | 관련 정본·코드·테스트 재검사 |
 | 하네스 완성도 평가 | `harness-audit` | 읽기 전용 평가와 개선 우선순위 |
-| 새 GitHub 이슈 접수·분류 | `triage` | 필요하면 `to-spec` → `to-tickets` |
+| 새 GitHub 이슈 접수·분류 | `triage` | 분류안 검토 → 승인된 댓글·label·상태만 반영 |
 | 작업 결과를 검토 | `code-review` | Standards와 Spec을 별도로 확인 |
 | 방금 한 작업을 배우고 싶음 | `teach-me` | 한 단계씩 이해 확인 |
 | 세션을 다른 에이전트로 넘김 | `handoff` | 새 세션에서 handoff 문서 참조 |
@@ -70,12 +70,11 @@
 |---|---|---|---|
 | `codebase-design` | deep module, interface, seam, adapter, locality 어휘로 구조를 설계 | 모듈 인터페이스·테스트 seam·구조 개선을 논의할 때 | 핵심 |
 | `domain-modeling` | 도메인 용어·경계·시나리오를 정리하고 필요한 결정을 기록 | 용어가 모호하거나 도메인 모델이 바뀔 때 | 핵심 |
-| `diagnosing-bugs` | 재현 가능한 red feedback loop를 만든 뒤 원인을 검증 | 어려운 버그·간헐 오류·성능 회귀를 조사할 때 | 핵심 |
+| `diagnosing-bugs` | red feedback loop로 원인을 검증하고 `.dev` 진단 보고서를 남김 | 어려운 버그·간헐 오류·성능 회귀를 조사할 때 | 핵심 |
 | `improve-codebase-architecture` | 구조적 마찰과 deepening 후보를 찾아 HTML 보고서로 제시 | 사용자가 아키텍처 개선 탐색을 요청할 때 | 조건부 |
 | `tdd` | public interface에서 red → green → refactor 사이클을 안내 | 테스트 우선 구현이나 통합 테스트가 필요한 기능·수정 | 핵심 |
 | `prototype` | 특정 로직·상태 모델·UI 질문에 답하는 폐기용 산출물 작성 | 문서만으로 결정하기 어려운 동작을 빠르게 확인할 때 | 조건부·튜닝 필요 |
 | `research` | 1차 자료를 백그라운드로 조사하고 인용된 Markdown 결과를 남김 | 공식 문서·API·사양 사실을 확인해야 할 때 | 지원 |
-| `resolving-merge-conflicts` | merge/rebase 충돌의 양쪽 의도를 조사해 hunk를 해결 | 실제 충돌 상태를 해결할 때만 | 조건부·튜닝 필요 |
 
 ### 이슈·GitHub·외부 작업
 
@@ -84,10 +83,10 @@
 | `setup-skills` | issue tracker·triage label·domain docs 설정을 한 번 구성 | 관련 설정이 없거나 tracker를 바꿀 때 | 조건부 |
 | `gh-create-issue-from-template` | 저장소의 현재 이슈 템플릿으로 GitHub 이슈 생성 | 이슈·버그·기능·작업 등록을 명시적으로 요청할 때 | 지원·프로젝트 전용 |
 | `gh-create-project-pr` | 프로젝트 PR 규칙으로 Draft PR을 생성하고 CI·JaCoCo 확인 | 사용자가 PR 게시를 명시적으로 요청할 때 | 조건부·프로젝트 전용 |
-| `triage` | GitHub 이슈·외부 PR을 category/state 역할로 분류 | 새 이슈를 검토하거나 `ready-for-agent`로 만들 때 | 지원 |
+| `triage` | GitHub 이슈·외부 PR의 category/state 분류안을 작성하고 승인된 변경만 반영 | 새 이슈를 검토하거나 `ready-for-agent` 변경안을 만들 때 | 지원 |
 | `to-spec` | 대화·코드 이해를 GitHub Issue용 spec으로 합성 | 여러 세션이 필요한 기능의 요구사항이 확정됐을 때 | 지원 |
 | `to-tickets` | spec·계획을 blocker 관계가 있는 vertical ticket으로 분할 | 구현을 여러 agent/session에 나눌 때 | 조건부 |
-| `wayfinder` | 큰 작업의 의사결정 map과 decision ticket을 관리 | 한 세션에 담기 어려운 모호한 대규모 작업 | 조건부 |
+| `wayfinder` | 큰 작업의 의사결정 map을 draft하고 승인된 tracker 변경만 반영 | 한 세션에 담기 어려운 모호한 대규모 작업 | 조건부 |
 | `git-guardrails-claude-code` | Claude Code의 위험한 Git 명령을 hook으로 차단 | push·reset·clean·branch 삭제 차단을 명시적으로 요청할 때 | 조건부·Claude 전용 |
 
 ### 세션·워크플로우·개인 생산성
@@ -116,15 +115,16 @@
 
 ### 큰 작업
 
-`wayfinder`에서 결정 지도를 해결하고, `to-spec` 게시와 `to-tickets` 분할을
-승인받은 뒤 `implement`를 실행한다.
+`wayfinder`에서 결정 지도와 각 tracker 변경 묶음을 승인받아 해결하고, `to-spec` 게시와
+`to-tickets` 분할을 승인받은 뒤 `implement`를 실행한다.
 API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impact-review`까지 완료해야
 한다.
 
 ### 버그 수정
 
-`diagnosing-bugs`로 사용자의 실제 증상에 red-capable feedback loop를 만든다. 올바른
-seam이 확인되면 `tdd`의 회귀 테스트를 먼저 작성하고 승인된 수정과 검증을 수행한다.
+`diagnosing-bugs`로 사용자의 실제 증상에 red-capable feedback loop를 만들고 원인·근거·권장
+수정안을 `.dev` 진단 보고서에 남긴 뒤 종료한다. 사용자가 보고서를 검토하고 수정을 별도로
+요청하면 그 요청을 작업 크기에 맞는 승인 경로로 보내며, 필요한 구현은 `tdd`로 진행한다.
 
 ### 하네스 변경
 
@@ -139,8 +139,8 @@ seam이 확인되면 `tdd`의 회귀 테스트를 먼저 작성하고 승인된 
    Windows PowerShell과 AGENTS 승인 규칙에 맞춘다.
 2. **작업 추적**: `to-spec`, `to-tickets`, `triage`, `gh-create-*`, `wayfinder`가
    현재 GitHub 설정과 외부 쓰기 승인 규칙을 사용하도록 맞춘다.
-3. **도구 가정**: `prototype`, `resolving-merge-conflicts`의 bash·TypeScript·커밋
-   가정을 프로젝트 환경에 맞게 조정한다.
+3. **도구 가정**: `prototype`의 bash·TypeScript·커밋 가정을 프로젝트 환경에 맞게
+   조정한다.
 4. **선택 스킬**: `handoff`, `claude-handoff`, `loop-me`, `teach`, `teach-me`,
    `to-questionnaire`, `writing-great-skills`는 실제 사용 사례가 생길 때만 튜닝한다.
 

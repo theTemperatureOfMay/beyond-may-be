@@ -1,6 +1,6 @@
 ---
 name: wayfinder
-description: Plan a huge chunk of work — more than one agent session can hold — as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.
+description: Plan a multi-session effort as a shared map of decision tickets, applying issue-tracker and other external changes only after explicit user approval.
 disable-model-invocation: true
 ---
 
@@ -11,6 +11,29 @@ The destination varies per effort, and naming it is the first act of charting �
 ## Plan, don't do
 
 Wayfinder is **planning** by default: each ticket resolves a decision, and the map is done when the way is clear — nothing left to decide before someone goes and does the thing. The pull to just do the work is usually the signal you've reached the edge of the map and it's time to hand off. An effort can override this in its **Notes** — carrying execution into the map itself — but absent that, produce decisions, not deliverables.
+
+## External-write gate
+
+Reading and classifying tracker state, exploring local context, and drafting maps, tickets, comments,
+labels, assignees, dependencies, and status changes require no approval. Do not mutate the issue
+tracker, Git state, repository files, services, access, data, or any other external state until this
+gate passes.
+
+Before each write batch:
+
+1. Re-read every target because another session may have changed it.
+2. Show the final batch exactly: tracker, repository, or service; target issue or resource; title,
+   body, or comment; labels; assignee; status; dependency edges; create, close, reopen, update, or
+   delete actions; service action and affected data; expected impact; and recovery path.
+3. Ask for explicit user approval for that exact batch immediately before applying it. Invoking
+   wayfinder or approving a destination, decision, map, or earlier draft does not approve an
+   unshown write.
+4. Apply only the approved batch, verify the resulting state, and report it. If any target or
+   content changes, stop, show the revised batch, and obtain fresh approval.
+
+Without approval, return the draft and stop without changing external state. Git branch creation or
+switching, commits, and repository-file changes also require the request and approval path in
+`AGENTS.md`; tracker approval never grants them implicitly.
 
 ## Refer by name
 
@@ -64,7 +87,10 @@ Each ticket is a **child issue** of the map; the tracker's issue id is its ident
 
 Each ticket carries a `wayfinder:<type>` label — one of `research`, `prototype`, `grilling`, `task` (see [Ticket Types](#ticket-types)).
 
-A session **claims** a ticket by assigning it to the dev driving the map, **first**, before any work, so concurrent sessions skip it. That assignee _is_ the claim: an open, unassigned ticket is unclaimed.
+A session **claims** a ticket by assigning it to the dev driving the map so concurrent sessions skip
+it. That assignee _is_ the claim: an open, unassigned ticket is unclaimed. Assignment is an external
+write: preview the exact claim and pass the [External-write gate](#external-write-gate) before doing
+ownership-dependent work. Re-check the frontier when applying the claim.
 
 Blocking uses the tracker's **native** dependency relationship — essential because it renders the frontier _visually_ in the tracker's own UI, so the human sees what's takeable without opening the map. Only a tracker that lacks native blocking falls back to a body convention. A ticket is **unblocked** when every ticket blocking it is closed; the **frontier** is the open, unblocked, unclaimed children — the edge of the known.
 
@@ -75,9 +101,9 @@ The answer isn't part of the body — it's recorded on resolution (see [Work thr
 Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this).
 
 - **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases to surface a fact a decision waits on. Resolved by a `/research` **subagent**. Use when knowledge outside the current working directory is required.
-- **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to — an outline, a rough take, a stub, or UI/logic code via the /prototype skill. Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.
+- **Prototype** (HITL): Raise the fidelity of the discussion by making the smallest cheap, rough, concrete artifact needed inside the ticket — an outline, a rough take, a stub, or throwaway UI/logic code. Link the artifact as an asset. Use when "how should it look" or "how should it behave" is the key question.
 - **Grilling** (HITL): Conversation via `/grill` in its one-question route, with `/domain-modeling` when the map needs domain records. The default case.
-- **Task** (HITL or AFK): Manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that *does* rather than decides — and it earns its place by unblocking a decision, not by delivering the destination. The agent drives it alone where it can (AFK); otherwise it hands the human a precise checklist (HITL). Resolved when the work is done; the answer records what was done and any resulting facts (credentials location, new URLs, row counts) later tickets depend on.
+- **Task** (HITL or AFK): Manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that *does* rather than decides — and it earns its place by unblocking a decision, not by delivering the destination. The agent drives an AFK task only after its exact external actions pass the [External-write gate](#external-write-gate); otherwise it hands the human a precise checklist. Resolved when the work is done; the answer records what was done and non-sensitive facts (new URLs, row counts, or a reference to an approved secret store, never secret values) later tickets depend on.
 
 ## Fog of war
 
@@ -98,7 +124,7 @@ Fog only ever gathers _toward_ the destination. The destination fixes the scope,
 
 Out-of-scope work never graduates — the frontier stops at the destination — so it returns only if the destination is redrawn, and then as a fresh effort, not a resumption.
 
-Ruling something out of scope is a scoping act, not a step on the route. When a ticket that already exists turns out to sit past the destination — mis-scoped in while charting, or exposed by a resolution — **close it** (a closed ticket is unambiguously off the frontier) and leave one line in the **Out of scope** section: the gist plus why it's out of scope, linking the closed ticket. It stays out of **Decisions so far**, which records the route actually walked — a scope boundary isn't a step on it.
+Ruling something out of scope is a scoping act, not a step on the route. When a ticket that already exists turns out to sit past the destination — mis-scoped in while charting, or exposed by a resolution — propose closing it and adding one line to the **Out of scope** section: the gist plus why it's out of scope, linking the ticket. Apply both changes through the [External-write gate](#external-write-gate). It stays out of **Decisions so far**, which records the route actually walked — a scope boundary isn't a step on it.
 
 ## Invocation
 
@@ -110,19 +136,34 @@ User invokes with a loose idea.
 
 1. **Name the destination.** Run `/grill` in its documentation route to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Run `/grill` in its batch route, **breadth-first** this time: fan out across the whole space rather than deep on one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
-3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
-4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
-5. **Fire the research subagents.** For each `research` ticket you just created, spin up a `/research` subagent to resolve it in parallel, capturing its findings on a throwaway `research/<name>` branch with a context pointer from the ticket.
-6. Stop — charting is one session's work; it hand-resolves nothing.
+3. **Draft the map and current tickets.** Fill Destination and Notes, leave Decisions-so-far empty,
+   sketch the fog in **Not yet specified**, and draft every child issue that is precise enough now.
+   Draft the labels and blocking edges too; issues will be created before edges are wired.
+4. **Preview the charting batch.** Re-read the tracker, show the exact map, tickets, labels, parent links,
+   and dependency edges, then pass the [External-write gate](#external-write-gate).
+5. **Apply and verify the approved batch.** Create the map and tickets, wire blocking edges in a
+   second pass, and verify the resulting frontier. If approval is withheld, return the draft only.
+6. Research may proceed read-only after charting. Do not create or switch a research branch, write a
+   repository report, or publish findings to a ticket without the corresponding `AGENTS.md` request
+   and approval. Resolving a research ticket uses the same resolution batch below.
+7. Stop — charting is one session's work; it hand-resolves nothing.
 
 ### Work through the map
 
 User invokes with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
 
-1. Load the **map** — the low-res view, not every ticket body.
-2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
-3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grill` and choose its one-question or batch route.
-4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
+1. Load the **map** — the low-res view, not every ticket body — and query the current frontier.
+2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in
+   order. Show the exact assignee change, pass the [External-write gate](#external-write-gate), apply
+   it, and verify the claim. Without claim approval, return the candidate and stop.
+3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand;
+   invoke the skills the `## Notes` block names. If in doubt, use `/grill` and choose its one-question
+   or batch route.
+4. Draft one resolution batch: the exact **resolution comment**, issue close, map
+   Decisions-so-far pointer, newly surfaced tickets and dependency edges, fog changes, out-of-scope
+   changes, and any ticket update or deletion made necessary by the decision.
+5. Re-read every target, show the final batch, and pass the [External-write gate](#external-write-gate).
+   Apply and verify only that approved batch. Without approval, return the resolution draft and leave
+   the tracker unchanged apart from the separately approved claim.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.

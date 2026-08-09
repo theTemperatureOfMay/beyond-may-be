@@ -89,6 +89,11 @@ Do **not** write here when something is closed as `wontfix` because it's **alrea
 
 The flow:
 
+Treat every step below as a proposed action until the triage skill's write approval gate is
+satisfied. Show the exact `.out-of-scope/` file change under the repository change approval,
+and show the final tracker comment, label changes, and close action before requesting tracker
+write approval. Write only the approved items.
+
 1. Maintainer decides a feature request is out of scope
 2. Check if a matching `.out-of-scope/` file already exists
 3. If yes: append the new issue to the "Prior requests" list

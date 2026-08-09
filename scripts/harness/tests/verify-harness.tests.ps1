@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param()
 
 Set-StrictMode -Version 2.0
@@ -174,6 +174,32 @@ function New-ValidFixture {
 - Show the target repository, final title, full body, and labels, then ask for approval.
 - The issue is the intended implementation target. Read the current implemented state from code and canonical documentation.
 '@
+    Write-TestFile $root ".agents\skills\triage\SKILL.md" @'
+# triage
+
+- Read and query issues, inspect the codebase, and prepare drafts without approval.
+- Before any tracker write, show labels to add or remove, the full final comment, and the final state.
+- Ask for explicit approval immediately before writing.
+- Apply only the approved batch.
+- Without approval, stop after delivering the recommendation and drafts.
+'@
+    Write-TestFile $root ".agents\skills\diagnosing-bugs\SKILL.md" @'
+# diagnosing-bugs
+
+- The boundary is a diagnosis report under `.dev/logs/`.
+- Product fixes and permanent regression tests start only from a separate user request.
+- Every temporary diagnostic change is removed and pre-existing user changes remain intact.
+- The skill ends at the diagnosis report.
+'@
+    Write-TestFile $root ".agents\skills\wayfinder\SKILL.md" @'
+# wayfinder
+
+- Reading and classifying tracker state and drafting changes require no approval. Do not mutate external state before the gate passes.
+- Show the final batch exactly, including labels, assignee, status, and dependency edges.
+- Ask for explicit user approval immediately before applying the batch.
+- Apply only the approved batch. If any target or content changes, obtain fresh approval.
+- Without approval, return the draft and stop without changing external state.
+'@
     Write-TestFile $root ".agents\skills\implement\SKILL.md" @'
 # implement
 
@@ -201,6 +227,21 @@ function New-ValidFixture {
 # Claude to-spec 연결
 
 .agents/skills/to-spec/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\triage\SKILL.md" @'
+# Claude triage 연결
+
+.agents/skills/triage/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\diagnosing-bugs\SKILL.md" @'
+# Claude diagnosing-bugs 연결
+
+.agents/skills/diagnosing-bugs/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\wayfinder\SKILL.md" @'
+# Claude wayfinder 연결
+
+.agents/skills/wayfinder/SKILL.md를 원본으로 사용한다.
 '@
     Write-TestFile $root ".claude\skills\implement\SKILL.md" @'
 # Claude implement 연결
@@ -543,6 +584,51 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "라우팅 계약 누락: triage 외부 쓰기 승인" {
+        $root = New-ValidFixture "routing-triage-write-approval"
+        $path = Join-Path $root ".agents\skills\triage\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace "Ask for explicit approval immediately before writing\.", "Write immediately."
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "라우팅 계약 누락: diagnosing-bugs 진단 종료 경계" {
+        $root = New-ValidFixture "routing-diagnosis-boundary"
+        $path = Join-Path $root ".agents\skills\diagnosing-bugs\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace "The skill ends at the diagnosis report\.", "The skill implements the fix."
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "라우팅 계약 누락: wayfinder 외부 쓰기 승인" {
+        $root = New-ValidFixture "routing-wayfinder-write-approval"
+        $path = Join-Path $root ".agents\skills\wayfinder\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content -replace "Ask for explicit user approval immediately before applying the batch\.", "Apply the batch immediately."
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "제거된 resolving-merge-conflicts 스킬 재등장" {
+        $root = New-ValidFixture "retired-skill-files"
+        Write-TestFile $root ".agents\skills\resolving-merge-conflicts\SKILL.md" "# retired source`n"
+        Write-TestFile $root ".claude\skills\resolving-merge-conflicts\SKILL.md" "# retired bridge`n"
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "RETIRED-SKILL"
+    }
+
+    Invoke-TestCase "제거된 resolving-merge-conflicts 활성 문서 참조" {
+        $root = New-ValidFixture "retired-skill-reference"
+        Write-TestFile $root "docs\harness\skill-catalog.md" "- resolving-merge-conflicts`n"
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "RETIRED-SKILL"
     }
 
     Invoke-TestCase "라우팅 계약 누락: implement 일반 계획" {

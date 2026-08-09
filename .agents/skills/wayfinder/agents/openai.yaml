@@ -1,5 +1,5 @@
 interface:
   display_name: "Wayfinder"
-  short_description: "큰 작업을 결정 티켓 지도로 구성"
+  short_description: "큰 작업의 결정 지도를 작성하고 승인된 변경만 반영"
 policy:
   allow_implicit_invocation: false

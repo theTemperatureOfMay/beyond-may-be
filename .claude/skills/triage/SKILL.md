@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Move issues and external PRs through a state machine of triage roles — categorise, verify, grill if needed, and write agent-ready briefs."
+description: "Read and classify incoming issues and external PRs, draft triage comments and role changes, and apply only the tracker writes the user explicitly approves."
 ---
 
 # Claude Code 연결 파일

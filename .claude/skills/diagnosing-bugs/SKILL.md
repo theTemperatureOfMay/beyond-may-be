@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: "Diagnosis loop for hard bugs and performance regressions. Use when the user says diagnose or debug, or reports something broken, throwing, failing, or slow."
+description: "Diagnose hard bugs and performance regressions, then record the evidence and recommended fix in .dev without implementing it."
 ---
 
 # Claude Code 연결 파일

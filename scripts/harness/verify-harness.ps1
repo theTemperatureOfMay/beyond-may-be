@@ -242,6 +242,9 @@ try {
         "AGENTS.md",
         ".agents/skills/plan/SKILL.md",
         ".agents/skills/to-spec/SKILL.md",
+        ".agents/skills/triage/SKILL.md",
+        ".agents/skills/diagnosing-bugs/SKILL.md",
+        ".agents/skills/wayfinder/SKILL.md",
         ".agents/skills/implement/SKILL.md",
         ".agents/skills/grill/SKILL.md"
     )
@@ -258,6 +261,25 @@ try {
         ".agents/skills/to-spec/SKILL.md" = @(
             "(?s)target repository.*?final title.*?full body.*?labels.*?approval",
             "(?s)intended implementation target.*?current implemented state.*?code.*?canonical documentation"
+        )
+        ".agents/skills/triage/SKILL.md" = @(
+            "(?s)Read and query.*?without approval",
+            "(?s)Before any tracker write.*?labels to add or remove.*?full final comment.*?final state",
+            "(?s)Ask for explicit approval immediately before writing.*?Apply only the approved batch",
+            "(?s)Without approval.*?recommendation and drafts"
+        )
+        ".agents/skills/diagnosing-bugs/SKILL.md" = @(
+            "(?s)boundary is a diagnosis report under.*?\.dev/logs/",
+            "(?s)Product fixes.*?permanent regression tests.*?separate user request",
+            "(?s)temporary diagnostic change.*?removed.*?pre-existing user changes.*?intact",
+            "skill ends at the diagnosis report"
+        )
+        ".agents/skills/wayfinder/SKILL.md" = @(
+            "(?s)Reading and classifying.*?require no approval.*?Do not mutate",
+            "(?s)Show the final batch exactly.*?labels.*?assignee.*?status.*?dependency edges",
+            "(?s)explicit user approval.*?immediately before applying",
+            "(?s)Apply only the approved batch.*?changes.*?fresh approval",
+            "(?s)Without approval.*?stop without changing external state"
         )
         ".agents/skills/implement/SKILL.md" = @("일반 구현", "승인된 일반 구현")
         ".agents/skills/grill/SKILL.md" = @(
@@ -281,6 +303,41 @@ try {
         foreach ($contractPattern in $routingContracts[$routingPath]) {
             if ($routingText -notmatch $contractPattern) {
                 Add-RuleFailure "ROUTING-CONTRACT" $routingPath "라우팅 계약이 없다: $contractPattern"
+            }
+        }
+    }
+
+    $retiredSkills = @("resolving-merge-conflicts")
+    $retiredReferencePaths = @(
+        "AGENTS.md",
+        "skills-lock.json",
+        "docs/harness/skill-catalog.md",
+        ".agents/skills/ask-matt/SKILL.md",
+        ".agents/skills/ask-matt/SKILL-ko.md"
+    )
+    foreach ($retiredSkill in $retiredSkills) {
+        foreach ($skillRoot in @(".agents/skills", ".claude/skills")) {
+            $retiredDirectory = Join-Path $resolvedRoot "$skillRoot/$retiredSkill"
+            if (
+                (Test-Path -LiteralPath $retiredDirectory -PathType Container) -and
+                @(Get-ChildItem -LiteralPath $retiredDirectory -File -Recurse -Force).Count -gt 0
+            ) {
+                Add-RuleFailure "RETIRED-SKILL" "$skillRoot/$retiredSkill" "제거된 스킬 파일이 다시 추가됐다."
+            }
+        }
+
+        foreach ($referencePath in $retiredReferencePaths) {
+            $referenceFullPath = Join-Path $resolvedRoot ($referencePath -replace "/", "\")
+            if (-not (Test-Path -LiteralPath $referenceFullPath -PathType Leaf)) {
+                continue
+            }
+            try { $referenceText = [System.IO.File]::ReadAllText($referenceFullPath, $utf8) }
+            catch {
+                Add-RuleFailure "RETIRED-SKILL" $referencePath "제거된 스킬 참조 여부를 UTF-8로 확인할 수 없다."
+                continue
+            }
+            if ($referenceText -match [regex]::Escape($retiredSkill)) {
+                Add-RuleFailure "RETIRED-SKILL" $referencePath "활성 하네스 문서에 제거된 스킬 참조가 남았다: $retiredSkill"
             }
         }
     }

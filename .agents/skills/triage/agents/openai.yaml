@@ -1,5 +1,5 @@
 interface:
   display_name: "Triage"
-  short_description: "이슈를 분류 역할에 따라 이동"
+  short_description: "GitHub 이슈를 읽고 분류한 뒤 승인된 변경만 반영"
 policy:
   allow_implicit_invocation: false
