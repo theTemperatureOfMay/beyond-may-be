@@ -22,9 +22,12 @@
 3. `.env`, credential·secret·인증서·개인 키의 내용은 읽거나 출력하지 않는다.
 4. 커밋·브랜치·push·Pull Request·외부 이슈 작성은 사용자가 명시적으로 요청한
    경우에만 실행한다.
-5. 삭제·외부 쓰기처럼 되돌리기 어려운 작업은 대상과 복구 방법을 보여주고 실행
+5. GitHub 연동 user-invoked 스킬은 정확한 스킬명·목적·읽기·쓰기 범위를 제시하고
+   `~ 스킬을 호출할까요?`라고 물은 뒤 명시적인 호출 승인을 받아 시작한다.
+   호출 승인은 읽기·분류·초안 작성만 허용하며 외부 쓰기 승인을 대신하지 않는다.
+6. 삭제·외부 쓰기처럼 되돌리기 어려운 작업은 대상과 복구 방법을 보여주고 실행
    직전에 확인한다.
-6. 작은 문서·설정 변경은 스킬을 과도하게 연결하지 말고 AGENTS 규칙과 관련 검증만
+7. 작은 문서·설정 변경은 스킬을 과도하게 연결하지 말고 AGENTS 규칙과 관련 검증만
    적용한다.
 
 ## 빠른 선택
@@ -33,13 +36,13 @@
 |---|---|---|
 | 어떤 스킬을 써야 할지 모름 | `ask-matt` | 상황에 맞는 흐름으로 이동 |
 | 요구사항·의사결정이 모호함 | `grill` | 요청 의도에 따라 1문 1답·batch·문서화 경로를 선택한 뒤 일반 구현이면 `plan`, 큰 작업이면 `wayfinder` |
-| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` | tracker 최종 변경안 승인 → `to-spec` → `to-tickets` → `implement` |
+| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` 호출 제안 | 호출 승인 → 결정 지도 → 각 GitHub 변경 승인 → `to-spec` 호출 제안 |
 | 승인된 일반 구현 | `plan` | 승인 후 `implement` → `code-review` |
 | 어려운 버그·성능 회귀 | `diagnosing-bugs` | `.dev` 진단 보고서에서 종료; 수정은 별도 요청 |
 | 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 실제 seam에서 red → green |
 | 현재 변경의 정합성 검토 | `change-impact-review` | 관련 정본·코드·테스트 재검사 |
 | 하네스 완성도 평가 | `harness-audit` | 읽기 전용 평가와 개선 우선순위 |
-| 새 GitHub 이슈 접수·분류 | `triage` | 분류안 검토 → 승인된 댓글·label·상태만 반영 |
+| 새 GitHub 이슈 접수·분류 | `triage` 호출 제안 | 호출 승인 → 분류안 검토 → 승인된 댓글·label·상태만 반영 |
 | 작업 결과를 검토 | `code-review` | Standards와 Spec을 별도로 확인 |
 | 방금 한 작업을 배우고 싶음 | `teach-me` | 한 단계씩 이해 확인 |
 | 세션을 다른 에이전트로 넘김 | `handoff` | 새 세션에서 handoff 문서 참조 |
@@ -78,6 +81,12 @@
 
 ### 이슈·GitHub·외부 작업
 
+아래의 `setup-skills`, `gh-create-issue-from-template`, `gh-create-project-pr`, `triage`,
+`to-spec`, `to-tickets`, `wayfinder`는 모두 user-invoked다. 라우터와 에이전트는 정확한
+스킬명·목적·예상 읽기·쓰기 범위를 제시하고 호출할지 물을 수만 있으며, 사용자가
+승인하기 전에는 시작하지 않는다. 호출 승인은 읽기·분류·초안 작성을 허용하고,
+GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
+
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
 | `setup-skills` | issue tracker·triage label·domain docs 설정을 한 번 구성 | 관련 설정이 없거나 tracker를 바꿀 때 | 조건부 |
@@ -115,8 +124,9 @@
 
 ### 큰 작업
 
-`wayfinder`에서 결정 지도와 각 tracker 변경 묶음을 승인받아 해결하고, `to-spec` 게시와
-`to-tickets` 분할을 승인받은 뒤 `implement`를 실행한다.
+`wayfinder` 호출을 제안해 승인받은 뒤 결정 지도와 각 tracker 변경 묶음을 승인받아
+해결한다. 이어서 `to-spec`과 `to-tickets`도 각각 호출 승인을 받은 뒤 게시·분할 내용을
+별도로 승인받고 `implement`를 실행한다.
 API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impact-review`까지 완료해야
 한다.
 

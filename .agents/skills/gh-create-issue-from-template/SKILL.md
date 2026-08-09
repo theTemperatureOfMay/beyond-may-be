@@ -1,9 +1,14 @@
 ---
 name: gh-create-issue-from-template
-description: GitHub 이슈를 저장소의 .github/ISSUE_TEMPLATE 양식에 맞춰 생성한다. 사용자가 이슈 생성, 버그 제보, 기능 요청 또는 작업 등록을 명시할 때 사용하며 제목 접두사, 섹션 순서, HTML 안내 주석, 체크박스와 템플릿의 모든 이모지를 보존한다.
+description: 저장소의 현재 GitHub 이슈 템플릿으로 이슈를 작성·생성한다.
+disable-model-invocation: true
 ---
 
 # GitHub 이슈 템플릿 생성
+
+호출 승인은 템플릿 읽기, 이슈 유형 분류와 제목·본문 초안 작성까지만 허용한다.
+GitHub 이슈 생성은 아래 5단계에서 최종 대상을 보여 주고 받는 별도 승인이 필요하며,
+호출 승인을 생성 승인으로 재사용하지 않는다.
 
 ## 원칙
 

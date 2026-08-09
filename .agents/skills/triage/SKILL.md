@@ -21,10 +21,11 @@ Every comment or issue posted to the issue tracker during triage **must** start 
 Separate read-only triage from issue-tracker writes. Follow the repository's
 [external-write safety policy](../../../docs/harness/safety-policy.md).
 
-- Read and query issues or PRs, inspect the codebase, and draft the category, state, labels,
-  comments, briefs, and close or reopen recommendations without approval.
+- After invocation approval, read and query issues or PRs, inspect the codebase, and draft the
+  category, state, labels, comments, briefs, and close or reopen recommendations without further
+  approval.
 - Do not check out a PR branch, switch branches, or change repository files as part of that
-  approval-free reading. Inspect the remote diff read-only. Run local state-changing commands only
+  read-only scope. Inspect the remote diff read-only. Run local state-changing commands only
   within the repository's approved scope, and change branches only when the user explicitly asks.
 - Before any tracker write, show the maintainer the exact issue or PR, labels to add or remove,
   full final comment or brief, final state, and every edit, assignment, close, reopen, or delete

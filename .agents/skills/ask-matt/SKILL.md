@@ -10,6 +10,17 @@ You don't remember every skill, so ask.
 
 A **flow** is a path through the skills. Most paths run along one **main flow**, and two **on-ramps** merge onto it. Everything else is standalone, or a vocabulary layer that runs underneath.
 
+## GitHub-linked user-invoked skills
+
+`/wayfinder`, `/to-spec`, `/to-tickets`, `/triage`, `/setup-skills`,
+`/gh-create-issue-from-template`, and `/gh-create-project-pr` can read or write GitHub and are
+user-invoked. This router may only recommend one: state the exact skill, why it fits, and its expected
+read/write scope, ask whether to invoke it, then stop. A user request that names the skill or a later
+explicit yes is invocation approval.
+
+Invocation approval starts only reading, classifying, and drafting. Before any GitHub write, the
+invoked skill must show the exact final target and change batch and obtain separate approval.
+
 ## The main flow: idea → ship
 
 The route most work travels. You have an idea and want it built.
@@ -20,7 +31,7 @@ The route most work travels. You have an idea and want it built.
    - **`/prototype`** to answer the question with throwaway code,
    - **`/handoff`** back what you learned, and reference it from the original idea thread.
 3. **Branch — is this a multi-session build?**
-   - **Yes** → **`/to-spec`** (turn the thread into a spec), then **`/to-tickets`** to split it into tracer-bullet tickets, each declaring its **blocking edges**. On a local tracker that's one file per ticket under `.scratch/<feature>/issues/`, worked blockers-first by hand; on a real tracker the edges become native blocking links, so any ticket whose blockers are done can be grabbed — kick off **`/implement`** per ticket, **clearing context between each one**.
+   - **Yes** → recommend **`/to-spec`** and ask for invocation approval. After the spec flow finishes, recommend **`/to-tickets`** and ask again before it splits the work into tracer-bullet tickets, each declaring its **blocking edges**. On a local tracker that's one file per ticket under `.scratch/<feature>/issues/`, worked blockers-first by hand; on a real tracker the edges become native blocking links, so any ticket whose blockers are done can be grabbed — kick off **`/implement`** per ticket, **clearing context between each one**.
    - **No** → **`/implement`** right here, in the same context window.
 
    Either way, **`/implement`** builds each issue by driving **`/tdd`** internally — one red-green slice at a time — then closes out by running **`/code-review`**, a two-axis review (Standards + Spec) of the diff, before committing. Reach for **`/tdd`** on its own when you just want to build a concrete behaviour test-first without a full spec, and **`/code-review`** on its own whenever you want to review a branch or PR against a fixed point.
@@ -35,15 +46,15 @@ The limit on this is the **[smart zone](https://www.aihero.dev/ai-coding-diction
 
 A starting situation that generates work, then merges onto the main flow.
 
-- **Bugs and requests piling up** → **`/triage`**. It reads incoming issues, drafts triage roles and briefs, and applies approved tracker changes to produce agent-ready issues, which **`/implement`** later picks up.
+- **Bugs and requests piling up** → recommend **`/triage`** and ask for invocation approval. Once approved, it reads incoming issues, drafts triage roles and briefs, and applies separately approved tracker changes to produce agent-ready issues, which **`/implement`** later picks up.
 
   Triage is only for issues **you didn't create** — bug reports, incoming feature requests, anything that arrives raw. Tickets that `/to-tickets` produced are already agent-ready, so **don't triage them**.
 
 - **Something's broken** → **`/diagnosing-bugs`**. For the hard ones: the bug that resists a first glance, the intermittent flake, the regression that crept in between two known-good states. It refuses to theorise until it has a **tight feedback loop** — one command that already goes red on *this* bug — then records the evidence, cause or uncertainty, and recommended fix in `.dev`. It stops at the diagnosis report. A fix and permanent regression test begin only from a separate user request; hand off an architectural seam finding to **`/improve-codebase-architecture`** only then.
 
-- **A huge, foggy effort — a greenfield project or a huge feature build, too big for one session** → **`/wayfinder`**, the most cognitively demanding flow here. When the way from here to the destination isn't visible yet, it charts a **shared map** of **decision tickets** — producing **decisions, not deliverables** — until the fog is pushed back and the way is clear. Reading and drafting need no approval; before any issue-tracker or other external write it shows the exact final batch and applies only what the user explicitly approves. Where **`/grill`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't — and it's slower and denser, so save it for exactly that, never a well-scoped feature.
+- **A huge, foggy effort — a greenfield project or a huge feature build, too big for one session** → recommend **`/wayfinder`**, explain its scope, and ask for invocation approval. Once approved, it charts a **shared map** of **decision tickets** — producing **decisions, not deliverables** — until the fog is pushed back and the way is clear. Reading and drafting need no further approval; before any issue-tracker or other external write it shows the exact final batch and applies only what the user separately approves. Where **`/grill`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't — and it's slower and denser, so save it for exactly that, never a well-scoped feature.
 
-  When the map clears, **it hands off, it doesn't build**: merge onto the main flow at **`/to-spec`**, which collapses the map's linked decisions into a buildable plan, then `/to-tickets` and `/implement` as usual. Looping the map straight into `/implement` skips that collapse and throws the linked detail away — go straight to `/implement` only when the effort turned out genuinely small.
+  When the map clears, **it hands off, it doesn't build**: recommend **`/to-spec`** and ask for invocation approval so it can collapse the map's linked decisions into a buildable plan, then separately recommend `/to-tickets` before `/implement`. Looping the map straight into `/implement` skips that collapse and throws the linked detail away — go straight to `/implement` only when the effort turned out genuinely small.
 
 ## Codebase health
 
@@ -74,4 +85,6 @@ Off the main flow entirely.
 
 ## Precondition
 
-**`/setup-skills`** — run before your first engineering flow to configure the issue tracker, triage labels, and doc layout the other skills assume. Custom issue trackers also work.
+Recommend **`/setup-skills`** before the first engineering flow when the issue tracker, triage labels,
+or document layout is not configured, then ask for invocation approval. Custom issue trackers also
+work.

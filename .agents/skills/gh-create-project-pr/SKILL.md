@@ -1,9 +1,14 @@
 ---
 name: gh-create-project-pr
-description: 현재 저장소의 제목 규칙과 이모지 Pull Request 템플릿을 적용해 GitHub Draft PR을 생성하고 CI와 JaCoCo artifact를 확인한다. 사용자가 PR 생성, Draft PR 게시, 현재 브랜치 게시, PR 템플릿 적용, PR 제목 작성 또는 PR 생성 후 CI 확인을 요청할 때 사용한다.
+description: 저장소 규칙과 템플릿으로 GitHub Draft PR을 작성·생성하고 CI 결과를 확인한다.
+disable-model-invocation: true
 ---
 
 # 프로젝트 PR 생성
+
+호출 승인은 저장소·브랜치·템플릿 읽기와 제목·본문 초안 작성까지만 허용한다.
+PR 생성은 아래 외부 쓰기 직전 확인에서 최종 대상을 보여 주고 받는 별도 승인이
+필요하며, 호출 승인을 생성 승인으로 재사용하지 않는다.
 
 현재 저장소의 규칙과 실제 검증 결과를 기준으로 Pull Request를 게시하라. 제목이나 본문을
 대화 기억으로 재구성하지 말고 매번 저장소에서 다시 확인하라.

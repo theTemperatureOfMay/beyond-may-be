@@ -2,3 +2,5 @@ interface:
   display_name: "프로젝트 PR 생성"
   short_description: "프로젝트 규칙에 맞는 Draft PR 생성 및 CI 확인"
   default_prompt: "Use $gh-create-project-pr to create a project-compliant Draft PR and verify its CI results."
+policy:
+  allow_implicit_invocation: false

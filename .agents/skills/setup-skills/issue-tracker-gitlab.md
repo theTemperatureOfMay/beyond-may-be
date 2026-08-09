@@ -38,9 +38,10 @@ Run `glab issue view <number> --comments`.
 
 Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
 
-The commands below describe GitLab mechanics, not write permission. `/wayfinder` may read and draft
-without approval, but it must show the exact final batch and pass its external-write gate before any
-create, edit, assign, label, dependency, comment, close, reopen, or delete operation.
+The commands below describe GitLab mechanics, not write permission. After `/wayfinder` invocation
+approval, it may read and draft without further approval, but it must show the exact final batch and
+pass its external-write gate before any create, edit, assign, label, dependency, comment, close,
+reopen, or delete operation.
 
 - **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `glab issue create --label wayfinder:map`. (On GitLab tiers with native epics, an epic may hold the map instead; a labelled issue works everywhere.)
 - **Child ticket**: an issue carrying `Part of #<map>` at the top of its description and labels `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.

@@ -14,10 +14,10 @@ Wayfinder is **planning** by default: each ticket resolves a decision, and the m
 
 ## External-write gate
 
-Reading and classifying tracker state, exploring local context, and drafting maps, tickets, comments,
-labels, assignees, dependencies, and status changes require no approval. Do not mutate the issue
-tracker, Git state, repository files, services, access, data, or any other external state until this
-gate passes.
+After invocation approval, reading and classifying tracker state, exploring local context, and
+drafting maps, tickets, comments, labels, assignees, dependencies, and status changes require no
+additional approval. Do not mutate the issue tracker, Git state, repository files, services, access,
+data, or any other external state until this gate passes.
 
 Before each write batch:
 

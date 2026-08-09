@@ -263,7 +263,7 @@ try {
             "(?s)intended implementation target.*?current implemented state.*?code.*?canonical documentation"
         )
         ".agents/skills/triage/SKILL.md" = @(
-            "(?s)Read and query.*?without approval",
+            "(?s)After invocation approval.*?Read and query.*?without\s+further\s+approval",
             "(?s)Before any tracker write.*?labels to add or remove.*?full final comment.*?final state",
             "(?s)Ask for explicit approval immediately before writing.*?Apply only the approved batch",
             "(?s)Without approval.*?recommendation and drafts"
@@ -275,7 +275,7 @@ try {
             "skill ends at the diagnosis report"
         )
         ".agents/skills/wayfinder/SKILL.md" = @(
-            "(?s)Reading and classifying.*?require no approval.*?Do not mutate",
+            "(?s)After invocation approval.*?Reading and classifying.*?require\s+no\s+additional\s+approval.*?Do not mutate",
             "(?s)Show the final batch exactly.*?labels.*?assignee.*?status.*?dependency edges",
             "(?s)explicit user approval.*?immediately before applying",
             "(?s)Apply only the approved batch.*?changes.*?fresh approval",
@@ -303,6 +303,92 @@ try {
         foreach ($contractPattern in $routingContracts[$routingPath]) {
             if ($routingText -notmatch $contractPattern) {
                 Add-RuleFailure "ROUTING-CONTRACT" $routingPath "라우팅 계약이 없다: $contractPattern"
+            }
+        }
+    }
+
+    $githubUserInvokedSkills = @(
+        "wayfinder",
+        "to-spec",
+        "to-tickets",
+        "triage",
+        "setup-skills",
+        "gh-create-issue-from-template",
+        "gh-create-project-pr"
+    )
+    foreach ($skillName in $githubUserInvokedSkills) {
+        $skillRelativePath = ".agents/skills/$skillName/SKILL.md"
+        $skillFullPath = Join-Path $resolvedRoot ($skillRelativePath -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $skillFullPath -PathType Leaf)) {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "GitHub 연동 스킬 원본이 없다."
+            continue
+        }
+
+        try { $skillText = [System.IO.File]::ReadAllText($skillFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "스킬 frontmatter를 UTF-8로 읽을 수 없다."
+            continue
+        }
+
+        $frontmatter = [regex]::Match(
+            $skillText,
+            "\A---\r?\n(?<body>.*?)\r?\n---",
+            [System.Text.RegularExpressions.RegexOptions]::Singleline
+        )
+        if (
+            -not $frontmatter.Success -or
+            $frontmatter.Groups["body"].Value -notmatch "(?m)^disable-model-invocation:\s*true\s*$"
+        ) {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "GitHub 연동 스킬은 user-invoked여야 한다."
+        }
+
+        $codexMetadataRelativePath = ".agents/skills/$skillName/agents/openai.yaml"
+        $codexMetadataFullPath = Join-Path $resolvedRoot ($codexMetadataRelativePath -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $codexMetadataFullPath -PathType Leaf)) {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책이 없다."
+            continue
+        }
+
+        try { $codexMetadataText = [System.IO.File]::ReadAllText($codexMetadataFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책을 UTF-8로 읽을 수 없다."
+            continue
+        }
+
+        if (
+            $codexMetadataText -notmatch "(?m)^policy:\s*$" -or
+            $codexMetadataText -notmatch "(?m)^\s+allow_implicit_invocation:\s*false\s*$"
+        ) {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 암시적 스킬 호출이 차단되지 않았다."
+        }
+    }
+
+    $githubInvocationContracts = [ordered]@{
+        "AGENTS.md" = @(
+            "(?s)GitHub.*user-invoked.*자동 선택·실행하지 않는다.*정확한 스킬명.*스킬을 호출할까요.*명시적.*승인.*시작",
+            "(?s)사용자가.*스킬명을 직접 지정.*호출 승인",
+            "(?s)스킬 호출 승인은.*읽기·분류·초안 작성.*외부 쓰기 승인을.*대신하지 않는다"
+        )
+        "docs/harness/safety-policy.md" = @(
+            "(?s)스킬 호출 승인은.*읽.*분류.*초안.*외부 쓰기 승인을 대신하지 않는다"
+        )
+    }
+    foreach ($contract in $githubInvocationContracts.GetEnumerator()) {
+        $contractFullPath = Join-Path $resolvedRoot ($contract.Key -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $contractFullPath -PathType Leaf)) {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $contract.Key "GitHub 연동 스킬 호출 승인 계약 원본이 없다."
+            continue
+        }
+
+        try { $contractText = [System.IO.File]::ReadAllText($contractFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $contract.Key "GitHub 연동 스킬 호출 승인 계약을 UTF-8로 읽을 수 없다."
+            continue
+        }
+
+        foreach ($contractPattern in $contract.Value) {
+            if ($contractText -notmatch $contractPattern) {
+                Add-RuleFailure "GITHUB-SKILL-INVOCATION" $contract.Key "GitHub 연동 스킬 호출·쓰기 승인 계약이 누락됐다."
             }
         }
     }
