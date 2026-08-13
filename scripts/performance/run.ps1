@@ -96,6 +96,16 @@ else {
     $k6TargetBaseUrl = "http://host.docker.internal:$($target.Port)"
 }
 
+$previousPerformanceDbPassword = [System.Environment]::GetEnvironmentVariable(
+    "PERFORMANCE_DB_PASSWORD",
+    [System.EnvironmentVariableTarget]::Process
+)
+[System.Environment]::SetEnvironmentVariable(
+    "PERFORMANCE_DB_PASSWORD",
+    [guid]::NewGuid().ToString("N"),
+    [System.EnvironmentVariableTarget]::Process
+)
+
 try {
     Invoke-PerformanceDocker $downArguments
     $environmentStarted = $true
@@ -126,19 +136,28 @@ try {
     $runSucceeded = $true
 }
 finally {
-    if ($runSucceeded) {
-        try {
-            Invoke-PerformanceDocker $downArguments
-            Write-Output "smoke 성공: 성능 컨테이너와 전용 볼륨을 정리했다."
+    try {
+        if ($runSucceeded) {
+            try {
+                Invoke-PerformanceDocker $downArguments
+                Write-Output "smoke 성공: 성능 컨테이너와 전용 볼륨을 정리했다."
+            }
+            catch {
+                Write-Warning "smoke는 성공했지만 성능 환경 정리에 실패했다."
+                Write-Output "다시 정리: $(Get-CleanupCommand)"
+                throw
+            }
         }
-        catch {
-            Write-Warning "smoke는 성공했지만 성능 환경 정리에 실패했다."
-            Write-Output "다시 정리: $(Get-CleanupCommand)"
-            throw
+        elseif ($environmentStarted) {
+            Write-Warning "smoke 실패 또는 중단: 진단을 위해 성능 환경을 보존했다."
+            Write-Output "진단 후 정리: $(Get-CleanupCommand)"
         }
     }
-    elseif ($environmentStarted) {
-        Write-Warning "smoke 실패 또는 중단: 진단을 위해 성능 환경을 보존했다."
-        Write-Output "진단 후 정리: $(Get-CleanupCommand)"
+    finally {
+        [System.Environment]::SetEnvironmentVariable(
+            "PERFORMANCE_DB_PASSWORD",
+            $previousPerformanceDbPassword,
+            [System.EnvironmentVariableTarget]::Process
+        )
     }
 }

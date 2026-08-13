@@ -34,9 +34,5 @@ k6 1 CPU·512MiB를 고정된 로컬 비교 조건으로 사용한다.
 
 - 검사: `change-impact-review` 통과
 - 근거: ADR·실행 문서·Docker Compose·PowerShell·k6 스크립트와 회원가입 API 계약을
-  대조했다. 실행기의 비로컬·비고정 포트 거부 행동 시험 6개, Compose 구성 검사, k6
+  대조했다. 실행기의 로컬 대상 거부와 정리 행동 시험, Compose 구성 검사, k6
   스크립트 검사, 전체 테스트·Spotless·빌드와 하네스 검사가 통과했다.
-- 실제 실행: 첫 smoke에서 콜드 요청 중 VU 동적 할당으로 iteration 2개가 누락되는 것을
-  확인해 사전 VU를 1개에서 5개로 조정했다. 재실행에서는 31건·응답 검사 124개가 모두
-  성공했고 HTTP 실패와 dropped iteration이 0건이었으며, 전용 컨테이너와 볼륨 제거까지
-  확인했다.

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: beyond_may_be_performance
       POSTGRES_USER: performance_user
-      POSTGRES_PASSWORD: performance_password
+      POSTGRES_PASSWORD: "${PERFORMANCE_DB_PASSWORD:-}"
     volumes:
       - performance_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +29,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/beyond_may_be_performance
       DB_USERNAME: performance_user
-      DB_PASSWORD: performance_password
+      DB_PASSWORD: "${PERFORMANCE_DB_PASSWORD:-}"
     depends_on:
       postgres:
         condition: service_healthy
