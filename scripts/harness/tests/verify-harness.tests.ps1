@@ -290,6 +290,39 @@ policy:
 문서화 경로에서는 domain-modeling을 결합한다.
 결과를 대화에서 종합하고 별도 결과 파일을 만들지 않는다.
 '@
+    Write-TestFile $root ".agents\skills\teach-me\SKILL.md" @'
+---
+name: teach-me
+description: 사용자의 이해를 검증하고 종료 전에 지속 학습 기록을 판단한다.
+---
+
+# teach-me
+
+튜터링을 시작할 때 `.dev/learning/teach-me.md`가 있으면 주제 목록을 확인하고 현재
+주제와 관련된 섹션만 읽는다. 현재 대화에서 사용자가 밝힌 이해가 기존 기록보다 우선한다.
+
+## 지속 학습 기록 관문
+
+학습 완료, 요약 요청, 중단, 일시정지 또는 주제 전환 전에 기록 관문을 실행한다.
+결과는 `기록 후보 있음` 또는 `기록 생략 — 이유`로 표시한다. 중간 종료에 검증된
+이해가 있으면 `부분 학습 기록`을 제안한다.
+
+기록 관문을 마치기 전에는 학습 완료를 선언하지 않는다. 파일 저장 선택이 남으면
+학습 완료와 구분해 `저장 대기`로 표시한다.
+
+지속 학습 기록의 세부 판정과 저장은 [durable-learning.md](durable-learning.md)를 따른다.
+'@
+    Write-TestFile $root ".agents\skills\teach-me\durable-learning.md" @'
+# 지속 가능한 학습
+
+기본 저장 경로는 `.dev/learning/teach-me.md`다. 주제별로 `학습 기록`, `용어집`,
+`자료`, `다음 학습 방향`을 관리하고 이전 이해는 삭제하지 않고 `대체됨`으로 표시한다.
+
+검증된 이해와 올바르게 사용한 용어, 실제 사용한 신뢰도 높은 자료만 기록 후보로 삼는다.
+먼저 대화에 복사 가능한 초안을 제공한다. 정확한 경로와 최종 저장 내용을 보여주고
+사용자의 명시적 승인을 받은 뒤에만 파일을 생성하거나 수정한다. 승인 전에는 파일을
+수정하지 않고 기록 후보가 없으면 빈 파일을 만들지 않는다.
+'@
     Write-TestFile $root ".claude\skills\plan\SKILL.md" @'
 # Claude plan 연결
 
@@ -344,6 +377,11 @@ policy:
 # Claude grill 연결
 
 .agents/skills/grill/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\teach-me\SKILL.md" @'
+# Claude teach-me 연결
+
+.agents/skills/teach-me/SKILL.md를 원본으로 사용한다.
 '@
     Write-TestFile $root "CLAUDE.md" @'
 @AGENTS.md
@@ -781,6 +819,60 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "teach-me 기록 후보 결과 누락" {
+        $root = New-ValidFixture "teach-me-record-candidate"
+        $path = Join-Path $root ".agents\skills\teach-me\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("기록 후보 있음", "기록 검토됨")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "TEACH-ME-CONTRACT"
+    }
+
+    Invoke-TestCase "teach-me 기록 생략 이유 누락" {
+        $root = New-ValidFixture "teach-me-record-skip"
+        $path = Join-Path $root ".agents\skills\teach-me\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("기록 생략 — 이유", "기록 생략")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "TEACH-ME-CONTRACT"
+    }
+
+    Invoke-TestCase "teach-me 부분 종료 관문 누락" {
+        $root = New-ValidFixture "teach-me-partial-exit"
+        $path = Join-Path $root ".agents\skills\teach-me\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("중단, 일시정지 또는 주제 전환", "중단")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "TEACH-ME-CONTRACT"
+    }
+
+    Invoke-TestCase "teach-me 기존 기록 재사용 누락" {
+        $root = New-ValidFixture "teach-me-record-reuse"
+        $path = Join-Path $root ".agents\skills\teach-me\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = [regex]::Replace(
+            $content,
+            "(?s)현재\s+주제와 관련된 섹션만 읽는다\.\s+현재 대화에서 사용자가 밝힌 이해가 기존 기록보다 우선한다\.",
+            "기존 기록 전체를 읽는다."
+        )
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "TEACH-ME-CONTRACT"
+    }
+
+    Invoke-TestCase "teach-me 저장 승인 관문 누락" {
+        $root = New-ValidFixture "teach-me-save-approval"
+        $path = Join-Path $root ".agents\skills\teach-me\durable-learning.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("사용자의 명시적 승인을 받은 뒤에만", "즉시")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "TEACH-ME-CONTRACT"
     }
 
     Invoke-TestCase "harness doctor 정상" {

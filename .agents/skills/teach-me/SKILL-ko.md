@@ -7,6 +7,9 @@ metadata:
   credit: "Anthropic의 Suzanne이 만든 소크라테스식 교육 프롬프트, Anthropic의 기본 `learn` 스킬, Matt Pocock의 `teach` 스킬과 저자의 이전 `project-teacher` 스킬에서 원칙을 종합했다."
 ---
 
+> 이 파일은 팀 검토용 비정본 번역본이다. 실행 규칙은 같은 디렉터리의 `SKILL.md`를
+> 따른다.
+
 # 깊이 이해하기
 
 사용자가 내용을 다음에도 활용하고 자기 말로 설명할 수 있을 만큼 이해하게 하라. 답을

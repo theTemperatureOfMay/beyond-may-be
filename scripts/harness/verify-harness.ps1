@@ -307,6 +307,41 @@ try {
         }
     }
 
+    $teachMeContracts = @{
+        ".agents/skills/teach-me/SKILL.md" = @(
+            "(?s)지속 학습 기록 관문.*?학습 완료.*?요약 요청.*?중단.*?일시정지.*?주제 전환",
+            "기록 후보 있음",
+            "기록 생략\s+—\s+이유",
+            "부분 학습 기록",
+            "(?s)\.dev/learning/teach-me\.md.*?주제.*?관련.*?섹션만 읽.*?현재 대화.*?사용자.*?기존 기록보다 우선",
+            "(?s)기록 관문.*?완료.*?선언하지"
+        )
+        ".agents/skills/teach-me/durable-learning.md" = @(
+            "\.dev/learning/teach-me\.md",
+            "(?s)학습 기록.*?용어집.*?자료.*?다음 학습 방향",
+            "대체됨",
+            "(?s)대화.*?초안.*?정확한 경로.*?최종 저장 내용.*?명시적 승인.*?받은 뒤에만.*?파일",
+            "(?s)승인 전에는 파일을\s+수정하지.*?빈 파일을 만들지"
+        )
+    }
+    foreach ($teachMePath in $teachMeContracts.Keys) {
+        $teachMeFullPath = Join-Path $resolvedRoot ($teachMePath -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $teachMeFullPath -PathType Leaf)) {
+            Add-RuleFailure "TEACH-ME-CONTRACT" $teachMePath "teach-me 지속 학습 계약 원본이 없다."
+            continue
+        }
+        try { $teachMeText = [System.IO.File]::ReadAllText($teachMeFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "TEACH-ME-CONTRACT" $teachMePath "teach-me 지속 학습 계약을 UTF-8로 읽을 수 없다."
+            continue
+        }
+        foreach ($contractPattern in $teachMeContracts[$teachMePath]) {
+            if ($teachMeText -notmatch $contractPattern) {
+                Add-RuleFailure "TEACH-ME-CONTRACT" $teachMePath "지속 학습 계약이 없다: $contractPattern"
+            }
+        }
+    }
+
     $githubUserInvokedSkills = @(
         "wayfinder",
         "to-spec",
