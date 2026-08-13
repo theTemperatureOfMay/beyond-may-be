@@ -95,6 +95,19 @@ Health가 <http://localhost:8080/actuator/health>에서 HTTP 200과 `UP`을 반�
 
 API 변경 시 Swagger/OpenAPI, 관련 테스트와 Postman 자료를 함께 검토한다.
 
+## 성능 smoke 테스트
+
+Docker 기반의 로컬 전용 회원가입 smoke 테스트를 수동 실행할 수 있다. 이 결과는 동일한
+로컬 조건의 회귀 확인용이며 AWS 운영 용량을 보증하지 않는다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile smoke
+```
+
+격리 범위, 자동 정리와 실패 진단 방법은
+[로컬 성능 테스트 안내](docs/development/performance-testing.md)를 따른다. 이 테스트는
+CI와 배포 workflow에서 실행하지 않는다.
+
 ## 배포와 운영
 
 운영 환경은 AWS ALB·ECS Fargate·RDS PostgreSQL로 구성한다. `main` merge·push와
