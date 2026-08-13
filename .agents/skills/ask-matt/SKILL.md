@@ -1,12 +1,16 @@
 ---
 name: ask-matt
-description: Ask which skill or flow fits your situation. A router over the skills in this repo.
+description: Ask which repository skill or work route fits the current request. Use when the user wants help choosing a lifecycle stage, not when they already named a skill or approved input to execute.
 disable-model-invocation: true
 ---
 
 # Ask Matt
 
 You don't remember every skill, so ask.
+
+This skill is a router only. Recommend a route and stop. It does not invoke another skill or
+create a plan, spec, ticket, code change, commit, or external write. Return the route, why it fits,
+its expected read/write scope, and the next approval the user must give.
 
 A **flow** is a path through the skills. Most paths run along one **main flow**, and two **on-ramps** merge onto it. Everything else is standalone, or a vocabulary layer that runs underneath.
 
@@ -30,17 +34,27 @@ The route most work travels. You have an idea and want it built.
    - **`/handoff`** out, then open a fresh session against that file,
    - **`/prototype`** to answer the question with throwaway code,
    - **`/handoff`** back what you learned, and reference it from the original idea thread.
-3. **Branch — is this a multi-session build?**
-   - **Yes** → recommend **`/to-spec`** and ask for invocation approval. After the spec flow finishes, recommend **`/to-tickets`** and ask again before it splits the work into tracer-bullet tickets, each declaring its **blocking edges**. On a local tracker that's one file per ticket under `.scratch/<feature>/issues/`, worked blockers-first by hand; on a real tracker the edges become native blocking links, so any ticket whose blockers are done can be grabbed — kick off **`/implement`** per ticket, **clearing context between each one**.
-   - **No** → **`/implement`** right here, in the same context window.
+3. **Classify the work with `AGENTS.md`.** Session length and file count do not choose the route.
+   - **Small work** → recommend the direct approval path; do not add `plan` or `implement`.
+   - **General implementation** → recommend **`/plan`** and stop. Its separate approval is the
+     entry gate for **`/implement`**.
+   - **Large work** → recommend **`/wayfinder`** and ask for invocation approval. When its decision
+     map is clear and its `Notes` did not carry the destination through execution, recommend
+     **`/to-spec`**, then **`/to-tickets`**, each with separate invocation and GitHub-write approval,
+     before **`/implement`**.
+   - **An approved plan or ticket named for implementation** → recommend **`/implement`**; do not
+     recreate earlier lifecycle artifacts.
+   - **A parent spec named without an implementation ticket** → recommend **`/to-tickets`** and ask
+     for invocation approval. A spec supplies context; it is not the unit `/implement` executes.
 
-   Either way, **`/implement`** builds each issue by driving **`/tdd`** internally — one red-green slice at a time — then closes out by running **`/code-review`**, a two-axis review (Standards + Spec) of the diff, before committing. Reach for **`/tdd`** on its own when you just want to build a concrete behaviour test-first without a full spec, and **`/code-review`** on its own whenever you want to review a branch or PR against a fixed point.
+`wayfinder` owns the long-lived decision map, `to-spec` one parent implementation target,
+`to-tickets` executable child tickets, and `implement` repository changes. Do not collapse those
+responsibilities into this router.
 
 ### Context hygiene
 
-Keep steps 1–3 in **one unbroken context window** — don't compact or clear until after `/to-tickets` — so the `/grill` conversation, spec, and tickets all build on the same thinking. Each `/implement` then starts fresh, working from the ticket.
-
-The limit on this is the **[smart zone](https://www.aihero.dev/ai-coding-dictionary/smart-zone)**: the window (~120k tokens on state-of-the-art models) within which the model still reasons sharply. If a session approaches it before `/to-tickets`, don't push on degraded — `/handoff` and continue in a fresh thread.
+Use `/handoff` when a later stage needs a fresh session. The router does not start that stage or
+carry out any work on its behalf.
 
 ## On-ramps
 
@@ -54,7 +68,14 @@ A starting situation that generates work, then merges onto the main flow.
 
 - **A huge, foggy effort — a greenfield project or a huge feature build, too big for one session** → recommend **`/wayfinder`**, explain its scope, and ask for invocation approval. Once approved, it charts a **shared map** of **decision tickets** — producing **decisions, not deliverables** — until the fog is pushed back and the way is clear. Reading and drafting need no further approval; before any issue-tracker or other external write it shows the exact final batch and applies only what the user separately approves. Where **`/grill`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't — and it's slower and denser, so save it for exactly that, never a well-scoped feature.
 
-  When the map clears, **it hands off, it doesn't build**: recommend **`/to-spec`** and ask for invocation approval so it can collapse the map's linked decisions into a buildable plan, then separately recommend `/to-tickets` before `/implement`. Looping the map straight into `/implement` skips that collapse and throws the linked detail away — go straight to `/implement` only when the effort turned out genuinely small.
+  Decision work is the default. A map may carry execution tasks only when its `Notes` explicitly
+  opts into them and names their scope; the usual repository and external-write approvals still apply.
+
+  When the map clears without completing the destination under its `Notes` execution override,
+  **it hands off**: recommend **`/to-spec`** and ask for invocation approval so it can collapse the
+  map's linked decisions into a buildable target, then separately recommend `/to-tickets` before
+  `/implement`. If the approved `Notes` already carried the destination through verified execution,
+  report that outcome and stop instead of creating redundant lifecycle artifacts.
 
 ## Codebase health
 

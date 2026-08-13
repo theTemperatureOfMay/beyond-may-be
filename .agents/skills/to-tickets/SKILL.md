@@ -1,20 +1,26 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker — edges as text in one file per ticket locally, or native blocking links on a real tracker.
+description: Break an approved spec into tracer-bullet implementation tickets with blocking edges. Use only after explicit invocation approval; publishing the exact GitHub batch requires separate approval.
 disable-model-invocation: true
 ---
 
 # To Tickets
 
-Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
+Break an approved spec into a set of **implementation tickets** — tracer-bullet vertical slices,
+each declaring the tickets that **block** it. If no approved spec is identified, stop and ask for
+the source; do not synthesize a replacement spec inside this skill.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-skills` if not.
+This skill drafts and publishes implementation tickets. It does not revise the parent spec,
+implement a ticket, commit, or change parent issue state. Use this project's GitHub tracker and
+`docs/agents/issue-tracker.md`. If tracker configuration is missing, stop and recommend
+`/setup-skills` with its expected read/write scope and ask for invocation approval.
 
 ## Process
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
+Work from the approved spec already identified in the conversation. If the user passes a spec path,
+issue number, or URL, fetch it and read its full body and comments. Re-read it before publishing.
 
 ### 2. Explore the codebase (optional)
 
@@ -55,37 +61,28 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Publish the tickets to the configured tracker
+Breakdown approval does not approve GitHub writes.
 
-Publish the approved tickets. **How** depends on the tracker `/setup-skills` configured — the tickets are the same either way, only the shape of the blocking edges changes:
+### 5. Publish the tickets to GitHub
 
-- **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction.
+Before publishing, re-read the parent and tracker state. Show the exact issue bodies, labels, parent
+relationships, and dependency edges, plus the expected impact and recovery path. Ask for separate
+explicit approval immediately before writing. If any target or content changed since the preview,
+show the revised batch and obtain fresh approval.
 
-Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
+Publish one GitHub issue per ticket in dependency order, blockers first. Link every ticket as a
+sub-issue of the parent spec and create native blocking relationships using
+`docs/agents/issue-tracker.md`. Apply `ready-for-agent` only as described below.
 
-Do NOT close or modify any parent issue.
-
-<local-ticket-template>
-
-# <NN> — <Ticket title>
-
-**What to build:** the end-to-end behaviour this ticket makes work, from the user's perspective — not a layer-by-layer implementation list.
-
-**Blocked by:** the numbers/titles of the tickets that gate this one, or "None — can start immediately".
-
-**Status:** ready-for-agent
-
-- [ ] Acceptance criterion 1
-- [ ] Acceptance criterion 2
-
-</local-ticket-template>
+Do not edit or close the parent body or state. Apply `ready-for-agent` only to complete
+implementation tickets whose body, acceptance criteria, parent relationship, and blocking edges
+were included in the approved batch.
 
 <issue-template>
 
 ## Parent
 
-A reference to the parent issue on the tracker (if the source was an existing issue, otherwise omit this section).
+A reference to the approved parent spec issue.
 
 ## What to build
 
@@ -102,4 +99,7 @@ The end-to-end behaviour this ticket makes work, from the user's perspective —
 
 </issue-template>
 
-In either form, avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+
+After verifying the created issues and dependency graph, report the frontier and stop. Do not invoke
+`/implement`, modify the parent spec, or close any issue.

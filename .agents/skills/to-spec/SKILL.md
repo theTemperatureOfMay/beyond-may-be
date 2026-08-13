@@ -1,12 +1,20 @@
 ---
 name: to-spec
-description: Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
+description: Synthesize a resolved conversation or cleared wayfinder map into exactly one parent GitHub spec issue. Use only after explicit invocation approval; publishing requires separate final-batch approval.
 disable-model-invocation: true
 ---
 
+# To Spec
+
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-skills` if not.
+This skill creates exactly one parent spec issue. It does not create an implementation plan,
+implementation tickets, code changes, commits, or issue-state transitions. Invocation approval does
+not approve publishing. Ask for separate explicit approval immediately before writing.
+
+Use this project's GitHub issue tracker and `docs/agents/issue-tracker.md`. If the tracker or label
+mapping is missing, stop and recommend `/setup-skills` with its expected read/write scope and ask
+for invocation approval; do not invoke it automatically.
 
 ## Process
 
@@ -16,14 +24,20 @@ The issue tracker and triage label vocabulary should have been provided to you �
 
 Check with the user that these seams match their expectations.
 
-3. Write the spec using the template below. Show the user the target repository,
-   final title, full body, and labels, then ask for approval.
+3. Write the spec using the template below. Re-read the target, then show the target repository,
+   final title, full body, labels, expected impact, and recovery path. Ask for explicit approval for
+   that exact GitHub write batch.
 
    The issue records the intended implementation target. Determine the
    current implemented state from code and canonical documentation.
 
-4. After approval, publish the spec to the project issue tracker. Apply the
-   `ready-for-agent` triage label - no need for additional triage.
+4. After that separate approval, create exactly one parent spec issue and verify its title, body,
+   labels, and URL. Do not apply `ready-for-agent` to the parent spec; `/to-tickets` owns complete
+   implementation tickets and their readiness labels.
+
+5. Stop after reporting the verified issue. When implementation is intended, recommend
+   `/to-tickets` with its expected read/write scope; it may produce one or more implementation
+   tickets. Do not invoke it.
 
 <spec-template>
 

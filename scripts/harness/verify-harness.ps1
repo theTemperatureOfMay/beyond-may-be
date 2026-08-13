@@ -342,6 +342,58 @@ try {
         }
     }
 
+    $skillLifecycleContracts = [ordered]@{
+        ".agents/skills/ask-matt/SKILL.md" = @(
+            "(?is)router only.*?recommend.*?stop",
+            "(?is)does not.*?invoke.*?plan.*?spec.*?ticket.*?code change.*?commit.*?external write"
+        )
+        ".agents/skills/plan/SKILL.md" = @(
+            "(?s)개인 작업 기록.*?정본.*?대체하지 않는다",
+            "(?s)계획 승인.*?implement.*?외부 쓰기.*?승인하지 않는다"
+        )
+        ".agents/skills/to-spec/SKILL.md" = @(
+            "(?is)invocation approval.*?does\s+not\s+approve\s+publishing.*?separate\s+explicit\s+approval.*?immediately\s+before\s+writing",
+            "(?is)exactly one parent spec issue.*?do not apply.*?ready-for-agent.*?to-tickets",
+            "(?is)implementation is intended.*?to-tickets.*?one or more implementation.*?tickets.*?do not invoke"
+        )
+        ".agents/skills/to-tickets/SKILL.md" = @(
+            "(?is)breakdown approval.*?does not approve GitHub writes",
+            "(?is)exact issue bodies.*?labels.*?parent\s+relationships.*?dependency\s+edges.*?separate\s+explicit\s+approval.*?immediately\s+before\s+writing",
+            "(?is)do not edit or close the parent body or state.*?ready-for-agent.*?complete\s+implementation\s+tickets",
+            "(?is)publish\s+one\s+GitHub\s+issue\s+per\s+ticket.*?sub-issue.*?native\s+blocking\s+relationships.*?docs/agents/issue-tracker\.md"
+        )
+        ".agents/skills/wayfinder/SKILL.md" = @(
+            "(?is)planning by default.*?Notes.*?explicitly opt into.*?execution tasks.*?Without that override.*?decisions,\s+not\s+deliverables.*?do\s+not\s+create.*?spec.*?implementation\s+plan.*?implementation\s+ticket.*?code\s+change",
+            "(?is)map is clear.*?Notes.*?did not carry.*?destination.*?recommend.*?to-spec.*?separate invocation approval.*?approved.*?Notes.*?carried.*?destination.*?verified execution.*?report.*?stop",
+            "(?is)stores\s+the\s+map.*?GitHub.*?docs/agents/issue-tracker\.md.*?do\s+not.*?fall\s+back\s+to\s+local\s+files"
+        )
+        ".agents/skills/implement/SKILL.md" = @(
+            "(?s)승인된 일반 구현 plan.*?큰 작업의 implementation ticket.*?Spec은 실행 단위가.*?아니라.*?맥락",
+            "(?s)특정 plan 또는 ticket.*?구현을 명확히 요청.*?승인된 입력",
+            "(?s)spec만 지정되면 구현하지 않고.*?to-tickets.*?호출 승인",
+            "(?s)커밋.*?브랜치.*?push.*?Pull Request.*?GitHub.*?comment.*?close.*?label.*?status.*?별도 요청.*?승인"
+        )
+    }
+    foreach ($contract in $skillLifecycleContracts.GetEnumerator()) {
+        $contractFullPath = Join-Path $resolvedRoot ($contract.Key -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $contractFullPath -PathType Leaf)) {
+            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $contract.Key "작업 생명주기 스킬 원본이 없다."
+            continue
+        }
+
+        try { $contractText = [System.IO.File]::ReadAllText($contractFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $contract.Key "작업 생명주기 계약을 UTF-8로 읽을 수 없다."
+            continue
+        }
+
+        foreach ($contractPattern in $contract.Value) {
+            if ($contractText -notmatch $contractPattern) {
+                Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $contract.Key "작업 생명주기 계약이 누락됐다."
+            }
+        }
+    }
+
     $githubUserInvokedSkills = @(
         "wayfinder",
         "to-spec",
@@ -428,7 +480,7 @@ try {
         }
     }
 
-    $retiredSkills = @("resolving-merge-conflicts")
+    $retiredSkills = @("design-spec", "resolving-merge-conflicts")
     $retiredReferencePaths = @(
         "AGENTS.md",
         "skills-lock.json",

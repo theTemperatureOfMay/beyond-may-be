@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed."
+description: "Synthesize the resolved conversation into one parent GitHub spec issue after a separate final write approval."
 ---
 
 # Claude Code 연결 파일

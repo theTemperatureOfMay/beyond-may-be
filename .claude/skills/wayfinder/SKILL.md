@@ -1,6 +1,6 @@
 ---
 name: wayfinder
-description: "Plan a multi-session effort as a decision-ticket map, applying tracker and other external changes only after explicit approval."
+description: "Maintain a multi-session decision map; carry execution tasks only when Notes explicitly opt in, and apply only explicitly approved tracker changes."
 ---
 
 # Claude Code 연결 파일

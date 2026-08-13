@@ -163,12 +163,27 @@ function New-ValidFixture {
 - 작업 중 상위 경로가 필요하면 중단하고 다시 승인받는다.
 - main merge·push와 workflow_dispatch는 운영 배포 승인이고 AI는 실행 직전에 대상·영향·복구 방법을 다시 확인한다.
 '@
+    Write-TestFile $root ".agents\skills\ask-matt\SKILL.md" @'
+---
+name: ask-matt
+description: Ask which repository skill or work route fits the current request.
+disable-model-invocation: true
+---
+
+# ask-matt
+
+- This skill is a router only. Recommend a route and stop.
+- It does not invoke another skill or create a plan, spec, ticket, code change, commit, or external write.
+- Small work follows direct approval, general work follows plan approval then implement, and large work follows wayfinder, to-spec, to-tickets, then implement.
+'@
     Write-TestFile $root ".agents\skills\plan\SKILL.md" @'
 # plan
 
 - 일반 구현 요구사항을 계획할 수 있다.
 - 일반 구현은 대화 요구사항으로 작성됨을 기록할 수 있다.
 - 계획 승인 후 implement로 넘긴다.
+- 계획은 `.dev`의 개인 작업 기록이며 정본을 대체하지 않는다.
+- 계획 승인은 implement 실행만 승인하며 외부 쓰기를 승인하지 않는다.
 '@
     Write-TestFile $root ".agents\skills\to-spec\SKILL.md" @'
 ---
@@ -181,6 +196,9 @@ disable-model-invocation: true
 
 - Show the target repository, final title, full body, and labels, then ask for approval.
 - The issue is the intended implementation target. Read the current implemented state from code and canonical documentation.
+- Invocation approval does not approve publishing. Ask for separate explicit approval immediately before writing.
+- Create exactly one parent spec issue and do not apply ready-for-agent; to-tickets owns implementation tickets.
+- When implementation is intended, recommend to-tickets; it may produce one or more implementation tickets. Do not invoke it.
 '@
     Write-TestFile $root ".agents\skills\triage\SKILL.md" @'
 ---
@@ -219,6 +237,11 @@ disable-model-invocation: true
 - Ask for explicit user approval immediately before applying the batch.
 - Apply only the approved batch. If any target or content changes, obtain fresh approval.
 - Without approval, return the draft and stop without changing external state.
+- Wayfinder is planning by default. Map Notes may explicitly opt into carrying named execution tasks.
+- Without that override, produce decisions, not deliverables. Do not create a spec, implementation plan, implementation ticket, or code change.
+- When the map is clear and Notes did not carry the destination, stop and recommend to-spec with separate invocation approval.
+- If approved Notes carried the destination through verified execution, report the outcome and stop.
+- This project stores the map in GitHub. Follow docs/agents/issue-tracker.md and do not fall back to local files.
 '@
     Write-TestFile $root ".agents\skills\to-tickets\SKILL.md" @'
 ---
@@ -228,6 +251,11 @@ disable-model-invocation: true
 ---
 
 # to-tickets
+
+- Breakdown approval does not approve GitHub writes.
+- Before publishing, show the exact issue bodies, labels, parent relationships, and dependency edges, then ask for separate explicit approval immediately before writing.
+- Do not edit or close the parent body or state. Apply ready-for-agent only to complete implementation tickets.
+- Publish one GitHub issue per ticket, link it as a sub-issue, and create native blocking relationships using docs/agents/issue-tracker.md.
 '@
     Write-TestFile $root ".agents\skills\setup-skills\SKILL.md" @'
 ---
@@ -275,8 +303,10 @@ policy:
     Write-TestFile $root ".agents\skills\implement\SKILL.md" @'
 # implement
 
-- 승인된 일반 구현 계획과 큰 작업 계획을 실행한다.
-- 승인된 일반 구현 계획만 구현한다.
+- 승인된 일반 구현 plan과 큰 작업의 implementation ticket을 실행한다. Spec은 실행 단위가 아니라 구현 맥락이다.
+- 사용자가 특정 plan 또는 ticket의 구현을 명확히 요청하면 승인된 입력으로 본다.
+- spec만 지정되면 구현하지 않고 to-tickets의 범위를 설명한 뒤 호출 승인을 요청한다.
+- 커밋, 브랜치, push, Pull Request와 GitHub comment·close·label·status 변경은 별도 요청과 승인이 있을 때만 수행한다.
 '@
     Write-TestFile $root ".agents\skills\grill\SKILL.md" @'
 # grill
@@ -327,6 +357,11 @@ description: 사용자의 이해를 검증하고 종료 전에 지속 학습 기
 # Claude plan 연결
 
 .agents/skills/plan/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\ask-matt\SKILL.md" @'
+# Claude ask-matt 연결
+
+.agents/skills/ask-matt/SKILL.md를 원본으로 사용한다.
 '@
     Write-TestFile $root ".claude\skills\to-spec\SKILL.md" @'
 # Claude to-spec 연결
@@ -697,11 +732,34 @@ try {
         Assert-RuleFailure $result "ROUTING-CONTRACT"
     }
 
+    Invoke-TestCase "생명주기 계약 누락: plan 비정본 경계" {
+        $root = New-ValidFixture "lifecycle-plan-record"
+        $path = Join-Path $root ".agents\skills\plan\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("개인 작업 기록", "프로젝트 정본")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: ask-matt 라우터 경계" {
+        $root = New-ValidFixture "lifecycle-ask-matt-router"
+        $path = Join-Path $root ".agents\skills\ask-matt\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("Recommend a route and stop.", "Invoke the selected route immediately.")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
     Invoke-TestCase "라우팅 계약 누락: to-spec 게시 승인" {
         $root = New-ValidFixture "routing-spec-approval"
         $path = Join-Path $root ".agents\skills\to-spec\SKILL.md"
         $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
-        $content = $content -replace "ask for approval", "publish immediately"
+        $content = $content.Replace(
+            "Show the target repository, final title, full body, and labels, then ask for approval.",
+            "Publish immediately."
+        )
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
@@ -715,6 +773,26 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: to-spec parent readiness 경계" {
+        $root = New-ValidFixture "lifecycle-to-spec-readiness"
+        $path = Join-Path $root ".agents\skills\to-spec\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("do not apply", "apply")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: to-spec ticket handoff" {
+        $root = New-ValidFixture "lifecycle-to-spec-ticket-handoff"
+        $path = Join-Path $root ".agents\skills\to-spec\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("When implementation is intended", "Only when multiple tickets are needed")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
     }
 
     Invoke-TestCase "라우팅 계약 누락: triage 외부 쓰기 승인" {
@@ -745,6 +823,66 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: wayfinder 산출물 경계" {
+        $root = New-ValidFixture "lifecycle-wayfinder-deliverable"
+        $path = Join-Path $root ".agents\skills\wayfinder\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("produce decisions, not deliverables.", "produce implementation deliverables.")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: wayfinder Notes 실행 예외" {
+        $root = New-ValidFixture "lifecycle-wayfinder-notes-override"
+        $path = Join-Path $root ".agents\skills\wayfinder\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("Map Notes may explicitly opt into carrying named execution tasks.", "Execution tasks are never allowed.")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: wayfinder Notes 완료 경로" {
+        $root = New-ValidFixture "lifecycle-wayfinder-notes-completion"
+        $path = Join-Path $root ".agents\skills\wayfinder\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("If approved Notes carried the destination through verified execution, report the outcome and stop.", "Always publish a new spec.")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: wayfinder local fallback" {
+        $root = New-ValidFixture "lifecycle-wayfinder-local-fallback"
+        $path = Join-Path $root ".agents\skills\wayfinder\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("do not fall back to local files", "fall back to local files")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: to-tickets 게시 승인" {
+        $root = New-ValidFixture "lifecycle-to-tickets-write-approval"
+        $path = Join-Path $root ".agents\skills\to-tickets\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("Breakdown approval does not approve GitHub writes.", "Breakdown approval approves GitHub writes.")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: to-tickets GitHub 게시" {
+        $root = New-ValidFixture "lifecycle-to-tickets-github"
+        $path = Join-Path $root ".agents\skills\to-tickets\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("Publish one GitHub issue per ticket", "Write one local file per ticket")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
     }
 
     Invoke-TestCase "GitHub 연동 스킬의 user-invoked 설정 누락" {
@@ -795,6 +933,14 @@ try {
         Assert-RuleFailure $result "RETIRED-SKILL"
     }
 
+    Invoke-TestCase "제거된 design-spec 스킬 재등장" {
+        $root = New-ValidFixture "retired-design-spec-files"
+        Write-TestFile $root ".agents\skills\design-spec\SKILL.md" "# retired source`n"
+        Write-TestFile $root ".claude\skills\design-spec\SKILL.md" "# retired bridge`n"
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "RETIRED-SKILL"
+    }
+
     Invoke-TestCase "제거된 resolving-merge-conflicts 활성 문서 참조" {
         $root = New-ValidFixture "retired-skill-reference"
         Write-TestFile $root "docs\harness\skill-catalog.md" "- resolving-merge-conflicts`n"
@@ -810,6 +956,26 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "ROUTING-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: implement ticket 입력" {
+        $root = New-ValidFixture "lifecycle-implement-ticket"
+        $path = Join-Path $root ".agents\skills\implement\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("plan과 큰 작업의 implementation ticket", "plan")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
+    }
+
+    Invoke-TestCase "생명주기 계약 누락: implement spec 직접 실행 차단" {
+        $root = New-ValidFixture "lifecycle-implement-spec-context"
+        $path = Join-Path $root ".agents\skills\implement\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("spec만 지정되면 구현하지 않고", "spec만 지정되면 바로 구현하고")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-LIFECYCLE-CONTRACT"
     }
     Invoke-TestCase "라우팅 계약 누락: grill 승인 차단" {
         $root = New-ValidFixture "routing-grill-approval"

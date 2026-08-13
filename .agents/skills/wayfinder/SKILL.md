@@ -10,7 +10,13 @@ The destination varies per effort, and naming it is the first act of charting �
 
 ## Plan, don't do
 
-Wayfinder is **planning** by default: each ticket resolves a decision, and the map is done when the way is clear — nothing left to decide before someone goes and does the thing. The pull to just do the work is usually the signal you've reached the edge of the map and it's time to hand off. An effort can override this in its **Notes** — carrying execution into the map itself — but absent that, produce decisions, not deliverables.
+Wayfinder is planning by default: each ticket resolves a decision, and the map is done when the way
+is clear — nothing remains to decide before another stage does the work. A map's `Notes` may
+explicitly opt into carrying named execution tasks. Without that override, produce decisions, not
+deliverables, and do not create a spec, implementation plan, implementation ticket, or code change.
+The override permits only the execution scope named in `Notes`; it does not bypass repository,
+Git, or external-write approval. Decision-support research and throwaway prototypes may inform a
+ticket without needing that override, but they do not deliver the destination or bypass the handoff.
 
 ## External-write gate
 
@@ -45,7 +51,10 @@ The map is a single issue on this repo's issue tracker, labelled `wayfinder:map`
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place — its ticket — so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you — run `/setup-skills` if not. Consult the tracker doc's "Wayfinding operations" section for how _this_ repo expresses them. If no tracker has been provided, default to the local-markdown tracker.
+This project stores the map, child tickets, blocking edges, and frontier in GitHub. Follow
+`docs/agents/issue-tracker.md` exactly. If that configuration is missing, stop and recommend
+`/setup-skills` with its expected read/write scope and ask for invocation approval; do not invoke it
+or fall back to local files.
 
 ### The map body
 
@@ -103,7 +112,7 @@ Every ticket is either **HITL** — human in the loop, worked *with* a human who
 - **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases to surface a fact a decision waits on. Resolved by a `/research` **subagent**. Use when knowledge outside the current working directory is required.
 - **Prototype** (HITL): Raise the fidelity of the discussion by making the smallest cheap, rough, concrete artifact needed inside the ticket — an outline, a rough take, a stub, or throwaway UI/logic code. Link the artifact as an asset. Use when "how should it look" or "how should it behave" is the key question.
 - **Grilling** (HITL): Conversation via `/grill` in its one-question route, with `/domain-modeling` when the map needs domain records. The default case.
-- **Task** (HITL or AFK): Manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that *does* rather than decides — and it earns its place by unblocking a decision, not by delivering the destination. The agent drives an AFK task only after its exact external actions pass the [External-write gate](#external-write-gate); otherwise it hands the human a precise checklist. Resolved when the work is done; the answer records what was done and non-sensitive facts (new URLs, row counts, or a reference to an approved secret store, never secret values) later tickets depend on.
+- **Task** (HITL or AFK): By default, manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. It normally earns its place by unblocking a decision, not by delivering the destination. When the map's `Notes` execution override names a task and its scope, that task may instead carry exactly that execution toward the destination. The agent drives an AFK task only after its exact external actions pass the [External-write gate](#external-write-gate); otherwise it hands the human a precise checklist. Resolved when the work is done; the answer records what was done and non-sensitive facts (new URLs, row counts, or a reference to an approved secret store, never secret values) later tickets depend on.
 
 ## Fog of war
 
@@ -167,3 +176,8 @@ User invokes with a map (URL or number). A ticket is **optional** — without on
    the tracker unchanged apart from the separately approved claim.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.
+
+When the map is clear and its `Notes` did not carry the destination through execution, stop and
+recommend `/to-spec` with its expected read/write scope and ask for separate invocation approval.
+If the approved `Notes` already carried the destination through verified execution, report that
+outcome and stop. In either case, do not invoke `/to-spec`, `/to-tickets`, or `/implement` from the map.

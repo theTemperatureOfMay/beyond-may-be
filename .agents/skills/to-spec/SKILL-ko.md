@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: 지금까지 나눈 대화를 추가 질문 없이 명세로 정리해 프로젝트 이슈 추적기에 발행한다.
+description: 확정된 대화 또는 clear된 wayfinder map을 parent GitHub spec issue 하나로 합성한다. 명시적 호출 승인 뒤 사용하며 게시에는 별도 최종 묶음 승인이 필요하다.
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,13 @@ disable-model-invocation: true
 
 현재 대화 맥락과 코드베이스에 대한 이해를 바탕으로 명세(PRD라고도 한다)를 작성한다. 사용자를 추가로 인터뷰하지 않고 이미 논의한 내용을 종합한다.
 
-이슈 추적기와 분류 라벨 어휘가 제공되어 있어야 한다. 없다면 `/setup-skills`를 실행한다.
+이 스킬은 parent spec issue 하나만 만든다. 구현 계획, 구현 ticket, 코드 변경, commit 또는 issue
+상태 변경을 만들지 않는다. 호출 승인은 게시를 승인하지 않는다. 쓰기 직전에 별도의 명시적
+승인을 요청한다.
+
+이 프로젝트의 GitHub issue tracker와 `docs/agents/issue-tracker.md`를 사용한다. Tracker 또는 label
+mapping이 없으면 예상 읽기·쓰기 범위와 함께 `/setup-skills`를 추천하고 호출 승인을 요청한 뒤
+멈춘다. 자동으로 호출하지 않는다.
 
 ## 절차
 
@@ -18,11 +24,19 @@ disable-model-invocation: true
 
    이 경계가 사용자의 기대와 일치하는지 확인한다.
 
-3. 아래 템플릿으로 명세를 작성한다. 대상 저장소, 최종 제목, 본문 전체와 라벨을 사용자에게 보여 주고 승인을 요청한다.
+3. 아래 템플릿으로 명세를 작성한다. 대상을 다시 읽은 뒤 대상 저장소, 최종 제목, 본문 전체,
+   라벨, 예상 영향과 복구 방법을 사용자에게 보여 주고 그 정확한 GitHub 쓰기 묶음을 명시적으로
+   승인할지 요청한다.
 
    이슈는 구현하려는 목표를 기록한다. 현재 구현 상태는 코드와 정본 문서에서 확인한다.
 
-4. 승인 후 명세를 프로젝트 이슈 추적기에 발행한다. 별도 분류 없이 `ready-for-agent` 라벨을 적용한다.
+4. 별도 승인 뒤 parent spec issue 하나만 만들고 title, body, label과 URL을 확인한다. Parent spec에는
+   `ready-for-agent`를 적용하지 않는다. 완전한 구현 tickets와 readiness label은 `/to-tickets`가
+   담당한다.
+
+5. 확인한 issue를 보고한 뒤 멈춘다. 구현하려는 spec이면 예상 읽기·쓰기 범위와 함께
+   `/to-tickets`를 추천한다. 결과는 하나 이상의 implementation ticket일 수 있으며 직접 호출하지
+   않는다.
 
 <spec-template>
 

@@ -60,10 +60,10 @@
 
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
-| `ask-matt` | 설치된 스킬 중 적합한 흐름을 안내하는 라우터 | 사용할 스킬을 모르거나 작업 흐름을 선택할 때 | 핵심 |
+| `ask-matt` | 적합한 흐름과 다음 승인 관문만 안내하고 실행하지 않는 라우터 | 사용할 스킬을 모르거나 작업 흐름을 선택할 때 | 핵심 |
 | `grill` | 1문 1답·batch와 기록 없음·기록 필요를 조합하는 단일 진입점 | 사용자 또는 다른 스킬이 요구사항·아이디어·계획·결정을 공유 이해까지 구체화할 때 | 핵심·프로젝트 전용 |
-| `plan` | 일반 구현 요구사항을 구현 체크리스트로 변환 | 구현 파일·순서·검증 범위를 확정할 때 | 핵심·프로젝트 전용 |
-| `implement` | 승인된 계획·spec·ticket을 구현하고 검증 | 실제 코드나 동작을 변경할 때 | 핵심·튜닝 필요 |
+| `plan` | 일반 구현 요구사항을 비정본 `.dev` 구현 체크리스트로 변환 | 구현 파일·순서·검증 범위를 확정할 때 | 핵심·프로젝트 전용 |
+| `implement` | 승인된 plan·implementation ticket을 구현하고 연결된 spec을 맥락으로 읽음 | 특정 승인 실행 단위의 실제 코드나 동작을 변경할 때 | 핵심·프로젝트 전용 |
 | `code-review` | 변경을 Standards와 Spec 두 축으로 검토 | 구현 후, 브랜치 또는 PR을 기준점과 비교할 때 | 핵심 |
 | `change-impact-review` | 정본·문서·코드·테스트·스킬의 변경 영향과 불일치 검사 | 의미 있는 제품·구조·API·데이터·보안·하네스 변경 후 | 핵심·프로젝트 전용 |
 
@@ -93,9 +93,9 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 | `gh-create-issue-from-template` | 저장소의 현재 이슈 템플릿으로 GitHub 이슈 생성 | 이슈·버그·기능·작업 등록을 명시적으로 요청할 때 | 지원·프로젝트 전용 |
 | `gh-create-project-pr` | 프로젝트 PR 규칙으로 Draft PR을 생성하고 CI·JaCoCo 확인 | 사용자가 PR 게시를 명시적으로 요청할 때 | 조건부·프로젝트 전용 |
 | `triage` | GitHub 이슈·외부 PR의 category/state 분류안을 작성하고 승인된 변경만 반영 | 새 이슈를 검토하거나 `ready-for-agent` 변경안을 만들 때 | 지원 |
-| `to-spec` | 대화·코드 이해를 GitHub Issue용 spec으로 합성 | 여러 세션이 필요한 기능의 요구사항이 확정됐을 때 | 지원 |
-| `to-tickets` | spec·계획을 blocker 관계가 있는 vertical ticket으로 분할 | 구현을 여러 agent/session에 나눌 때 | 조건부 |
-| `wayfinder` | 큰 작업의 의사결정 map을 draft하고 승인된 tracker 변경만 반영 | 한 세션에 담기 어려운 모호한 대규모 작업 | 조건부 |
+| `to-spec` | 확정된 대화·결정을 ready label 없는 parent GitHub spec issue 하나로 합성 | 큰 작업의 결정 지도가 정리됐고 구현 목표를 게시할 때 | 지원 |
+| `to-tickets` | 승인된 spec을 blocker 관계가 있는 ready 구현 ticket으로 분할 | 구현을 여러 agent/session에 나눌 때 | 조건부 |
+| `wayfinder` | 기본적으로 큰 작업의 장기 의사결정 map을 운영하고 `Notes`가 명시한 실행 task만 예외적으로 수행 | 한 세션에 담기 어려운 모호한 대규모 작업 | 조건부 |
 | `git-guardrails-claude-code` | Claude Code의 위험한 Git 명령을 hook으로 차단 | push·reset·clean·branch 삭제 차단을 명시적으로 요청할 때 | 조건부·Claude 전용 |
 
 ### 세션·워크플로우·개인 생산성
@@ -129,8 +129,11 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 ### 큰 작업
 
 `wayfinder` 호출을 제안해 승인받은 뒤 결정 지도와 각 tracker 변경 묶음을 승인받아
-해결한다. 이어서 `to-spec`과 `to-tickets`도 각각 호출 승인을 받은 뒤 게시·분할 내용을
-별도로 승인받고 `implement`를 실행한다.
+해결한다. 지도는 기본적으로 spec·계획·구현 ticket·코드를 만들지 않으며, `Notes`가 이름과
+범위를 명시한 실행 task만 예외로 수행한다. 이어서 `to-spec`이 ready label 없는 parent spec
+하나를, `to-tickets`가 ready 구현 tickets를 각각 별도 호출·쓰기 승인 뒤 게시하고, 승인된
+ticket을 `implement`로 실행한다. Parent spec은 구현 맥락이며 직접 실행 입력이 아니다. 단,
+승인된 `Notes`가 destination을 실행·검증까지 완료했다면 중복 spec·ticket을 만들지 않는다.
 API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impact-review`까지 완료해야
 한다.
 
