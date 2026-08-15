@@ -67,7 +67,7 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 | 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` 호출 제안 | 호출 승인 → 결정 지도 → 각 GitHub 변경 승인 → `to-spec` 호출 제안 |
 | 승인된 일반 구현 | `plan` | 승인 후 `implement` → `code-review` |
 | 어려운 버그·성능 회귀 | `diagnosing-bugs` | `.dev` 진단 보고서에서 종료; 수정은 별도 요청 |
-| 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 실제 seam에서 red → green |
+| 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 기존 seam에서 Red → Green → 동작 보존 코드 정리 |
 | 프로젝트 스킬 생성·수정·업데이트 | 실행 도구의 공식 `skill-creator` | 이 문서의 작성 기준을 함께 적용 |
 | 현재 변경의 정합성 검토 | `change-impact-review` | 관련 정본·코드·테스트 재검사 |
 | 하네스 완성도 평가 | `harness-audit` | 읽기 전용 평가와 개선 우선순위 |
@@ -93,19 +93,18 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 | `grill` | 1문 1답·batch와 기록 없음·기록 필요를 조합하는 단일 진입점 | 사용자 또는 다른 스킬이 요구사항·아이디어·계획·결정을 공유 이해까지 구체화할 때 | 핵심·프로젝트 전용 |
 | `plan` | 일반 구현 요구사항을 비정본 `.dev` 구현 체크리스트로 변환 | 구현 파일·순서·검증 범위를 확정할 때 | 핵심·프로젝트 전용 |
 | `implement` | 승인된 plan·implementation ticket을 구현하고 연결된 spec을 맥락으로 읽음 | 특정 승인 실행 단위의 실제 코드나 동작을 변경할 때 | 핵심·프로젝트 전용 |
-| `code-review` | 변경을 Standards와 Spec 두 축으로 검토 | 구현 후, 브랜치 또는 PR을 기준점과 비교할 때 | 핵심 |
+| `code-review` | WIP·branch·PR 변경을 Standards와 Spec 두 축으로 읽기 전용 검토 | 명시적 리뷰 요청과 일반·큰 구현 후; 작은 변경은 요청되거나 위험상 필요할 때 | 핵심 |
 | `change-impact-review` | 정본·문서·코드·테스트·스킬의 변경 영향과 불일치 검사 | 의미 있는 제품·구조·API·데이터·보안·하네스 변경 후 | 핵심·프로젝트 전용 |
 
 ### 개발·설계·검증
 
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
-| `codebase-design` | deep module, interface, seam, adapter, locality 어휘로 구조를 설계 | 모듈 인터페이스·테스트 seam·구조 개선을 논의할 때 | 핵심 |
+| `codebase-design` | 모듈 인터페이스·아키텍처 대안·테스트 seam의 설계 판단 기준을 읽기 전용으로 제시 | 구체적인 설계 결정이 필요할 때; 일반 구현·통상 리뷰에는 사용하지 않음 | 핵심 |
 | `domain-modeling` | 도메인 용어·경계·시나리오를 정리하고 필요한 결정을 기록 | 용어가 모호하거나 도메인 모델이 바뀔 때 | 핵심 |
-| `diagnosing-bugs` | red feedback loop로 원인을 검증하고 `.dev` 진단 보고서를 남김 | 어려운 버그·간헐 오류·성능 회귀를 조사할 때 | 핵심 |
-| `improve-codebase-architecture` | 구조적 마찰과 deepening 후보를 찾아 HTML 보고서로 제시 | 사용자가 아키텍처 개선 탐색을 요청할 때 | 조건부 |
-| `tdd` | public interface에서 red → green → refactor 사이클을 안내 | 테스트 우선 구현이나 통합 테스트가 필요한 기능·수정 | 핵심 |
-| `prototype` | 특정 로직·상태 모델·UI 질문에 답하는 폐기용 산출물 작성 | 문서만으로 결정하기 어려운 동작을 빠르게 확인할 때 | 조건부·튜닝 필요 |
+| `diagnosing-bugs` | 원인 불명·재현 곤란·flaky·성능 회귀를 검증하고 `.dev/logs/` 진단 보고서에서 종료 | 어려운 문제의 원인과 근거를 조사할 때; 명확한 국소 버그에는 사용하지 않음 | 핵심 |
+| `improve-codebase-architecture` | 구조적 마찰과 개선 후보를 `.dev/architecture-review/` Markdown 보고서 하나로 기록하고 종료 | 사용자가 스킬을 명시 호출해 아키텍처 개선 후보 조사를 요청할 때 | 조건부·user-invoked |
+| `tdd` | 기존 public seam에서 Red → Green → 동작 보존 코드 정리를 수행 | 승인된 구현의 테스트 필요 코드나 명시적인 test-first 요청 | 핵심 |
 | `research` | 1차 자료를 백그라운드로 조사하고 인용된 Markdown 결과를 남김 | 공식 문서·API·사양 사실을 확인해야 할 때 | 지원 |
 
 ### 이슈·GitHub·외부 작업
@@ -172,6 +171,12 @@ API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impa
 수정안을 `.dev` 진단 보고서에 남긴 뒤 종료한다. 사용자가 보고서를 검토하고 수정을 별도로
 요청하면 그 요청을 작업 크기에 맞는 승인 경로로 보내며, 필요한 구현은 `tdd`로 진행한다.
 
+### Merge/rebase 충돌
+
+현재 별도 전용 스킬은 없다. 기존 의도와 해결 방법이 명확한 충돌은 일반 작업 크기·위험도
+분류를 따르고, 새 공개 계약·구조 결정이 필요한 충돌은 설계 또는 큰 작업 경로에서 결정한다.
+어느 경우에도 해결 뒤 stage, rebase 계속, commit을 자동 수행하지 않는다.
+
 ### 하네스 변경
 
 `docs/harness/completion-criteria.md`와 `change-impact-map.md`를 먼저 읽는다.
@@ -185,9 +190,7 @@ API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impa
    Windows PowerShell과 AGENTS 승인 규칙에 맞춘다.
 2. **작업 추적**: `to-spec`, `to-tickets`, `triage`, `gh-create-*`, `wayfinder`가
    현재 GitHub 설정과 외부 쓰기 승인 규칙을 사용하도록 맞춘다.
-3. **도구 가정**: `prototype`의 bash·TypeScript·커밋 가정을 프로젝트 환경에 맞게
-   조정한다.
-4. **선택 스킬**: `handoff`, `claude-handoff`, `loop-me`, `teach`, `teach-me`,
+3. **선택 스킬**: `handoff`, `claude-handoff`, `loop-me`, `teach`, `teach-me`,
    `to-questionnaire`, `writing-great-skills`는 실제 사용 사례가 생길 때만 튜닝한다.
 
 ## 정합성·검증

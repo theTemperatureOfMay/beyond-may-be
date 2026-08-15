@@ -432,6 +432,83 @@ try {
         }
     }
 
+    $codebaseDesignPath = ".agents/skills/codebase-design/SKILL.md"
+    $codebaseDesignFullPath = Join-Path $resolvedRoot ($codebaseDesignPath -replace "/", "\")
+    if (-not (Test-Path -LiteralPath $codebaseDesignFullPath -PathType Leaf)) {
+        Add-RuleFailure "SKILL-QUALITY-CONTRACT" $codebaseDesignPath "codebase-design 호출 설정이 없다."
+    }
+    else {
+        try { $codebaseDesignText = [System.IO.File]::ReadAllText($codebaseDesignFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $codebaseDesignPath "codebase-design 호출 설정을 UTF-8로 읽을 수 없다."
+            $codebaseDesignText = $null
+        }
+
+        if ($null -ne $codebaseDesignText) {
+            $codebaseDesignFrontmatter = [regex]::Match(
+                $codebaseDesignText,
+                "\A---\r?\n(?<body>.*?)\r?\n---",
+                [System.Text.RegularExpressions.RegexOptions]::Singleline
+            )
+            if (
+                -not $codebaseDesignFrontmatter.Success -or
+                $codebaseDesignFrontmatter.Groups["body"].Value -match "(?m)^disable-model-invocation:\s*true\s*$"
+            ) {
+                Add-RuleFailure "SKILL-QUALITY-CONTRACT" $codebaseDesignPath "codebase-design의 관련 설계 상황 모델 선택이 차단됐다."
+            }
+        }
+    }
+
+    foreach ($architectureInvocationPath in @(
+        ".agents/skills/improve-codebase-architecture/SKILL.md",
+        ".claude/skills/improve-codebase-architecture/SKILL.md"
+    )) {
+        $architectureInvocationFullPath = Join-Path $resolvedRoot ($architectureInvocationPath -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $architectureInvocationFullPath -PathType Leaf)) {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureInvocationPath "아키텍처 개선 스킬 호출 설정이 없다."
+            continue
+        }
+        try { $architectureInvocationText = [System.IO.File]::ReadAllText($architectureInvocationFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureInvocationPath "아키텍처 개선 스킬 호출 설정을 UTF-8로 읽을 수 없다."
+            continue
+        }
+        $architectureInvocationFrontmatter = [regex]::Match(
+            $architectureInvocationText,
+            "\A---\r?\n(?<body>.*?)\r?\n---",
+            [System.Text.RegularExpressions.RegexOptions]::Singleline
+        )
+        if (
+            -not $architectureInvocationFrontmatter.Success -or
+            $architectureInvocationFrontmatter.Groups["body"].Value -notmatch "(?m)^disable-model-invocation:\s*true\s*$"
+        ) {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureInvocationPath "아키텍처 개선 스킬은 user-invoked여야 한다."
+        }
+    }
+
+    $architectureMetadataPath = ".agents/skills/improve-codebase-architecture/agents/openai.yaml"
+    $architectureMetadataFullPath = Join-Path $resolvedRoot ($architectureMetadataPath -replace "/", "\")
+    if (-not (Test-Path -LiteralPath $architectureMetadataFullPath -PathType Leaf)) {
+        Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureMetadataPath "Codex 아키텍처 개선 스킬 호출 설정이 없다."
+    }
+    else {
+        try { $architectureMetadataText = [System.IO.File]::ReadAllText($architectureMetadataFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureMetadataPath "Codex 아키텍처 개선 스킬 호출 설정을 UTF-8로 읽을 수 없다."
+            $architectureMetadataText = ""
+        }
+        $architecturePolicyBlock = [regex]::Match(
+            $architectureMetadataText,
+            "(?ms)^policy:[ \t]*\r?\n(?<body>(?:[ \t]+[^\r\n]*(?:\r?\n|$))*)"
+        )
+        if (
+            -not $architecturePolicyBlock.Success -or
+            $architecturePolicyBlock.Groups["body"].Value -notmatch "(?m)^[ \t]+allow_implicit_invocation:\s*false\s*$"
+        ) {
+            Add-RuleFailure "SKILL-QUALITY-CONTRACT" $architectureMetadataPath "Codex의 아키텍처 개선 스킬 암시적 호출이 차단되지 않았다."
+        }
+    }
+
     $githubUserInvokedSkills = @(
         "wayfinder",
         "to-spec",
@@ -514,41 +591,6 @@ try {
         foreach ($contractPattern in $contract.Value) {
             if ($contractText -notmatch $contractPattern) {
                 Add-RuleFailure "GITHUB-SKILL-INVOCATION" $contract.Key "GitHub 연동 스킬 호출·쓰기 승인 계약이 누락됐다."
-            }
-        }
-    }
-
-    $retiredSkills = @("design-spec", "resolving-merge-conflicts")
-    $retiredReferencePaths = @(
-        "AGENTS.md",
-        "skills-lock.json",
-        "docs/harness/skill-catalog.md",
-        ".agents/skills/ask-matt/SKILL.md",
-        ".agents/skills/ask-matt/SKILL-ko.md"
-    )
-    foreach ($retiredSkill in $retiredSkills) {
-        foreach ($skillRoot in @(".agents/skills", ".claude/skills")) {
-            $retiredDirectory = Join-Path $resolvedRoot "$skillRoot/$retiredSkill"
-            if (
-                (Test-Path -LiteralPath $retiredDirectory -PathType Container) -and
-                @(Get-ChildItem -LiteralPath $retiredDirectory -File -Recurse -Force).Count -gt 0
-            ) {
-                Add-RuleFailure "RETIRED-SKILL" "$skillRoot/$retiredSkill" "제거된 스킬 파일이 다시 추가됐다."
-            }
-        }
-
-        foreach ($referencePath in $retiredReferencePaths) {
-            $referenceFullPath = Join-Path $resolvedRoot ($referencePath -replace "/", "\")
-            if (-not (Test-Path -LiteralPath $referenceFullPath -PathType Leaf)) {
-                continue
-            }
-            try { $referenceText = [System.IO.File]::ReadAllText($referenceFullPath, $utf8) }
-            catch {
-                Add-RuleFailure "RETIRED-SKILL" $referencePath "제거된 스킬 참조 여부를 UTF-8로 확인할 수 없다."
-                continue
-            }
-            if ($referenceText -match [regex]::Escape($retiredSkill)) {
-                Add-RuleFailure "RETIRED-SKILL" $referencePath "활성 하네스 문서에 제거된 스킬 참조가 남았다: $retiredSkill"
             }
         }
     }

@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: "Diagnose hard bugs and performance regressions, then record the evidence and recommended fix in .dev without implementing it."
+description: "Diagnose cause-unclear, hard-to-reproduce, flaky, or slow failures and stop after a .dev/logs evidence report without implementing the fix."
 ---
 
 # Claude Code 연결 파일

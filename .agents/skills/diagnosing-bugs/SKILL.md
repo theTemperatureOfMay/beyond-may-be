@@ -1,11 +1,13 @@
 ---
 name: diagnosing-bugs
-description: Diagnose hard bugs and performance regressions, then record the evidence and recommended fix in .dev without implementing it. Use when the user asks to diagnose or debug something broken, failing, flaky, or slow.
+description: Diagnose hard bugs whose cause or reproduction is unclear, flaky failures, and performance regressions; write the evidence and recommended fix under .dev/logs without implementing it.
 ---
 
 # Diagnosing Bugs
 
-A discipline for hard bugs. Skip phases only when explicitly justified.
+A discipline for hard bugs. Use this skill only when the root cause is unclear, reproduction is
+difficult, the failure is flaky, or performance regressed. Simple obvious local bugs follow the normal
+work classification and tdd path.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 
@@ -25,20 +27,24 @@ changes before writing the report; preserve every pre-existing user change.
 
 **This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug — one that goes red on _this_ bug — you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.
 
-Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
+Prefer gradlew.bat, JUnit 5, Mockito, MockMvc, Testcontainers, and PowerShell for repository feedback
+loops. Use the narrowest existing public seam that reproduces the user's symptom.
 
 ### Ways to construct one — try them in roughly this order
 
-1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.
-2. **Curl / HTTP script** against a running dev server.
-3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
-4. **Headless browser script** (Playwright / Puppeteer) — drives the UI, asserts on DOM/console/network.
-5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.
-6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
-7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
-8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), prepare "boot at state X, check, repeat". Run `git bisect` only when the user explicitly requests the required Git state changes.
-9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
-10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.
+1. Run the narrowest relevant Gradle test, for example
+   `.\gradlew.bat test --tests "<fully.qualified.TestName>"`.
+2. Add or adapt a temporary JUnit test at an existing `Service` public method; use Mockito only for an
+   established injected dependency such as a repository or external client.
+3. Use MockMvc when the symptom is observable through HTTP status, body, validation, or security.
+4. Use Testcontainers when PostgreSQL mappings, constraints, SQL, or transactions are load-bearing.
+5. Use a PowerShell or HTTP reproduction script when a running application is required.
+6. Replay a sanitized request, event, or log fixture through the smallest existing path that preserves
+   the failure.
+7. For performance regressions, establish a repeatable baseline with a profiler, timing harness, or
+   query plan before comparing states.
+8. Prepare bisection only when two states are known. Run `git bisect` only after the user explicitly
+   authorizes its Git state changes.
 
 Build the right feedback loop, and the diagnosis becomes tractable.
 
@@ -67,7 +73,8 @@ Phase 1 is done when the loop is **tight** and **red-capable**: you can name **o
 - [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**. Not "runs without erroring" — it must be able to _catch this specific bug_.
 - [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
 - [ ] **Fast** — seconds, not minutes.
-- [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+- [ ] **Agent-runnable** — it can run unattended. If manual interaction is unavoidable, request a
+  captured artifact or the specific access needed instead of adding a repository interaction script.
 
 If you catch yourself reading code to build a theory before this command exists, **stop — jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
 
@@ -118,7 +125,9 @@ Tool preference:
 Use the diagnostic boundary for every probe. Keep repository instrumentation temporary and approved,
 remove every tagged probe before the report, and record the observation rather than the instrumentation.
 
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first; recommend the fix in the report.
+**Perf branch.** For performance regressions, establish a baseline measurement with a repeatable timing
+harness, Java profiler, database statistics, or query plan, then compare one variable at a time. Measure
+first; recommend the fix in the report.
 
 ## Phase 5 — Write the diagnosis report
 

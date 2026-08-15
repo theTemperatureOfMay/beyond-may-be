@@ -1,3 +1,3 @@
 interface:
   display_name: "Codebase Design"
-  short_description: "깊은 모듈 설계를 위한 공통 어휘 제공"
+  short_description: "모듈 인터페이스와 테스트 seam을 읽기 전용 설계"

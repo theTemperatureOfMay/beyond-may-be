@@ -230,6 +230,25 @@ disable-model-invocation: true
 - Every temporary diagnostic change is removed and pre-existing user changes remain intact.
 - The skill ends at the diagnosis report.
 '@
+    Write-TestFile $root ".agents\skills\codebase-design\SKILL.md" @'
+---
+name: codebase-design
+description: Design a module interface, architecture, or test seam and return read-only alternatives.
+---
+'@
+    Write-TestFile $root ".agents\skills\improve-codebase-architecture\SKILL.md" @'
+---
+name: improve-codebase-architecture
+description: Scan for architecture improvement candidates and write one Markdown report, then stop.
+disable-model-invocation: true
+---
+'@
+    Write-TestFile $root ".agents\skills\improve-codebase-architecture\agents\openai.yaml" @'
+interface:
+  display_name: "Improve Codebase Architecture"
+policy:
+  allow_implicit_invocation: false
+'@
     Write-TestFile $root ".agents\skills\wayfinder\SKILL.md" @'
 ---
 name: wayfinder
@@ -384,6 +403,20 @@ description: 사용자의 이해를 검증하고 종료 전에 지속 학습 기
 # Claude diagnosing-bugs 연결
 
 .agents/skills/diagnosing-bugs/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\codebase-design\SKILL.md" @'
+# Claude codebase-design 연결
+
+.agents/skills/codebase-design/SKILL.md를 원본으로 사용한다.
+'@
+    Write-TestFile $root ".claude\skills\improve-codebase-architecture\SKILL.md" @'
+---
+name: improve-codebase-architecture
+description: Write one read-only Markdown architecture review and stop.
+disable-model-invocation: true
+---
+
+.agents/skills/improve-codebase-architecture/SKILL.md를 원본으로 사용한다.
 '@
     Write-TestFile $root ".claude\skills\wayfinder\SKILL.md" @'
 # Claude wayfinder 연결
@@ -721,6 +754,46 @@ try {
         Assert-RuleFailure $result "CLAUDE-SKILL-CREATOR-PLUGIN"
     }
 
+    Invoke-TestCase "품질 스킬 계약 누락: codebase-design 모델 선택 차단" {
+        $root = New-ValidFixture "quality-codebase-model-invocation"
+        $path = Join-Path $root ".agents\skills\codebase-design\SKILL.md"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace("description: Design a module interface, architecture, or test seam and return read-only alternatives.", "description: Design a module interface, architecture, or test seam and return read-only alternatives.`ndisable-model-invocation: true")
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-QUALITY-CONTRACT"
+    }
+
+    Invoke-TestCase "품질 스킬 계약 누락: architecture 원본 user-invoked 설정" {
+        $root = New-ValidFixture "quality-architecture-source-user-invoked"
+        $sourcePath = Join-Path $root ".agents\skills\improve-codebase-architecture\SKILL.md"
+        $source = [System.IO.File]::ReadAllText($sourcePath, $utf8WithoutBom)
+        $source = $source -replace "(?m)^disable-model-invocation: true\r?\n", ""
+        [System.IO.File]::WriteAllText($sourcePath, $source, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-QUALITY-CONTRACT"
+    }
+
+    Invoke-TestCase "품질 스킬 계약 누락: architecture Codex 암시적 호출 차단" {
+        $root = New-ValidFixture "quality-architecture-codex-user-invoked"
+        $metadataPath = Join-Path $root ".agents\skills\improve-codebase-architecture\agents\openai.yaml"
+        $metadata = [System.IO.File]::ReadAllText($metadataPath, $utf8WithoutBom)
+        $metadata = $metadata.Replace("allow_implicit_invocation: false", "allow_implicit_invocation: true")
+        [System.IO.File]::WriteAllText($metadataPath, $metadata, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-QUALITY-CONTRACT"
+    }
+
+    Invoke-TestCase "품질 스킬 계약 누락: architecture Claude user-invoked 설정" {
+        $root = New-ValidFixture "quality-architecture-claude-user-invoked"
+        $bridgePath = Join-Path $root ".claude\skills\improve-codebase-architecture\SKILL.md"
+        $bridge = [System.IO.File]::ReadAllText($bridgePath, $utf8WithoutBom)
+        $bridge = $bridge -replace "(?m)^disable-model-invocation: true\r?\n", ""
+        [System.IO.File]::WriteAllText($bridgePath, $bridge, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "SKILL-QUALITY-CONTRACT"
+    }
+
     Invoke-TestCase "유효한 디렉터리 링크" {
         $root = New-ValidFixture "directory-link"
         [void](New-Item -ItemType Directory -Path (Join-Path $root "docs\adr") -Force)
@@ -943,29 +1016,6 @@ try {
         [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-RuleFailure $result "GITHUB-SKILL-INVOCATION"
-    }
-
-    Invoke-TestCase "제거된 resolving-merge-conflicts 스킬 재등장" {
-        $root = New-ValidFixture "retired-skill-files"
-        Write-TestFile $root ".agents\skills\resolving-merge-conflicts\SKILL.md" "# retired source`n"
-        Write-TestFile $root ".claude\skills\resolving-merge-conflicts\SKILL.md" "# retired bridge`n"
-        $result = Invoke-ScriptProcess $verifyScript $root
-        Assert-RuleFailure $result "RETIRED-SKILL"
-    }
-
-    Invoke-TestCase "제거된 design-spec 스킬 재등장" {
-        $root = New-ValidFixture "retired-design-spec-files"
-        Write-TestFile $root ".agents\skills\design-spec\SKILL.md" "# retired source`n"
-        Write-TestFile $root ".claude\skills\design-spec\SKILL.md" "# retired bridge`n"
-        $result = Invoke-ScriptProcess $verifyScript $root
-        Assert-RuleFailure $result "RETIRED-SKILL"
-    }
-
-    Invoke-TestCase "제거된 resolving-merge-conflicts 활성 문서 참조" {
-        $root = New-ValidFixture "retired-skill-reference"
-        Write-TestFile $root "docs\harness\skill-catalog.md" "- resolving-merge-conflicts`n"
-        $result = Invoke-ScriptProcess $verifyScript $root
-        Assert-RuleFailure $result "RETIRED-SKILL"
     }
 
     Invoke-TestCase "라우팅 계약 누락: implement 일반 계획" {

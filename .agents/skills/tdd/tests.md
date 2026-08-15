@@ -1,77 +1,62 @@
 # Good and Bad Tests
 
-## Good Tests
+Follow the existing test package, naming, fixture, and assertion style before introducing a new one.
 
-**Integration-style**: Test through real interfaces, not mocks of internal parts.
+## Service behavior
 
-```typescript
-// GOOD: Tests observable behavior
-test("user can checkout with valid cart", async () => {
-  const cart = createCart();
-  cart.add(product);
-  const result = await checkout(cart, paymentMethod);
-  expect(result.status).toBe("confirmed");
-});
+Use the public Service method. An injected repository may be a Mockito mock when persistence semantics
+are not the behavior under test.
+
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+  @Mock UserRepository userRepository;
+  @InjectMocks UserService userService;
+
+  @DisplayName("회원가입에 성공한다.")
+  @Test
+  void signUp() {
+    UserSignUpRequestDto request =
+        new UserSignUpRequestDto("testuser", null, null, null, null);
+    User savedUser = User.builder().nickname("testuser").identificationCode(1).build();
+    given(userRepository.existsByNicknameAndIdentificationCode(anyString(), anyInt()))
+        .willReturn(false);
+    given(userRepository.save(any(User.class))).willReturn(savedUser);
+
+    UserSignUpResponseDto response = userService.signUp(request);
+
+    assertThat(response.getNickname()).isEqualTo("testuser");
+    assertThat(response.getIdentificationCode()).isNotNull();
+  }
+}
 ```
 
-Characteristics:
+The assertion describes caller-visible behavior. Verify a repository call only when that interaction is
+itself the contract and no outcome can express it.
 
-- Tests behavior users/callers care about
-- Uses public API only
-- Survives internal refactors
-- Describes WHAT, not HOW
-- One logical assertion per test
+## HTTP behavior
 
-## Bad Tests
+Use MockMvc when routing, validation, serialization, status, or security is the behavior.
 
-**Implementation-detail tests**: Coupled to internal structure.
-
-```typescript
-// BAD: Tests implementation details
-test("checkout calls paymentService.process", async () => {
-  const mockPayment = jest.mock(paymentService);
-  await checkout(cart, payment);
-  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
-});
+```java
+mockMvc.perform(post("/api/users")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(json))
+    .andExpect(status().isBadRequest());
 ```
 
-Red flags:
+Do not call a Controller private helper or reproduce Spring validation logic in the expected value.
 
-- Mocking internal collaborators
-- Testing private methods
-- Asserting on call counts/order
-- Test breaks when refactoring without behavior change
-- Test name describes HOW not WHAT
-- Verifying through external means instead of interface
+## PostgreSQL behavior
 
-```typescript
-// BAD: Bypasses interface to verify
-test("createUser saves to database", async () => {
-  await createUser({ name: "Alice" });
-  const row = await db.query("SELECT * FROM users WHERE name = ?", ["Alice"]);
-  expect(row).toBeDefined();
-});
+Use the existing Testcontainers setup when SQL, mapping, constraints, or transaction behavior matters.
+An in-memory database is not equivalent evidence for PostgreSQL-specific behavior.
 
-// GOOD: Verifies through interface
-test("createUser makes user retrievable", async () => {
-  const user = await createUser({ name: "Alice" });
-  const retrieved = await getUser(user.id);
-  expect(retrieved.name).toBe("Alice");
-});
-```
+## Red flags
 
-**Tautological tests**: Expected value restates the implementation, so the test passes by construction.
-
-```typescript
-// BAD: Expected value is recomputed the way the code computes it
-test("calculateTotal sums line items", () => {
-  const items = [{ price: 10 }, { price: 5 }];
-  const expected = items.reduce((sum, i) => sum + i.price, 0);
-  expect(calculateTotal(items)).toBe(expected);
-});
-
-// GOOD: Expected value is an independent, known literal
-test("calculateTotal sums line items", () => {
-  expect(calculateTotal([{ price: 10 }, { price: 5 }])).toBe(15);
-});
-```
+- calling private methods through reflection;
+- asserting incidental call order or count instead of an outcome;
+- recomputing the expected value with the same algorithm as production code;
+- adding a new interface only to make a mock possible;
+- using a full Spring context when a focused public-method test proves the same behavior;
+- replacing a PostgreSQL behavior test with an in-memory substitute.
