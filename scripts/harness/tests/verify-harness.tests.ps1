@@ -148,6 +148,13 @@ function New-ValidFixture {
 .dev/
 '@
     Write-TestFile $root ".env.example" "SETTING_NAME=placeholder`n"
+    Write-TestFile $root ".claude\settings.json" @'
+{
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}
+'@
     Write-TestFile $root "AGENTS.md" @'
 # AI 작업 규칙
 
@@ -699,6 +706,19 @@ try {
         $root = New-ValidFixture "valid"
         $result = Invoke-ScriptProcess $verifyScript $root
         Assert-True ($result.ExitCode -eq 0) "정상 fixture 실패`n$($result.Output)"
+    }
+
+    Invoke-TestCase "Claude skill-creator project plugin 비활성" {
+        $root = New-ValidFixture "claude-skill-creator-disabled"
+        $path = Join-Path $root ".claude\settings.json"
+        $content = [System.IO.File]::ReadAllText($path, $utf8WithoutBom)
+        $content = $content.Replace(
+            '"skill-creator@claude-plugins-official": true',
+            '"skill-creator@claude-plugins-official": false'
+        )
+        [System.IO.File]::WriteAllText($path, $content, $utf8WithoutBom)
+        $result = Invoke-ScriptProcess $verifyScript $root
+        Assert-RuleFailure $result "CLAUDE-SKILL-CREATOR-PLUGIN"
     }
 
     Invoke-TestCase "유효한 디렉터리 링크" {

@@ -14,6 +14,34 @@
 - `harness-diagnostics`처럼 Codex 환경에 전역 설치된 스킬은 프로젝트 스킬 집합에
   복사하지 않고 외부 진단 도구로 취급한다.
 
+## 스킬 작성과 수정
+
+프로젝트 스킬을 생성·수정·업데이트할 때는 실행 도구가 제공하는 공식 작성 절차를 먼저
+사용하고 이 저장소의 기준을 함께 적용한다.
+
+| 실행 도구 | 첫 작성 경로 | 프로젝트 기준 |
+|---|---|---|
+| Codex | 시스템 `skill-creator` | `AGENTS.md`와 이 절의 작성 기준 |
+| Claude Code | Anthropic 공식 `/skill-creator:skill-creator` | `AGENTS.md`와 이 절의 작성 기준 |
+
+Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외부 project plugin이다.
+`.agents/skills/` 원본이나 `.claude/skills/` 동명 연결 집합에 복제하지 않는다.
+
+공식 작성 스킬은 스킬의 작성·수정·평가 절차를 담당한다. 이 저장소는 정본 위치,
+호출 정책, 번역본·도구 연결, 검증과 완료 조건을 담당한다. 작성할 때는 다음 기준을
+적용한다.
+
+- 같은 출력을 강제하기보다 반복 가능한 과정을 만든다.
+- model-invoked와 user-invoked 중 실제 사용 방식에 맞는 호출 정책을 선택한다.
+- description에는 역할과 실제 trigger를 간결하게 적는다.
+- 각 단계에는 확인 가능한 완료 조건을 둔다.
+- 특정 분기에서만 필요한 상세 내용은 조건부 reference로 분리한다.
+- 중복, 효과 없는 지시와 오래되어 맞지 않는 설명을 제거한다.
+- 금지 목록을 늘리기보다 원하는 행동을 긍정형으로 적는다.
+
+`writing-great-skills`는 현재 설치된 Matt Pocock 원문 기반 참고 자료지만 기본 작성 경로나
+자동 호출 대상은 아니다. 사용자가 이름을 직접 지정한 경우에만 참고한다.
+
 ## 먼저 적용할 공통 규칙
 
 1. 루트 `AGENTS.md`와 [지식 베이스 안내](../index.md)를 먼저 읽는다.
@@ -40,6 +68,7 @@
 | 승인된 일반 구현 | `plan` | 승인 후 `implement` → `code-review` |
 | 어려운 버그·성능 회귀 | `diagnosing-bugs` | `.dev` 진단 보고서에서 종료; 수정은 별도 요청 |
 | 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 실제 seam에서 red → green |
+| 프로젝트 스킬 생성·수정·업데이트 | 실행 도구의 공식 `skill-creator` | 이 문서의 작성 기준을 함께 적용 |
 | 현재 변경의 정합성 검토 | `change-impact-review` | 관련 정본·코드·테스트 재검사 |
 | 하네스 완성도 평가 | `harness-audit` | 읽기 전용 평가와 개선 우선순위 |
 | 새 GitHub 이슈 접수·분류 | `triage` 호출 제안 | 호출 승인 → 분류안 검토 → 승인된 댓글·label·상태만 반영 |
@@ -108,7 +137,7 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 | `to-questionnaire` | 다른 사람의 지식을 받기 위한 비동기 질문지 생성 | 사용자가 혼자 결정할 수 없는 사실을 수집할 때 | 선택 |
 | `teach` | 여러 세션에 걸친 학습 workspace와 lesson을 관리 | 장기 학습을 별도 workspace로 운영할 때 | 선택 |
 | `teach-me` | 방금 수행한 작업이나 개념을 단계적으로 가르치고 종료 전 기록 필요성을 판단 | 사용자가 원리와 이유를 이해하고 다음 세션에서도 이어가고 싶을 때 | 선택·프로젝트 전용 |
-| `writing-great-skills` | skill의 trigger·정보 계층·progressive disclosure를 검토 | 기존 skill을 만들거나 튜닝할 때 | 지원 |
+| `writing-great-skills` | Matt Pocock 원문 기반 작성 관점을 참고 | 사용자가 이름을 직접 지정해 원문을 확인할 때; 기본 작성 경로로 사용하지 않음 | 선택·user-invoked |
 
 `teach-me`는 완료·요약·중단·일시정지·주제 전환 전에 기록 후보 또는 생략 이유를
 표시한다. 개인 학습 기록의 기본 경로는 Git에서 제외된 `.dev/learning/teach-me.md`이며,

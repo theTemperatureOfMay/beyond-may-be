@@ -394,6 +394,44 @@ try {
         }
     }
 
+    $claudeSettingsPath = ".claude/settings.json"
+    $claudeSettingsFullPath = Join-Path $resolvedRoot ($claudeSettingsPath -replace "/", "\")
+    if (-not (Test-Path -LiteralPath $claudeSettingsFullPath -PathType Leaf)) {
+        Add-RuleFailure "CLAUDE-SKILL-CREATOR-PLUGIN" $claudeSettingsPath (
+            "Claude Code project plugin 설정이 없다."
+        )
+    }
+    else {
+        try {
+            $claudeSettingsText = [System.IO.File]::ReadAllText($claudeSettingsFullPath, $utf8)
+            $claudeSettings = $claudeSettingsText | ConvertFrom-Json -ErrorAction Stop
+            $enabledPluginsProperty = $null
+            $skillCreatorProperty = $null
+            if ($null -ne $claudeSettings) {
+                $enabledPluginsProperty = $claudeSettings.PSObject.Properties["enabledPlugins"]
+            }
+            if ($null -ne $enabledPluginsProperty -and $null -ne $enabledPluginsProperty.Value) {
+                $skillCreatorProperty = $enabledPluginsProperty.Value.PSObject.Properties[
+                    "skill-creator@claude-plugins-official"
+                ]
+            }
+            if (
+                $null -eq $skillCreatorProperty -or
+                $skillCreatorProperty.Value -isnot [bool] -or
+                -not $skillCreatorProperty.Value
+            ) {
+                Add-RuleFailure "CLAUDE-SKILL-CREATOR-PLUGIN" $claudeSettingsPath (
+                    "Anthropic 공식 skill-creator project plugin이 true로 활성화되지 않았다."
+                )
+            }
+        }
+        catch {
+            Add-RuleFailure "CLAUDE-SKILL-CREATOR-PLUGIN" $claudeSettingsPath (
+                "Claude Code project plugin 설정을 UTF-8 JSON으로 읽을 수 없다."
+            )
+        }
+    }
+
     $githubUserInvokedSkills = @(
         "wayfinder",
         "to-spec",

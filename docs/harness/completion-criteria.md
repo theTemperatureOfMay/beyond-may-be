@@ -427,7 +427,9 @@ behavioral 검증은 [Codex behavioral 검증 실행 설명서](behavioral-valid
 5. 평가 결과를 바탕으로 공통 규칙과 안전장치를 보완한다.
 6. 평가가 반복되면 별도의 하네스 평가 스킬을 만든다.
 
-개인 하네스, 플러그인, MCP, 정기 자동화는 팀 적용 완성 후 별도로 진행한다.
+개인 하네스, 추가 plugin, MCP와 정기 자동화는 팀 적용 완성 후 별도로 진행한다. 단,
+프로젝트 스킬 작성 경로인 Anthropic 공식 `skill-creator`는 안전 정책에 따른 공급자·출처·
+권한 검토와 사전 승인을 거쳐 Claude Code project scope에서 사용할 수 있다.
 
 ## 10. 최종 원칙
 

@@ -102,7 +102,12 @@ Off the main flow entirely.
 - **`/prototype`** — a small, throwaway program that answers one design question: does this state model feel right, or what should this UI look like. Throwaway from day one — keep the answer, delete the code. It's the detour in step 2 of the main flow, but reach for it any time a design question is hard to settle on paper.
 - **`/research`** — delegate reading legwork to a **background agent**: it investigates a question against **primary sources**, then leaves a cited Markdown file in the repo. Keep working while it reads. The file it produces is something to take *into* the main flow at `/grill` — research feeds the thinking, it doesn't replace it.
 - **`/teach`** — learn a concept over multiple sessions, using the current directory as a stateful workspace.
-- **`/writing-great-skills`** — reference for writing and editing skills well.
+- **Creating or updating a project skill** — recommend the current tool's official authoring skill:
+  Codex system `skill-creator`, or Claude Code `/skill-creator:skill-creator`. Also apply
+  `AGENTS.md` and `docs/harness/skill-catalog.md`; the official procedure does not replace the
+  repository's approval and safety rules.
+- **`/writing-great-skills`** — a current user-invoked Matt Pocock reference only when the user
+  names it explicitly. Do not use it as the default authoring route.
 
 ## Precondition
 
