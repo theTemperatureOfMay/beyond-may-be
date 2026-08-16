@@ -45,8 +45,7 @@ class ExplorationBroadcastServiceTest {
     org.assertj.core.api.Assertions.assertThat(payload.userId()).isEqualTo(2L);
     org.assertj.core.api.Assertions.assertThat(payload.displayName()).isEqualTo("여행자");
     org.assertj.core.api.Assertions.assertThat(payload.visitedAt())
-        .isEqualTo(
-            visitedAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+        .isEqualTo(visitedAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
   }
 
   @DisplayName("member:location은 옵트인 사용자의 좌표를 그대로 room에 전파한다.")

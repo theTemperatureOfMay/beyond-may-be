@@ -15,6 +15,7 @@ import com.example.beyond_may_be.exploration.domain.enums.ParticipantRole;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
 import com.example.beyond_may_be.exploration.repository.ExplorationRepository;
+import com.example.beyond_may_be.exploration.service.ExplorationBroadcastService;
 import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.repository.PlaceRepository;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
@@ -43,8 +44,7 @@ class VisitServiceTest {
   @Mock private CoursePlaceRepository coursePlaceRepository;
   @Mock private ExplorationRepository explorationRepository;
   @Mock private ExplorationParticipantRepository explorationParticipantRepository;
-  @Mock private com.example.beyond_may_be.exploration.service.ExplorationBroadcastService
-      explorationBroadcastService;
+  @Mock private ExplorationBroadcastService explorationBroadcastService;
 
   private ExplorationParticipant activeParticipant(long id) {
     ExplorationParticipant participant =

@@ -16,7 +16,6 @@ import com.example.beyond_may_be.course.repository.CoursePlaceRepository;
 import com.example.beyond_may_be.course.repository.CourseRepository;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
-import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantRole;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;

@@ -25,8 +25,7 @@ public class CourseController {
   }
 
   @GetMapping("/{courseId}")
-  public ApiResponse<CourseDtos.CourseDetailResponse> getCourseDetail(
-      @PathVariable Long courseId) {
+  public ApiResponse<CourseDtos.CourseDetailResponse> getCourseDetail(@PathVariable Long courseId) {
     return ApiResponse.onSuccess(courseService.getCourseDetail(courseId));
   }
 }
