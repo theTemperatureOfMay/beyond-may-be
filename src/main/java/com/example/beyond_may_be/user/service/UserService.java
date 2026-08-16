@@ -2,11 +2,13 @@ package com.example.beyond_may_be.user.service;
 
 import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.handler.UserHandler;
+import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import com.example.beyond_may_be.user.converter.UserConverter;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.dto.UserLoginRequestDto;
 import com.example.beyond_may_be.user.dto.UserLoginResponseDto;
+import com.example.beyond_may_be.user.dto.UserPreferenceResponseDto;
 import com.example.beyond_may_be.user.dto.UserSignUpRequestDto;
 import com.example.beyond_may_be.user.dto.UserSignUpResponseDto;
 import com.example.beyond_may_be.user.repository.UserRepository;
@@ -29,6 +31,7 @@ public class UserService {
           TravelPreferenceType.REMEMBERER);
 
   private final UserRepository userRepository;
+  private final AuthTokenService authTokenService;
 
   public UserSignUpResponseDto signUp(UserSignUpRequestDto requestDto) {
     String nickname = requestDto.getNickname();
@@ -52,8 +55,9 @@ public class UserService {
             .build();
 
     User savedUser = userRepository.save(user);
+    String token = authTokenService.issue(savedUser.getId());
 
-    return UserConverter.toSignUpResponse(savedUser);
+    return UserConverter.toSignUpResponse(savedUser, token);
   }
 
   private Integer generateUniqueIdentificationCode(String nickname) {
@@ -97,13 +101,22 @@ public class UserService {
     return value == null ? 0 : value;
   }
 
-  @Transactional(readOnly = true)
   public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
     User user =
         userRepository
             .findByNicknameAndIdentificationCode(
                 requestDto.getNickname(), requestDto.getIdentificationCode())
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_LOGIN_FAILED));
-    return UserConverter.toLoginResponse(user);
+    String token = authTokenService.issue(user.getId());
+    return UserConverter.toLoginResponse(user, token);
+  }
+
+  @Transactional(readOnly = true)
+  public UserPreferenceResponseDto getMyPreference(Long userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    return UserConverter.toPreferenceResponse(user);
   }
 }

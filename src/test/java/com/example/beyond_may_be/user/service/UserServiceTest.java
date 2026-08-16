@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 import com.example.beyond_may_be.apiPayload.exception.handler.UserHandler;
+import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.dto.UserLoginRequestDto;
@@ -31,6 +32,8 @@ class UserServiceTest {
 
   @Mock private UserRepository userRepository;
 
+  @Mock private AuthTokenService authTokenService;
+
   @DisplayName("회원가입에 성공한다.")
   @Test
   void signUp() {
@@ -41,6 +44,7 @@ class UserServiceTest {
     given(userRepository.existsByNicknameAndIdentificationCode(anyString(), anyInt()))
         .willReturn(false);
     given(userRepository.save(any(User.class))).willReturn(savedUser);
+    given(authTokenService.issue(any())).willReturn("issued-token");
 
     // when
     UserSignUpResponseDto responseDto = userService.signUp(requestDto);
@@ -48,6 +52,7 @@ class UserServiceTest {
     // then
     assertThat(responseDto.getNickname()).isEqualTo("testuser");
     assertThat(responseDto.getIdentificationCode()).isNotNull();
+    assertThat(responseDto.getToken()).isEqualTo("issued-token");
   }
 
   @DisplayName("성향 점수가 모두 비어있으면 preferenceType도 비어있다.")
@@ -58,6 +63,7 @@ class UserServiceTest {
     given(userRepository.existsByNicknameAndIdentificationCode(anyString(), anyInt()))
         .willReturn(false);
     given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+    given(authTokenService.issue(any())).willReturn("issued-token");
 
     // when
     userService.signUp(requestDto);
@@ -76,6 +82,7 @@ class UserServiceTest {
     given(userRepository.existsByNicknameAndIdentificationCode(anyString(), anyInt()))
         .willReturn(false);
     given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+    given(authTokenService.issue(any())).willReturn("issued-token");
 
     // when
     userService.signUp(requestDto);
@@ -94,6 +101,7 @@ class UserServiceTest {
     given(userRepository.existsByNicknameAndIdentificationCode(anyString(), anyInt()))
         .willReturn(false);
     given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+    given(authTokenService.issue(any())).willReturn("issued-token");
 
     // when
     userService.signUp(requestDto);
@@ -113,12 +121,14 @@ class UserServiceTest {
 
     given(userRepository.findByNicknameAndIdentificationCode("testuser", 12))
         .willReturn(Optional.of(user));
+    given(authTokenService.issue(any())).willReturn("issued-token");
 
     // when
     UserLoginResponseDto responseDto = userService.login(requestDto);
 
     // then
     assertThat(responseDto.getNickname()).isEqualTo("testuser");
+    assertThat(responseDto.getToken()).isEqualTo("issued-token");
   }
 
   @DisplayName("잘못된 정보로 로그인 시 예외가 발생한다.")
@@ -132,5 +142,40 @@ class UserServiceTest {
 
     // when & then
     assertThrows(UserHandler.class, () -> userService.login(requestDto));
+  }
+
+  @DisplayName("나의 성향을 조회하면 유형과 유형별 점수를 함께 반환한다.")
+  @Test
+  void getMyPreference_returnsTypeAndScores() {
+    // given
+    User user =
+        User.builder()
+            .nickname("testuser")
+            .identificationCode(12)
+            .preferenceType(TravelPreferenceType.ARTIST)
+            .thinkerScore(1)
+            .foodieScore(2)
+            .artistScore(4)
+            .remembererScore(0)
+            .build();
+    given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+    // when
+    var responseDto = userService.getMyPreference(1L);
+
+    // then
+    assertThat(responseDto.getPreferenceType()).isEqualTo(TravelPreferenceType.ARTIST);
+    assertThat(responseDto.getThinkerScore()).isEqualTo(1);
+    assertThat(responseDto.getFoodieScore()).isEqualTo(2);
+    assertThat(responseDto.getArtistScore()).isEqualTo(4);
+    assertThat(responseDto.getRemembererScore()).isEqualTo(0);
+  }
+
+  @DisplayName("존재하지 않는 사용자의 성향을 조회하면 예외가 발생한다.")
+  @Test
+  void getMyPreference_userNotFound_throws() {
+    given(userRepository.findById(1L)).willReturn(Optional.empty());
+
+    assertThrows(UserHandler.class, () -> userService.getMyPreference(1L));
   }
 }

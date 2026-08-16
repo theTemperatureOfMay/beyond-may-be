@@ -9,6 +9,12 @@
       "key": "baseUrl",
       "value": "http://localhost:8080",
       "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "회원가입·로그인 응답에서 test 스크립트가 자동으로 채웁니다. 직접 값을 넣지 마세요 — 이 컬렉션은 공용 파일이라 실제 토큰을 커밋하면 안 됩니다."
     }
   ],
   "item": [
@@ -109,7 +115,23 @@
       "item": [
         {
           "name": "회원가입",
-          "description": "닉네임으로 회원가입합니다. 성향 검사를 마쳤다면 유형별 점수 4개를 함께 보내 preferenceType을 계산·저장할 수 있습니다. 점수 4개는 모두 선택값이며, 전부 생략하면 preferenceType은 null입니다. 인증이 필요 없습니다.",
+          "description": "닉네임으로 회원가입합니다. 성향 검사를 마쳤다면 유형별 점수 4개를 함께 보내 preferenceType을 계산·저장할 수 있습니다. 점수 4개는 모두 선택값이며, 전부 생략하면 preferenceType은 null입니다. 인증이 필요 없습니다. 응답의 `token`은 이후 인증이 필요한 모든 요청의 `Authorization: Bearer {{accessToken}}` 헤더에 쓰입니다 — 이 요청을 실행하면 test 스크립트가 `accessToken` 컬렉션 변수에 자동으로 저장합니다.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.token) {",
+                  "    pm.collectionVariables.set('accessToken', body.data.token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -161,13 +183,29 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\",\n    \"identificationCode\": 42,\n    \"preferenceType\": \"ARTIST\"\n  },\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\",\n    \"identificationCode\": 42,\n    \"preferenceType\": \"ARTIST\",\n    \"token\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n  },\n  \"success\": true\n}"
             }
           ]
         },
         {
           "name": "로그인",
-          "description": "닉네임과 식별 코드로 로그인합니다. 인증이 필요 없습니다. 닉네임/식별 코드가 일치하지 않으면 계정 열거 방지를 위해 어느 쪽이 틀렸는지 구분하지 않는 통합 오류를 반환합니다.",
+          "description": "닉네임과 식별 코드로 로그인합니다. 인증이 필요 없습니다. 닉네임/식별 코드가 일치하지 않으면 계정 열거 방지를 위해 어느 쪽이 틀렸는지 구분하지 않는 통합 오류를 반환합니다. 응답의 `token`은 test 스크립트가 `accessToken` 컬렉션 변수에 자동으로 저장합니다(회원가입과 동일).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.token) {",
+                  "    pm.collectionVariables.set('accessToken', body.data.token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -219,7 +257,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\"\n  },\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\",\n    \"token\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n  },\n  \"success\": true\n}"
             },
             {
               "name": "401 - 닉네임 또는 식별 코드 불일치",
@@ -683,47 +721,29 @@
         },
         {
           "name": "코스 확정",
-          "description": "코스 확정 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "description": "DRAFT 코스를 확정합니다(3.3.1). 코스 소유자만 호출할 수 있고, 성공하면 Exploration(BEFORE)과 소유자 Participant(OWNER, ACTIVE)가 함께 생성되며 공유 링크 만료 시각(3일 뒤)이 설정됩니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
           "request": {
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/courses/1/confirm",
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "url": "{{baseUrl}}/api/v1/courses/1/confirm"
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 코스 확정 성공",
               "originalRequest": {
                 "method": "POST",
                 "header": [
                   {
-                    "key": "Content-Type",
-                    "value": "application/json"
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/v1/courses/1/confirm",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
+                "url": "{{baseUrl}}/api/v1/courses/1/confirm"
               },
               "status": "OK",
               "code": 200,
@@ -735,31 +755,22 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"explorationId\": 1,\n    \"status\": \"CONFIRMED\",\n    \"confirmedAt\": \"2026-08-13T10:00:00\",\n    \"shareExpiresAt\": \"2026-08-16T10:00:00\"\n  },\n  \"success\": true\n}"
             },
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "409 - 이미 확정된 코스",
               "originalRequest": {
                 "method": "POST",
                 "header": [
                   {
-                    "key": "Content-Type",
-                    "value": "application/json"
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/v1/courses/1/confirm",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
+                "url": "{{baseUrl}}/api/v1/courses/1/confirm"
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Conflict",
+              "code": 409,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -768,13 +779,13 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"이미 확정된 코스입니다.\",\n  \"code\": \"COURSE409\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },
         {
           "name": "코스(확정) 조회",
-          "description": "코스(확정) 조회 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "description": "공유 링크로 접속했을 때 확정 코스 데이터를 조회합니다(4.1.1·4.2.1). 인증이 필요 없습니다(비로그인 사용자도 미리보기 가능) — architecture/backend.md의 '유효한 공유 코스 미리보기 | 비인증 허용'과 일치. 확정되지 않은 코스는 404, 공유 링크가 만료됐으면 410을 반환합니다. Path variable `courseId`.",
           "request": {
             "method": "GET",
             "header": [],
@@ -782,7 +793,7 @@
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 코스 상세",
               "originalRequest": {
                 "method": "GET",
                 "header": [],
@@ -798,17 +809,17 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"CONFIRMED\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 1,\n        \"name\": \"테스트 장소\",\n        \"category\": \"카페\",\n        \"address\": \"광주 동구 테스트로 1\",\n        \"latitude\": 35.1595,\n        \"longitude\": 126.8526,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": null\n      }\n    ]\n  },\n  \"success\": true\n}"
             },
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "404 - 확정되지 않은 코스",
               "originalRequest": {
                 "method": "GET",
                 "header": [],
                 "url": "{{baseUrl}}/api/v1/courses/1"
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Not Found",
+              "code": 404,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -817,7 +828,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"코스를 찾을 수 없습니다.\",\n  \"code\": \"COURSE404\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         }
@@ -829,19 +840,29 @@
       "item": [
         {
           "name": "나의 성향 조회",
-          "description": "나의 성향 조회 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "description": "로그인한 사용자의 최종 성향 유형과 유형별 점수(선택 횟수)를 조회합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. path/query 파라미터 없음 — 토큰의 주인 기준으로 본인 것만 조회됩니다.",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/users/1/preference"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/me/preference"
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 나의 성향",
               "originalRequest": {
                 "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/users/1/preference"
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/users/me/preference"
               },
               "status": "OK",
               "code": 200,
@@ -853,17 +874,38 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
-            },
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"userId\": 1,\n    \"nickname\": \"여행자\",\n    \"preferenceType\": \"ARTIST\",\n    \"thinkerScore\": 1,\n    \"foodieScore\": 2,\n    \"artistScore\": 4,\n    \"remembererScore\": 0\n  },\n  \"success\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "팀 합류 (공유 링크)",
+          "description": "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/join"
+          },
+          "response": [
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "200 - 팀 합류 성공",
               "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/users/1/preference"
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/join"
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "OK",
+              "code": 200,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -872,25 +914,196 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 1,\n    \"participantId\": 2,\n    \"displayName\": \"여행자 (2)\",\n    \"role\": \"MEMBER\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401/403 - 인증 토큰 없음 또는 잘못됨",
+              "description": "이 오류는 우리 ApiResponse 형식이 아니라 Spring Security 기본 응답입니다 — `Authorization` 헤더를 빼거나 잘못된 토큰을 넣으면 재현됩니다. 다른 모든 인증 필요 API도 동일합니다.",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/courses/1/join"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "410 - 공유 링크 만료",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/join"
+              },
+              "status": "Gone",
+              "code": 410,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"공유 링크가 만료되었습니다.\",\n  \"code\": \"EXPLORATION410\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },
         {
-          "name": "방문 인증",
-          "description": "방문 인증 GPS 요청·응답 스켈레톤입니다. 현재는 DB 저장, GPS 거리 판정, 인증 및 실제 사용자 식별을 수행하지 않고 고정 응답을 반환합니다.",
+          "name": "팀원 목록 조회",
+          "description": "탐험에 합류한 팀원 목록을 조회합니다(4.2.2·4.3.2 공용). 탐험 중이면 팀원별 방문 완료 수도 함께 내려갑니다. 활성 참여자만 호출할 수 있습니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`.",
           "request": {
-            "method": "PATCH",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/1/members"
+          },
+          "response": [
+            {
+              "name": "200 - 팀원 목록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/1/members"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"members\": [\n      {\n        \"userId\": 1,\n        \"displayName\": \"여행자\",\n        \"visitedCount\": 3\n      },\n      {\n        \"userId\": 2,\n        \"displayName\": \"여행자 (2)\",\n        \"visitedCount\": 1\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "403 - 활성 참여자가 아님",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/1/members"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"활성 참여자만 수행할 수 있습니다.\",\n  \"code\": \"EXPLORATION403\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "탐험 시작",
+          "description": "탐험을 시작합니다(4.2.4). `BEFORE → ONGOING` 1회성 전환이며 활성 참여자 누구나 호출할 수 있지만 최초 요청만 성공합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`. 요청 본문은 없습니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/1/start"
+          },
+          "response": [
+            {
+              "name": "200 - 탐험 시작 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/1/start"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 1,\n    \"status\": \"ONGOING\",\n    \"startedAt\": \"2026-08-13T10:05:00\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "409 - 이미 시작된 탐험",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/1/start"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 시작된 탐험입니다.\",\n  \"code\": \"EXPLORATION409_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "방문 인증 (지도 밝히기)",
+          "description": "현재 GPS 좌표로 장소 방문을 인증합니다(4.3.3). 서버가 장소 좌표와의 거리를 100m 반경으로 재검증합니다. 같은 참여자가 같은 장소를 두 번 인증할 수 없습니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`, `placeId`.",
+          "request": {
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
-            "url": "{{baseUrl}}/api/schedules/schedule_01J/places/place_001/visit",
+            "url": "{{baseUrl}}/api/v1/explorations/1/places/1/visits",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526,\n  \"hasGpsPermission\": true\n}",
+              "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -900,19 +1113,23 @@
           },
           "response": [
             {
-              "name": "200 - 방문 인증 스켈레톤",
+              "name": "200 - 방문 인증 성공",
               "originalRequest": {
-                "method": "PATCH",
+                "method": "POST",
                 "header": [
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/schedules/schedule_01J/places/place_001/visit",
+                "url": "{{baseUrl}}/api/v1/explorations/1/places/1/visits",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526,\n  \"hasGpsPermission\": true\n}",
+                  "raw": "{\n  \"latitude\": 35.1595,\n  \"longitude\": 126.8526\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -930,7 +1147,44 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"placeId\": \"place_001\",\n    \"visited\": true,\n    \"visitedAt\": \"1970-01-01T00:00:00\",\n    \"visitedBy\": \"temporary-user-id\"\n  },\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"visitId\": 1,\n    \"placeId\": 1,\n    \"teamFirstVisit\": true,\n    \"explorationCompleted\": false,\n    \"visitedAt\": \"2026-08-13T10:10:00\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 인증 반경 밖",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/1/places/1/visits",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"latitude\": 35.2000,\n  \"longitude\": 126.9000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"인증 반경을 벗어났습니다.\",\n  \"code\": \"VISIT400\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },

@@ -3,6 +3,7 @@
 .gradle
 build
 .dev
+performance-results
 docs
 docker-compose.yml
 .env

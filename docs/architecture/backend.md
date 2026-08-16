@@ -27,6 +27,7 @@
 | 코스 | AI 생성 결과, 방문 순서, 수정과 확정 | `courses`, `course_places` |
 | 탐험 | 확정 코스의 팀 합류, 역할, 시작과 완료 | `explorations`, `exploration_participants` |
 | 방문 기록 | 참여자별 방문 인증과 선택적 다중 사진 | `visits`, `visit_photos` |
+| 인증 | 로그인·회원가입 시 발급하는 opaque 인증 토큰 | `auth_tokens` |
 
 ## 인증과 권한
 
@@ -46,14 +47,21 @@
 | 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
 
 인증된 요청의 사용자·참여자 식별자는 body나 query 값이 아니라 서버가 확인한
-인증 컨텍스트와 참여 관계에서 결정한다. 구체적인 인증 토큰·세션 방식은 별도 인증
-설계 범위다. 공유 만료, 참여 상태, 방문 소속과 공개 범위가 바뀌면 이 표를 제품
-논의 필요 문서와 함께 갱신한다.
+인증 컨텍스트와 참여 관계에서 결정한다. 공유 만료, 참여 상태, 방문 소속과 공개
+범위가 바뀌면 이 표를 제품 논의 필요 문서와 함께 갱신한다.
+
+인증 토큰은 로그인·회원가입 시 발급하는 opaque UUID 문자열이며 `auth_tokens`에
+`user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
+일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
+`TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
+Socket.IO 핸드셰이크는 같은 토큰을 쿼리 파라미터(`?token=...`)로 전달한다
+(ADR-0012). 토큰 재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
 
 ## 목표 논리 관계
 
 ```mermaid
 erDiagram
+    USERS ||--o{ AUTH_TOKENS : authenticates
     USERS ||--o| RECOMMENDATION_SETS : keeps_current
     QUESTIONS ||--|{ QUESTION_OPTIONS : contains
 
@@ -179,6 +187,13 @@ erDiagram
 방문 대상과 조회 파생 규칙은
 [ADR-0010](../adr/0010-place-based-visits.md)을 따른다.
 
+### `auth_tokens`
+
+- `token`(UUID 문자열)이 기본키다. 별도 `auth_token_id`를 두지 않는다.
+- `user_id`, 만료 시각(`expires_at`, 발급 시 30일 뒤로 고정)을 가진다.
+- 인증 토큰 발급·검증 방식은 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md)를
+  따른다.
+
 ## 상태 전환
 
 ### Course와 Exploration
@@ -225,7 +240,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
-| WebSocket | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. 위치 이벤트는 10m 이동 기준으로 갱신 |
+| Socket.IO(netty-socketio, 별도 포트) | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. 위치 이벤트는 10m 이동 기준으로 갱신. 상세는 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md) |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.
@@ -262,8 +277,10 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 - `V2__place_based_visits.sql`이 기존 CoursePlace 기반 Visit의 `place_id`를 보강하고
   `course_place_id`를 nullable로 전환했으며, `(participant_id, place_id)` 유일 조건을
   적용한다.
-- 방문 인증 구현 전 `places.latitude`, `places.longitude`를 소수점 이하 최소 6자리를
-  보존하는 타입으로 변경해야 한다. 좌표 정밀도 변경은 별도 후속 작업이다.
+- `V4__auth_tokens.sql`이 `auth_tokens` 테이블을 추가했고, `V5__place_coordinate_precision.sql`이
+  `places.latitude`, `places.longitude`를 `numeric(9,6)`으로 좁혀 소수점 이하 6자리
+  정밀도를 보존한다(ADR-0012). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
+  않는다.
 - 기존 테이블 삭제나 공유 Docker volume 초기화는 별도 구현 계획과 실행 직전 승인을
   거친다.
 
