@@ -24,7 +24,8 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
       @Param("participantIds") List<Long> participantIds);
 
   @Query("SELECT DISTINCT v.placeId FROM Visit v WHERE v.participantId IN :participantIds")
-  List<Long> findDistinctPlaceIdsByParticipantIds(@Param("participantIds") List<Long> participantIds);
+  List<Long> findDistinctPlaceIdsByParticipantIds(
+      @Param("participantIds") List<Long> participantIds);
 
   interface ParticipantVisitCount {
     Long getParticipantId();

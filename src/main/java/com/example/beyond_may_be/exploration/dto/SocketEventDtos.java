@@ -11,12 +11,14 @@ public final class SocketEventDtos {
 
   public record ExplorationLeavePayload(Long explorationId) {}
 
-  public record LocationUpdatePayload(Long explorationId, BigDecimal latitude, BigDecimal longitude) {}
+  public record LocationUpdatePayload(
+      Long explorationId, BigDecimal latitude, BigDecimal longitude) {}
 
   public record LocationOptInPayload(Long explorationId, boolean enabled) {}
 
   // Server -> Client
-  public record VisitConfirmedPayload(Long placeId, Long userId, String displayName, long visitedAt) {}
+  public record VisitConfirmedPayload(
+      Long placeId, Long userId, String displayName, long visitedAt) {}
 
   public record MemberProgressPayload(Long userId, String displayName, int visitedCount) {}
 

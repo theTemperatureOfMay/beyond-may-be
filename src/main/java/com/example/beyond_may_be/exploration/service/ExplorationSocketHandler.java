@@ -32,14 +32,18 @@ public class ExplorationSocketHandler {
   }
 
   private void onJoin(
-      SocketIOClient client, SocketEventDtos.ExplorationJoinPayload payload, AckRequest ackRequest) {
+      SocketIOClient client,
+      SocketEventDtos.ExplorationJoinPayload payload,
+      AckRequest ackRequest) {
     Long explorationId = payload.explorationId();
     client.joinRoom(room(explorationId));
     explorationBroadcastService.sendStateSnapshot(client, explorationId);
   }
 
   private void onLeave(
-      SocketIOClient client, SocketEventDtos.ExplorationLeavePayload payload, AckRequest ackRequest) {
+      SocketIOClient client,
+      SocketEventDtos.ExplorationLeavePayload payload,
+      AckRequest ackRequest) {
     client.leaveRoom(room(payload.explorationId()));
   }
 

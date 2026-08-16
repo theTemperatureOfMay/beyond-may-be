@@ -48,7 +48,9 @@ public class VisitService {
             .orElseThrow(() -> new VisitHandler(ErrorStatus.PARTICIPANT_NOT_ACTIVE));
 
     Place place =
-        placeRepository.findById(placeId).orElseThrow(() -> new VisitHandler(ErrorStatus.PLACE_NOT_FOUND));
+        placeRepository
+            .findById(placeId)
+            .orElseThrow(() -> new VisitHandler(ErrorStatus.PLACE_NOT_FOUND));
 
     double distance =
         GeoDistanceCalculator.distanceMeters(

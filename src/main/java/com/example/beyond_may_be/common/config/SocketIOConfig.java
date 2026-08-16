@@ -11,9 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * netty-socketio는 socket.io-client의 {@code auth} 옵션 payload(엔진 연결 후 CONNECT
- * 패킷 body)를 읽지 못하고 HTTP 핸드셰이크 레벨의 헤더·쿼리 파라미터만 본다. 그래서 토큰은
- * handshake 쿼리 파라미터({@code ?token=...})로 전달받는다.
+ * netty-socketio는 socket.io-client의 {@code auth} 옵션 payload(엔진 연결 후 CONNECT 패킷 body)를 읽지 못하고 HTTP
+ * 핸드셰이크 레벨의 헤더·쿼리 파라미터만 본다. 그래서 토큰은 handshake 쿼리 파라미터({@code ?token=...})로 전달받는다.
  */
 @Configuration
 @RequiredArgsConstructor

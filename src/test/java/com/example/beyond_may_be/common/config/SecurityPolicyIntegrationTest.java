@@ -38,6 +38,7 @@ class SecurityPolicyIntegrationTest {
   void unlistedEndpointsRequireAuthentication() throws Exception {
     mockMvc.perform(get("/api/not-allowed")).andExpect(status().isForbidden());
     mockMvc.perform(get("/actuator/env")).andExpect(status().isForbidden());
+    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isForbidden());
   }
 
   @Test

@@ -25,8 +25,10 @@ public interface ExplorationParticipantRepository
       "SELECT COUNT(p) > 0 FROM ExplorationParticipant p, Exploration e "
           + "WHERE e.id = p.explorationId "
           + "AND p.userId = :userId "
-          + "AND p.status = com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus.ACTIVE "
-          + "AND e.status IN (com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.BEFORE, "
+          + "AND p.status = "
+          + "com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus.ACTIVE "
+          + "AND e.status IN ("
+          + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.BEFORE, "
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING) "
           + "AND p.explorationId <> :excludeExplorationId")
   boolean existsActiveParticipationElsewhere(

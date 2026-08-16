@@ -51,7 +51,8 @@ public class ExplorationBroadcastService {
     socketIOServer
         .getRoomOperations(room(explorationId))
         .sendEvent(
-            "member:location", new SocketEventDtos.MemberLocationPayload(userId, latitude, longitude));
+            "member:location",
+            new SocketEventDtos.MemberLocationPayload(userId, latitude, longitude));
   }
 
   public void broadcastMemberJoined(Long explorationId, Long userId, String displayName) {
@@ -83,7 +84,8 @@ public class ExplorationBroadcastService {
                         visitedCountsByParticipantId.getOrDefault(participant.getId(), 0)))
             .toList();
 
-    List<Long> visitedPlaceIds = visitRepository.findDistinctPlaceIdsByParticipantIds(participantIds);
+    List<Long> visitedPlaceIds =
+        visitRepository.findDistinctPlaceIdsByParticipantIds(participantIds);
 
     client.sendEvent(
         "exploration:state",

@@ -114,7 +114,9 @@ public class UserService {
   @Transactional(readOnly = true)
   public UserPreferenceResponseDto getMyPreference(Long userId) {
     User user =
-        userRepository.findById(userId).orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
     return UserConverter.toPreferenceResponse(user);
   }
 }

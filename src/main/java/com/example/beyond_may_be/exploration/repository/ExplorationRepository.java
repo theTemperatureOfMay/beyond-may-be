@@ -14,7 +14,8 @@ public interface ExplorationRepository extends JpaRepository<Exploration, Long> 
   @Modifying(clearAutomatically = true)
   @Query(
       "UPDATE Exploration e SET "
-          + "e.status = com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING, "
+          + "e.status = "
+          + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING, "
           + "e.startedAt = :startedAt, e.startedByParticipantId = :participantId "
           + "WHERE e.id = :id AND e.status = "
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.BEFORE")
@@ -26,7 +27,8 @@ public interface ExplorationRepository extends JpaRepository<Exploration, Long> 
   @Modifying(clearAutomatically = true)
   @Query(
       "UPDATE Exploration e SET "
-          + "e.status = com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.COMPLETED, "
+          + "e.status = "
+          + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.COMPLETED, "
           + "e.completedAt = :completedAt "
           + "WHERE e.id = :id AND e.status = "
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING")

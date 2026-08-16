@@ -75,7 +75,9 @@ public class ExplorationService {
     }
 
     User user =
-        userRepository.findById(userId).orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
     String displayName = resolveDisplayName(exploration.getId(), user.getNickname());
 
     ExplorationParticipant participant =
@@ -129,7 +131,8 @@ public class ExplorationService {
     ExplorationParticipant participant = requireActiveParticipant(explorationId, userId);
 
     int updated =
-        explorationRepository.startIfBefore(explorationId, participant.getId(), LocalDateTime.now());
+        explorationRepository.startIfBefore(
+            explorationId, participant.getId(), LocalDateTime.now());
     if (updated == 0) {
       throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_STARTED);
     }
