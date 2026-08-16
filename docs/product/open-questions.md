@@ -13,10 +13,10 @@
 | 2.1.1 | 운영시간·휴무일 반영의 상세 계약 | `정책 확정, API 상세 [백엔드 확인]` |
 | 2.1.2·2.2.1 | 추천 장소 추가 제공 계약 | `회차당 20곳·최소 기준 충족까지 반복 확정, API 상세 [백엔드 확인]` |
 | 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
-| 4.1.1·4.2.2 | 팀원 목록 조회 계약 | `[백엔드 확인]` |
-| 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | `정확도 50m 확정, payload [백엔드 확인], 좌표 정밀도 마이그레이션 후속 필요` |
-| 4.3.2 | 팀원 상태·위치 공유 WebSocket payload와 채널 계약 | `[백엔드 확인]` |
-| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `100m·GPS 필수 확정, API 상세 [백엔드 확인]` |
+| 4.1.1·4.2.2 | 팀원 목록 조회 계약 | `POST /api/v1/courses/{courseId}/join, GET /api/v1/explorations/{explorationId}/members 확정. ADR-0012` |
+| 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | `정확도 50m 확정, 좌표는 camelCase(latitude/longitude, BigDecimal) 확정. places 좌표 정밀도는 V5 migration으로 numeric(9,6) 반영(ADR-0012)` |
+| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | `Socket.IO(room=exploration:{id})로 확정, 이벤트 카탈로그·인증 방식은 ADR-0012` |
+| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `100m·GPS 필수 확정, POST /api/v1/explorations/{explorationId}/places/{placeId}/visits 확정(ADR-0012)` |
 | 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | `참여자별 1회·팀 전체 표시·주변 장소 기록 포함·Visit 스키마 반영 완료, API 상세 [백엔드 확인]` |
 | 4.4.1 | 주변 추천 노출과 REST API 계약 | `수동 노출 확정, API 상세 [백엔드 확인]` |
 | 5.1.2 | 전체 코스 완료 전환 | `전체 장소 자동 완료·OWNER 조기 완료 확정, API 상세 [백엔드 확인]` |

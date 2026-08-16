@@ -11,4 +11,5 @@ public class UserSignUpResponseDto {
   private String nickname;
   private Integer identificationCode;
   private TravelPreferenceType preferenceType;
+  private String token;
 }
