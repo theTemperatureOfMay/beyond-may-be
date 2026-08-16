@@ -59,11 +59,11 @@
 |---|---|---|---|---|---|
 | 1.1.1 | 서비스 시작 화면 진입 | 세션 상태와 확정 코스 유무 조회 | 데모 핵심 | `미구현` | 세션 상태 분기 정책은 정해졌지만 세션 상태 조회 API와 상세 계약이 없다. |
 | 1.1.2 | 성향 검사 시작 | 21개 풀에서 기본 질문 7개 조회와 동점 추가 질문 | 데모 핵심 | `미구현` | `Question`, `QuestionOption` 엔티티만 있고 질문 조회 Controller·Service·Repository가 없다. |
-| 1.1.3 | 사이드바 및 재진입 | 닉네임·식별코드 로그인, 세션 복구와 rate limit | 일반 | `부분 구현` | `UserController.login`, `UserService.login`은 닉네임·식별코드 조회만 수행한다. 세션 토큰·복구·로그아웃·rate limit은 없다. |
+| 1.1.3 | 사이드바 및 재진입 | 닉네임·식별코드 로그인, 세션 복구와 rate limit | 일반 | `부분 구현` | `UserService.login`이 `AuthTokenService`로 opaque 토큰(30일 만료, DB 기반)을 발급한다(ADR-0012). 토큰 복구 UX·로그아웃·rate limit은 아직 없다. |
 | 1.2.1 | 성향 검사 질문 진행 | 질문·선택지·가중치 데이터 제공 | 데모 핵심 | `미구현` | 질문과 선택지 가중치 엔티티만 있고 실행 가능한 조회 계약이 없다. |
 | 1.2.2 | 성향 결과 계산 및 표시 | 응답 채점, 동점 처리·유형별 비율 응답과 결과 저장 | 데모 핵심 | `미구현` | `User`에 유형·점수 필드는 있으나 채점·동점 추가 질문·비율 계산·결과 저장 API가 없다. |
 | 1.2.3 | 성향 결과 SNS 공유 카드 생성 | 공유 URL·OG와 이미지 생성 결과 서버 저장 | 일반 | `미구현` | 이미지 생성 결과 저장과 공유 백엔드 계약이 없다. |
-| 1.3.1 | 닉네임 입력 및 세션 등록 | 닉네임 검증, 식별코드·세션 발급과 저장 | 데모 핵심 | `부분 구현` | `UserController.signUp`이 사용자와 1~99 식별코드를 저장하지만 닉네임 요청 검증과 세션 토큰 발급은 없다. |
+| 1.3.1 | 닉네임 입력 및 세션 등록 | 닉네임 검증, 식별코드·세션 발급과 저장 | 데모 핵심 | `부분 구현` | `UserController.signUp`이 사용자·1~99 식별코드·인증 토큰(ADR-0012)을 저장·발급한다. 닉네임 요청 검증은 아직 없다. |
 
 ## 2. 장소 선택
 
@@ -88,22 +88,22 @@
 | 3.1.2 | 코스 순서 상세 보기 | 순서·장소명·카테고리와 도보 이동 표시 | 데모 핵심 | `미구현` | 코스 순서·장소 정보 응답 DTO와 조회 API가 없다. |
 | 3.2.1 | AI 코스 수정 요청 | 수정 프롬프트 처리, 서버 관리 2회 제한과 미리보기 | 데모 핵심 | `미구현` | 대응 API와 서버 카운트 관리가 없다. |
 | 3.2.2 | 직접 코스 수정 | 장소 순서 변경·삭제·추가와 검증 | 일반 | `미구현` | 대응 API와 저장 로직이 없다. |
-| 3.3.1 | 코스 확정 | AI 생성 성공 시 draft·courseId 저장, confirmed 전환, 수정 차단과 확정 취소 | 데모 핵심 | `미구현` | `Course`에 상태·확정 시각 필드는 있으나 확정·취소·수정 차단 API와 상태 전환 로직이 없다. |
+| 3.3.1 | 코스 확정 | AI 생성 성공 시 draft·courseId 저장, confirmed 전환, 수정 차단과 확정 취소 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/confirm`이 소유자 검증, `DRAFT→CONFIRMED` 전환, `Exploration(BEFORE)`·owner Participant 생성, 공유 만료(3일) 설정을 수행한다(`CourseService.confirm`). AI 수정 횟수 제한, 확정 취소는 아직 없다. |
 | 3.3.2 | 코스 공유 링크 생성 | Course ID 기반 URL 조합, 만료 시각 저장·검증과 재발급 | 데모 핵심 | `미구현` | `Course.shareExpiresAt` 필드만 있고 공유 만료 갱신·검증·재발급 API가 없다. |
-| 3.3.3 | 탐험 시작 | 활성 참여자의 Exploration 1회성 활성화와 상태 전환 | 데모 핵심 | `미구현` | 탐험 활성화 API와 상태 저장이 없다. |
+| 3.3.3 | 탐험 시작 | 활성 참여자의 Exploration 1회성 활성화와 상태 전환 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/start`가 조건부 UPDATE(`ExplorationRepository.startIfBefore`)로 `BEFORE→ONGOING` 1회성 전환을 보장한다(`ExplorationService.start`). |
 
 ## 4. 팀 탐험 지도
 
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
-| 4.1.1 | 공유 링크를 통한 팀 합류 및 코스 조회 | 링크 검증, 세션 발급·로그인과 중복 없는 팀 합류 | 데모 핵심 | `미구현` | `Exploration`, `ExplorationParticipant` 엔티티만 있고 공유 링크 검증·합류 API가 없다. |
-| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `미구현` | 확정 코스·장소·동선·요약 조회 API가 없다. |
-| 4.2.2 | 팀원 확인 | 합류 팀원 목록 조회 | 데모 핵심 | `미구현` | 팀원 목록 조회 API와 DTO가 없다. |
+| 4.1.1 | 공유 링크를 통한 팀 합류 및 코스 조회 | 링크 검증, 세션 발급·로그인과 중복 없는 팀 합류 | 데모 핵심 | `구현 완료` | `POST /api/v1/courses/{courseId}/join`(`ExplorationService.join`)이 공유 만료 검증, 중복 참여 차단(6.4.1), 동일 닉네임 구분자 부여를 수행한다. 코스 데이터 조회는 4.2.1과 동일 API(`GET /api/v1/courses/{courseId}`). |
+| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/courses/{courseId}`(`CourseService.getCourseDetail`)가 확정 코스 정보와 일자·순서대로 정렬된 장소 목록(좌표 포함)을 반환한다. 인증 불필요(비로그인 미리보기 허용), 공유 만료 시 410. 동선 폴리라인은 프런트가 Kakao Maps/TMAP으로 렌더링하므로 서버 응답에 없다(ADR-0009). |
+| 4.2.2 | 팀원 확인 | 합류 팀원 목록 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/explorations/{explorationId}/members`(`ExplorationService.listMembers`)가 활성 참여자만 반환하며, 방문 완료 수는 `VisitRepository` 집계로 채운다(4.3.2와 동일 응답). |
 | 4.2.3 | 성향 검사 진입 | 대상 아님 | 일반 | `대상 아님` | 탐험 전 화면에서 성향 검사로 이동하는 프런트엔드 라우팅이다. |
-| 4.2.4 | 탐험 시작 | 활성 참여자의 BEFORE·ONGOING 1회성 전환 | 데모 핵심 | `미구현` | 대응 API와 상태 전환이 없다. |
+| 4.2.4 | 탐험 시작 | 활성 참여자의 BEFORE·ONGOING 1회성 전환 | 데모 핵심 | `구현 완료` | 3.3.3과 동일 API(`POST /api/v1/explorations/{explorationId}/start`). |
 | 4.3.1 | 현재 위치 표시 | 대상 아님 | 데모 핵심 | `대상 아님` | 개인 GPS 취득과 지도 마커는 프런트엔드 책임이다. |
-| 4.3.2 | 팀원 진행 상태 보기 | 방문 수 조회, WebSocket 갱신과 참여자별 위치 공유 옵트인 저장 | 데모 핵심 | `미구현` | 참여자에 위치 공유 필드는 있으나 팀원 진행 조회·옵트인 변경 API와 WebSocket 채널이 없다. |
-| 4.3.3 | 지도 밝히기 (방문 인증) | GPS 좌표 재검증, Place 방문 저장과 팀 실시간 전파 | 데모 핵심 | `미구현` | `Visit`과 V2 마이그레이션은 Place 기반 방문과 선택적 코스 문맥을 지원하지만 거리 검증·저장 API·WebSocket 전파가 없다. |
+| 4.3.2 | 팀원 진행 상태 보기 | 방문 수 조회, 실시간 갱신과 참여자별 위치 공유 옵트인 저장 | 데모 핵심 | `구현 완료` | 팀원 목록·방문 수는 4.2.2와 동일 API. 실시간 갱신은 Socket.IO `member:progress`/`member:location`(ADR-0012). 옵트인은 소켓 `location:optIn` 이벤트로 `ExplorationParticipant.locationSharingEnabled`에 저장한다(`ExplorationService.setLocationSharing`). |
+| 4.3.3 | 지도 밝히기 (방문 인증) | GPS 좌표 재검증, Place 방문 저장과 팀 실시간 전파 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/places/{placeId}/visits`(`VisitService.confirmVisit`)가 Haversine 거리 재검증(100m), 중복 인증 차단, 팀 최초 인증·코스 자동완료 판정을 수행하고 Socket.IO `visit:confirmed`/`member:progress`로 전파한다. |
 | 4.3.4 | 탐험 지도 내 코스 상세 보기 | 장소별 방문 상태를 포함한 코스 조회 | 일반 | `미구현` | 장소별 팀 방문 완료 상태를 포함하는 코스 조회 API가 없다. |
 | 4.4.1 | 주변 장소 추천 | 좌표·광주 범위·1km 반경 기반 최대 3곳 조회 | 일반 | `미구현` | 광주 범위·1km 거리·최대 3곳을 계산하는 조회 API와 서비스가 없다. |
 | 4.4.2 | 장소 상세 보기 | 장소 상세 조회와 코스 미포함 주변 장소 방문 인증 연결 | 일반 | `미구현` | Place 기반 Visit 구조는 반영됐지만 장소 상세·주변 장소 방문 인증 API가 없다. |
@@ -138,26 +138,29 @@
 
 ## 현재 명세와 코드의 주요 불일치
 
-- 실제 기능 API는 `UserController`의 회원가입·로그인 2개뿐이다. 성향·추천·코스·탐험·
-  방문·기록 Controller와 Service는 존재하지 않는다.
-- 회원가입은 닉네임 요청 검증과 세션 토큰 발급이 없고 식별코드를 1~99 범위에서
-  생성한다. 로그인도 사용자 조회만 수행하며 세션 복구·만료·로그아웃·rate limit이 없다.
-- 질문, 장소, 추천 세트, 코스, 탐험, 참여자, 방문과 사진 엔티티는 있지만 사용자 기능을
-  호출할 Repository·Service·Controller·DTO와 기능 테스트가 없다.
-- `SecurityConfig`는 허용되지 않은 모든 경로를 403으로 차단하므로 공통 404 정책과
-  충돌한다.
-- 초기 마이그레이션의 장소 좌표가 `numeric(38,2)`라서 50m 정확도·100m 인증 반경을
-  처리하기에 정밀도가 부족하다. 좌표 정밀도 마이그레이션은 후속 작업이다.
+- 실제 기능 API는 회원가입·로그인, 코스 확정, 팀 합류·팀원 목록·탐험 시작,
+  방문 인증과 Socket.IO 실시간 채널이다(ADR-0012). 추천·AI 코스 생성 관련
+  Controller·Service는 아직 없다(`feature/ai-course-generation` 별도 진행).
+- 회원가입·로그인은 opaque 인증 토큰(30일 만료, DB 기반)을 발급한다.
+  닉네임 요청 검증, 세션 복구 UX, 로그아웃, rate limit은 아직 없다.
+- `SecurityConfig`는 `anyRequest().authenticated()`로 전환했다 — 이전의
+  "허용 목록 외 전부 403" 임시 상태를 실제 인증 체계로 대체했다.
+- 좌표 정밀도는 `V5__place_coordinate_precision.sql`로 `numeric(9,6)`으로
+  전환했다(ADR-0012). 기존에 저장된 값의 정밀도 자체는 소급 보정되지 않는다.
 
 ## 재검사 근거
 
-- 현재 작업 트리의 Controller·Service·DTO·Entity·마이그레이션과 테스트를 49개
-  소기능에 다시 대조했다.
-- Gradle 테스트 결과 XML에는 22개 테스트가 기록되었다. Visit 도메인 3개와 V1→V2
-  PostgreSQL 마이그레이션 1개를 포함해 21개가 통과했고, C: 여유 공간 0바이트로
-  Actuator health가 DOWN(503)이 되어 기존 보안 테스트 1개가 실패했다.
-- 기능별 자동화 테스트는 `UserServiceTest` 3개와 Visit 도메인·마이그레이션 4개다.
-  나머지는 아키텍처·보안·매핑·환경 검증이다.
+- 2026-08-12 `feature/exploration-realtime-socket` 브랜치 기준. 현재 작업
+  트리의 Controller·Service·DTO·Entity·마이그레이션과 테스트를 49개 소기능에
+  다시 대조했다.
+- `./gradlew test` 결과 15개 테스트 클래스, 49개 테스트가 모두 통과했다(실패
+  0, 오류 0). `AuthTokenServiceTest`, `CourseServiceTest`,
+  `ExplorationServiceTest`, `ExplorationBroadcastServiceTest`,
+  `VisitServiceTest`가 이번에 추가됐다.
+- `./gradlew spotlessCheck`는 이 머신의 google-java-format과 JDK 툴체인 간
+  사전 존재하던 환경 문제(`NoClassDefFoundError:
+  com/sun/tools/javac/tree/JCTree$JCAnyPattern`)로 실행하지 못했다 —
+  이번 변경 없이 `main`에서도 동일하게 재현되는 환경 이슈다(ADR-0012 참고).
 - 프런트엔드 저장소, 배포 환경 OpenAPI와 실제 AI·Kakao Maps·TMAP 연동은 이 문서의
   판정 범위에 포함하지 않았다.
 

@@ -85,4 +85,10 @@ public class Course extends BaseEntity {
     this.aiRevisionCount = aiRevisionCount;
     this.confirmedAt = confirmedAt;
   }
+
+  public void confirm(LocalDateTime confirmedAt, LocalDateTime shareExpiresAt) {
+    this.status = CourseStatus.CONFIRMED;
+    this.confirmedAt = confirmedAt;
+    this.shareExpiresAt = shareExpiresAt;
+  }
 }

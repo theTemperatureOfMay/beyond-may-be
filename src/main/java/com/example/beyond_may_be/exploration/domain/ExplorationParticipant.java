@@ -76,4 +76,13 @@ public class ExplorationParticipant extends BaseEntity {
     this.joinedAt = joinedAt;
     this.leftAt = leftAt;
   }
+
+  public void reactivate() {
+    this.status = ParticipantStatus.ACTIVE;
+    this.leftAt = null;
+  }
+
+  public void setLocationSharing(boolean enabled) {
+    this.locationSharingEnabled = enabled;
+  }
 }
