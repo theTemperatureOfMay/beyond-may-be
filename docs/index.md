@@ -16,7 +16,7 @@
 | 현재 API 요청·응답 계약은 무엇인가? | 실행 중인 애플리케이션이 생성하는 OpenAPI. 접근 방법은 [README의 API 문서](../README.md#api-문서)를 따른다. |
 | Controller·Service·Converter·DTO를 어떻게 작성하는가? | [API 계층 코딩 컨벤션](api-layer-convention.md) |
 | 커밋 메시지를 어떻게 작성하는가? | [커밋 컨벤션](development/commit-convention.md) |
-| 로컬 API 성능 smoke를 어떻게 안전하게 실행하는가? | [로컬 성능 테스트](development/performance-testing.md) |
+| 로컬 API 부하를 어떻게 실행하고 결과·Grafana를 확인하는가? | [로컬 성능 테스트](development/performance-testing.md) |
 | 중요한 제품·구조 변경의 이유는 무엇인가? | [개별 ADR](adr/) |
 | 변경이 여러 문서·코드·검증에 영향을 주는가? | [변경 영향 지도](harness/change-impact-map.md) |
 | 운영 환경은 어떻게 배포·확인·복구하는가? | [AWS 배포·운영 절차](operations/deployment.md) |
