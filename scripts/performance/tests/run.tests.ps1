@@ -57,12 +57,15 @@ function Invoke-Runner {
         [Parameter()]
         [bool]$ExistingPrometheusVolume = $false,
         [Parameter()]
-        [bool]$ExistingDatabaseVolume = $false
+        [bool]$ExistingDatabaseVolume = $false,
+        [Parameter()]
+        [bool]$FailGitStatus = $false
     )
 
     $runRoot = Join-Path $testRoot ([guid]::NewGuid().ToString("N"))
     $fakeBin = Join-Path $runRoot "fake-bin"
     $dockerLog = Join-Path $runRoot "docker.log"
+    $k6RunCountPath = Join-Path $runRoot "k6-run-count.txt"
     [void](New-Item -ItemType Directory -Path $fakeBin -Force)
     [System.IO.File]::WriteAllText(
         (Join-Path $fakeBin "docker.cmd"),
@@ -113,9 +116,42 @@ if (
     $call -match 'PROFILE=(smoke|load|stress|spike)' -and
     $call -match 'RESULT_DIR=/results/(?<testId>[^ ]+)'
 ) {
-    $resultDirectory = Join-Path $env:PERFORMANCE_FAKE_RESULTS_ROOT $Matches.testId
+    $testId = $Matches.testId
+    $profileName = [regex]::Match($call, 'PROFILE=(?<value>[^ ]+)').Groups['value'].Value
+    $profileRps = [int][regex]::Match($call, 'RPS=(?<value>\d+)').Groups['value'].Value
+    $resultDirectory = Join-Path $env:PERFORMANCE_FAKE_RESULTS_ROOT $testId
     [void](New-Item -ItemType Directory -Path $resultDirectory -Force)
-    [System.IO.File]::WriteAllText((Join-Path $resultDirectory "summary.json"), "{}")
+    $runCount = if (Test-Path -LiteralPath $env:PERFORMANCE_FAKE_K6_RUN_COUNT -PathType Leaf) {
+        [int][System.IO.File]::ReadAllText($env:PERFORMANCE_FAKE_K6_RUN_COUNT) + 1
+    }
+    else {
+        1
+    }
+    [System.IO.File]::WriteAllText($env:PERFORMANCE_FAKE_K6_RUN_COUNT, $runCount.ToString())
+    $metricValue = @(30, 10, 20)[($runCount - 1) % 3]
+    $summary = [ordered]@{
+        schemaVersion = 1
+        testid = $testId
+        profile = $profileName
+        rps = $profileRps
+        measurementStartedAtUtc = "2026-08-16T00:00:00Z"
+        measurementEndedAtUtc = "2026-08-16T00:10:00Z"
+        metrics = [ordered]@{
+            throughput = [ordered]@{ count = $metricValue * 100; rate = $metricValue }
+            errorRate = $metricValue / 1000
+            checksRate = 1 - ($metricValue / 1000)
+            droppedIterations = $metricValue / 10
+            responseTimeMs = [ordered]@{
+                p50 = $metricValue
+                p95 = $metricValue + 5
+                p99 = $metricValue + 10
+            }
+        }
+    }
+    [System.IO.File]::WriteAllText(
+        (Join-Path $resultDirectory "summary.json"),
+        ($summary | ConvertTo-Json -Depth 6)
+    )
     [System.IO.File]::WriteAllText((Join-Path $resultDirectory "report.html"), "<html></html>")
     exit [int]$env:PERFORMANCE_FAKE_K6_EXIT_CODE
 }
@@ -129,9 +165,11 @@ exit 0
     $previousDockerLog = $env:PERFORMANCE_FAKE_DOCKER_LOG
     $previousK6ExitCode = $env:PERFORMANCE_FAKE_K6_EXIT_CODE
     $previousFakeResultsRoot = $env:PERFORMANCE_FAKE_RESULTS_ROOT
+    $previousK6RunCount = $env:PERFORMANCE_FAKE_K6_RUN_COUNT
     $previousPrometheusVolumeExists = $env:PERFORMANCE_FAKE_PROMETHEUS_VOLUME_EXISTS
     $previousDatabaseVolumeExists = $env:PERFORMANCE_FAKE_DATABASE_VOLUME_EXISTS
     $previousDbPassword = $env:PERFORMANCE_DB_PASSWORD
+    $previousGitIndexFile = $env:GIT_INDEX_FILE
     $previousErrorActionPreference = $ErrorActionPreference
     $resultsBefore = if (Test-Path -LiteralPath $performanceResultsRoot -PathType Container) {
         @(Get-ChildItem -LiteralPath $performanceResultsRoot -Directory | ForEach-Object { $_.FullName })
@@ -144,8 +182,12 @@ exit 0
         $env:PERFORMANCE_FAKE_DOCKER_LOG = $dockerLog
         $env:PERFORMANCE_FAKE_K6_EXIT_CODE = $FakeK6ExitCode.ToString()
         $env:PERFORMANCE_FAKE_RESULTS_ROOT = $performanceResultsRoot
+        $env:PERFORMANCE_FAKE_K6_RUN_COUNT = $k6RunCountPath
         $env:PERFORMANCE_FAKE_PROMETHEUS_VOLUME_EXISTS = $ExistingPrometheusVolume.ToString().ToLowerInvariant()
         $env:PERFORMANCE_FAKE_DATABASE_VOLUME_EXISTS = $ExistingDatabaseVolume.ToString().ToLowerInvariant()
+        if ($FailGitStatus) {
+            $env:GIT_INDEX_FILE = $runRoot
+        }
         Remove-Item Env:PERFORMANCE_DB_PASSWORD -ErrorAction SilentlyContinue
         $ErrorActionPreference = "Continue"
         $output = & "$PSHOME\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $runner @Arguments 2>&1
@@ -157,9 +199,11 @@ exit 0
         $env:PERFORMANCE_FAKE_DOCKER_LOG = $previousDockerLog
         $env:PERFORMANCE_FAKE_K6_EXIT_CODE = $previousK6ExitCode
         $env:PERFORMANCE_FAKE_RESULTS_ROOT = $previousFakeResultsRoot
+        $env:PERFORMANCE_FAKE_K6_RUN_COUNT = $previousK6RunCount
         $env:PERFORMANCE_FAKE_PROMETHEUS_VOLUME_EXISTS = $previousPrometheusVolumeExists
         $env:PERFORMANCE_FAKE_DATABASE_VOLUME_EXISTS = $previousDatabaseVolumeExists
         $env:PERFORMANCE_DB_PASSWORD = $previousDbPassword
+        $env:GIT_INDEX_FILE = $previousGitIndexFile
     }
 
     $resultDirectories = if (Test-Path -LiteralPath $performanceResultsRoot -PathType Container) {
@@ -266,6 +310,14 @@ try {
         Assert-True ([string]::IsNullOrWhiteSpace($result.DockerCalls)) "RPS 검증 전에 Docker가 실행됐다.`n$($result.DockerCalls)"
     }
 
+    Invoke-TestCase "baseline은 RPS 입력이 없으면 Docker 실행 전에 거부한다" {
+        $result = Invoke-Runner @("-Profile", "baseline")
+
+        Assert-True ($result.ExitCode -ne 0) "RPS 없는 baseline 실행이 성공하면 안 된다."
+        Assert-True ($result.Output -match "RPS|Rps") "필수 RPS 안내가 없다.`n$($result.Output)"
+        Assert-True ([string]::IsNullOrWhiteSpace($result.DockerCalls)) "RPS 검증 전에 Docker가 실행됐다.`n$($result.DockerCalls)"
+    }
+
     Invoke-TestCase "load는 워밍업과 측정을 분리하고 실행 증거를 남긴다" {
         $result = Invoke-Runner @("-Profile", "load", "-Rps", "20")
 
@@ -277,6 +329,75 @@ try {
         foreach ($artifact in @("metadata.json", "summary.json", "report.html", "console.log", "containers-before.json", "containers-after.json", "observations.md")) {
             Assert-True (Test-Path -LiteralPath (Join-Path $resultDirectory $artifact) -PathType Leaf) "$artifact 결과가 없다."
         }
+    }
+
+    Invoke-TestCase "baseline은 load를 세 번 순차 실행하고 매회 환경을 초기화한다" {
+        $result = Invoke-Runner @("-Profile", "baseline", "-Rps", "20")
+
+        Assert-True ($result.ExitCode -eq 0) "baseline 실행이 실패했다.`n$($result.Output)"
+        Assert-True (([regex]::Matches($result.DockerCalls, "PROFILE=warmup .*RPS=1 .*signup.js")).Count -eq 3) "세 번의 워밍업이 없다.`n$($result.DockerCalls)"
+        Assert-True (([regex]::Matches($result.DockerCalls, "PROFILE=load .*RPS=20 .*RESULT_DIR=/results/[^ ]+")).Count -eq 3) "load가 세 번 실행되지 않았다.`n$($result.DockerCalls)"
+        Assert-True (([regex]::Matches($result.DockerCalls, "up -d --build postgres app")).Count -eq 3) "각 회차가 독립 환경을 시작하지 않았다.`n$($result.DockerCalls)"
+        Assert-True (([regex]::Matches($result.DockerCalls, "rm -s -f app postgres")).Count -eq 6) "각 회차 전후 초기화가 없다.`n$($result.DockerCalls)"
+        $rawResultDirectories = @(
+            $result.ResultDirectories |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_ "summary.json") -PathType Leaf }
+        )
+        Assert-True ($rawResultDirectories.Count -eq 3) "회차별 원본 결과 디렉터리가 정확히 세 개여야 한다."
+    }
+
+    Invoke-TestCase "baseline은 세 원본 결과와 지표별 중앙값 Markdown 초안을 남긴다" {
+        $result = Invoke-Runner @("-Profile", "baseline", "-Rps", "20")
+
+        Assert-True ($result.ExitCode -eq 0) "baseline 실행이 실패했다.`n$($result.Output)"
+        $rawResultDirectories = @(
+            $result.ResultDirectories |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_ "summary.json") -PathType Leaf }
+        )
+        $draftDirectories = @(
+            $result.ResultDirectories |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_ "baseline.md") -PathType Leaf }
+        )
+        Assert-True ($rawResultDirectories.Count -eq 3) "원본 결과가 정확히 세 개여야 한다."
+        Assert-True ($draftDirectories.Count -eq 1) "중앙값 Markdown 초안이 정확히 하나여야 한다."
+
+        $draft = [System.IO.File]::ReadAllText((Join-Path $draftDirectories[0] "baseline.md"))
+        Assert-True ($draft -match '\| (True|False) \|') "초안에 Git dirty boolean 값이 없다.`n$draft"
+        foreach ($resultDirectory in $rawResultDirectories) {
+            Assert-True ($draft.Contains((Split-Path -Leaf $resultDirectory))) "초안에 회차별 원본 결과 경로가 없다."
+        }
+        foreach ($expected in @(
+            "# 회원가입 load 기준선 초안",
+            "RPS: ``20``",
+            "Docker Server: ``27.0.0``",
+            "k6: ``grafana/k6:2.2.0``",
+            "Git commit",
+            "dirty",
+            "| 요청 수 | 3000 | 1000 | 2000 | 2000 |",
+            "| 처리량 (req/s) | 30 | 10 | 20 | 20 |",
+            "| 오류율 | 0.03 | 0.01 | 0.02 | 0.02 |",
+            "| checks 성공률 | 0.97 | 0.99 | 0.98 | 0.98 |",
+            "| dropped iterations | 3 | 1 | 2 | 2 |",
+            "| p50 (ms) | 30 | 10 | 20 | 20 |",
+            "| p95 (ms) | 35 | 15 | 25 | 25 |",
+            "| p99 (ms) | 40 | 20 | 30 | 30 |",
+            "같은 머신",
+            "운영 TPS·SLO·용량 보증"
+        )) {
+            Assert-True ($draft.Contains($expected)) "초안에 필수 내용이 없다: $expected`n$draft"
+        }
+    }
+
+    Invoke-TestCase "baseline은 Git dirty 상태를 수집하지 못하면 초안을 만들지 않는다" {
+        $result = Invoke-Runner -Arguments @("-Profile", "baseline", "-Rps", "20") -FailGitStatus $true
+
+        Assert-True ($result.ExitCode -ne 0) "Git 상태를 모르는 baseline이 성공하면 안 된다."
+        Assert-True ($result.Output -match "Git|dirty") "Git 상태 수집 실패 이유가 없다.`n$($result.Output)"
+        $draftDirectories = @(
+            $result.ResultDirectories |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_ "baseline.md") -PathType Leaf }
+        )
+        Assert-True ($draftDirectories.Count -eq 0) "Git 상태를 모르는 중앙값 초안이 생성됐다."
     }
 
     Invoke-TestCase "Docker stderr 경고와 종료 코드를 분리한다" {
@@ -337,6 +458,7 @@ try {
         $metadata = $metadataContent | ConvertFrom-Json
         Assert-True ($metadata.profile -eq "smoke" -and $metadata.rps -eq 1) "profile·RPS가 metadata에 없다."
         Assert-True (-not [string]::IsNullOrWhiteSpace($metadata.git.commit)) "Git commit이 metadata에 없다."
+        Assert-True ($metadata.git.dirty -is [bool]) "Git dirty 상태가 boolean으로 기록되지 않았다."
         Assert-True ($metadata.resources.app.cpus -eq 0.5) "Docker 자원 조건이 metadata에 없다."
         Assert-True ($metadata.images.prometheus -eq "prom/prometheus:v3.13.2") "관측 image 버전이 metadata에 없다."
         $evidenceContent = $metadataContent +
