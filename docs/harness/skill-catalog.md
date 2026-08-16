@@ -130,7 +130,6 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
-| `loop-me` | 반복 업무를 `workflows/*.md` workflow spec으로 정리 | 반복 가능한 개인·팀 작업을 자동화 대상으로 정의할 때 | 선택 |
 | `to-questionnaire` | 다른 사람의 지식을 받기 위한 비동기 질문지 생성 | 사용자가 혼자 결정할 수 없는 사실을 수집할 때 | 선택 |
 | `teach` | 여러 세션에 걸친 학습 workspace와 lesson을 관리 | 장기 학습을 별도 workspace로 운영할 때 | 선택 |
 | `teach-me` | 방금 수행한 작업이나 개념을 단계적으로 가르치고 종료 전 기록 필요성을 판단 | 사용자가 원리와 이유를 이해하고 다음 세션에서도 이어가고 싶을 때 | 선택·프로젝트 전용 |
@@ -192,7 +191,7 @@ API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impa
    Windows PowerShell과 AGENTS 승인 규칙에 맞춘다.
 2. **작업 추적**: `to-spec`, `to-tickets`, `triage`, `gh-create-*`, `wayfinder`가
    현재 GitHub 설정과 외부 쓰기 승인 규칙을 사용하도록 맞춘다.
-3. **선택 스킬**: `loop-me`, `teach`, `teach-me`, `to-questionnaire`,
+3. **선택 스킬**: `teach`, `teach-me`, `to-questionnaire`,
    `writing-great-skills`는 실제 사용 사례가 생길 때만 튜닝한다.
 
 ## 정합성·검증
