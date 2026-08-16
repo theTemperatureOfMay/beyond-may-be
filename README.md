@@ -97,14 +97,15 @@ API 변경 시 Swagger/OpenAPI, 관련 테스트와 Postman 자료를 함께 검
 
 ## 로컬 성능 테스트
 
-Docker 기반의 회원가입 `smoke`, `load`, `stress`, `spike`를 각각 실행할 수 있다.
-실행별 HTML·JSON·metadata를 남기고 로컬 Prometheus·Grafana에서
+Docker 기반의 회원가입 `smoke`, `load`, `stress`, `spike`와 load 3회 `baseline`을 실행할 수 있다.
+실행별 HTML·JSON·metadata와 기준선 중앙값 Markdown 초안을 남기고 로컬 Prometheus·Grafana에서
 k6와 애플리케이션 지표를 함께 확인한다. 이 결과는 동일한 로컬 조건의 회귀 확인용이며
 AWS 운영 용량을 보증하지 않는다.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile smoke
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile load -Rps 20
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile baseline -Rps 20
 ```
 
 프로필, 결과 파일, Grafana, 보존 범위와 실패 진단 방법은

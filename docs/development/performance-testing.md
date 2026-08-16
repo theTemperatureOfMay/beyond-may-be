@@ -1,7 +1,7 @@
 # 로컬 성능 테스트
 
 이 문서는 격리된 Docker 환경에서 회원가입 k6 성능 테스트와 로컬 Prometheus·Grafana를
-수동 실행하고, 재검토 가능한 결과를 남기는 방법을 설명한다.
+수동 실행하고, load 3회 기준선 초안을 포함한 재검토 가능한 결과를 남기는 방법을 설명한다.
 
 ## 목적과 한계
 
@@ -16,6 +16,7 @@
 - Docker Desktop과 Docker Compose를 실행할 수 있어야 한다.
 - Windows PowerShell 5.1 이상에서 저장소 루트를 현재 디렉터리로 사용한다.
 - 호스트에 k6, Prometheus 또는 Grafana를 설치할 필요가 없다.
+- 기준선을 측정할 때는 불필요한 호스트 프로그램을 종료하고 세 회차 동안 같은 조건을 유지한다.
 - 처음 실행하면 고정된 공식 이미지 `grafana/k6:2.2.0`, `prom/prometheus:v3.13.2`,
   `grafana/grafana:13.1.3`을 내려받는다.
 
@@ -27,12 +28,13 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile smoke
 ```
 
-`load`, `stress`, `spike`는 1 이상 100 이하의 목표 RPS를 반드시 입력한다.
+`load`, `stress`, `spike`, `baseline`은 1 이상 100 이하의 목표 RPS를 반드시 입력한다.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile load -Rps 20
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile stress -Rps 20
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile spike -Rps 20
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\run.ps1 -Profile baseline -Rps 20
 ```
 
 | 프로필 | 측정 부하 | 측정 시간 | 실패 판정 |
@@ -41,10 +43,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\ru
 | `load` | 입력 RPS 고정 | 10분 | 응답 계약 오류 또는 dropped iteration |
 | `stress` | 20%→40%→60%→80%→100%로 즉시 전환해 각 비율을 3분 유지 | 15분 | 오류를 이유로 조기 종료하지 않음 |
 | `spike` | 10%→100%→10%로 즉시 전환해 각 비율을 1분 유지 | 3분 | 오류를 이유로 조기 종료하지 않음 |
+| `baseline` | 같은 RPS의 load를 앱·성능 DB 초기화 후 3회 순차 실행 | 회차별 30초 워밍업 + 10분 측정 | 한 회차라도 load 기준을 위반하면 중단 |
 
 비율 RPS는 올림하고 최솟값을 1로 둔다. 모든 실행은 arrival-rate 방식이며 최대 VU는
 100이다. load·stress·spike는 측정 전에 회원가입을 1 RPS로 30초 워밍업한다. 워밍업은
 별도 k6 실행이므로 측정 JSON·HTML·콘솔 로그와 Prometheus remote write에 포함되지 않는다.
+
+`baseline`은 각 회차 전에 앱과 성능 DB를 초기화하고 load를 동시에 실행하지 않는다. 세
+회차가 모두 성공해야 원본 `summary.json`의 요청 수·처리량·오류율·checks 성공률·dropped
+iterations·p50·p95·p99에서 각각 가운데 값을 선택해 Markdown 초안을 만든다.
+적절한 RPS를 탐색하는 명령은 아니므로 사용자가 사전 보정이나 기존 load·stress 결과를
+검토해 비교할 RPS를 선택해야 한다. 생성물은 해당 API·RPS 조건의 로컬 기준선 후보다.
 
 ## 주소와 데이터 안전 경계
 
@@ -83,11 +92,16 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\performance\ru
 | `containers-before.json`, `containers-after.json` | 측정 전후 Compose 상태 |
 | `observations.md` | 오류 증가 구간·회복 여부·자원 상관관계를 기록하는 메모 |
 
+`baseline`은 위 원본 디렉터리 세 개를 그대로 보존하고
+`performance-results/{baseline-id}/baseline.md`를 추가한다. 초안에는 세 실행의 링크와
+조건·결과, 지표별 중앙값, Git commit·dirty 상태, Docker Server·자원 조건과 고정 k6
+image 버전이 포함된다.
+
 결과에는 호스트명, Windows 사용자명, 실제 개인정보와 실제 자격 증명을 수집하지 않는다.
 raw 결과를 자동으로 Git에 추가하지 않는다. 포트폴리오용 전후 비교는 한 PC에서 같은 Git
 상태·Docker 자원·image 버전·RPS로 다시 실행하고, 검토한 중앙값·Git SHA·선택 그래프와
-해석만 사용자 승인 후 별도 문서 변경으로 승격한다. load 3회 중앙값 기준선은 #29에서
-다룬다.
+해석만 사용자 승인 후 별도 문서 변경으로 승격한다. 실행기는 로컬 초안과 원본만 만들며
+추적되는 기준선 문서를 자동으로 생성하거나 수정하지 않는다.
 
 ## Grafana와 Prometheus
 
@@ -134,6 +148,9 @@ docker volume rm beyond-may-be-performance-prometheus-data
 남긴다. 실패하거나 중단하면 진단을 위해 앱과 성능 DB도 보존하고 실행기가 정리 명령을
 출력한다.
 
+`baseline` 도중 한 회차가 실패하면 다음 회차와 중앙값 초안을 만들지 않는다. 앞선 원본
+결과는 보존하고 실패 회차의 앱과 성능 DB는 진단할 수 있게 남긴다.
+
 ```powershell
 docker compose -p beyond-may-be-performance -f .\docker-compose.performance.yml ps -a
 docker compose -p beyond-may-be-performance -f .\docker-compose.performance.yml logs app postgres prometheus grafana
@@ -149,6 +166,8 @@ docker volume rm beyond-may-be-performance-postgres-data
 ## 결과 해석
 
 - load는 유효 응답이나 dropped iteration이 하나라도 실패하면 유효한 기준 실행이 아니다.
+- baseline 중앙값도 세 load가 모두 유효하고 같은 머신·Docker 자원·데이터·k6 버전·RPS에서
+  실행된 경우에만 비교 기준으로 사용한다.
 - stress·spike는 오류 증가 시작 RPS와 부하 감소 뒤 처리량·오류·지연·자원이 회복하는지 본다.
 - 실행 시작부터 dropped iteration이 있으면 앱 병목으로 단정하지 않고 먼저 k6 VU 포화와
   로컬 부하 생성기 자원 한계를 확인한다.

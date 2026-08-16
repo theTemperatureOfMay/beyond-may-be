@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("smoke", "load", "stress", "spike")]
+    [ValidateSet("smoke", "load", "stress", "spike", "baseline")]
     [string]$Profile,
 
     [Parameter()]
@@ -242,11 +242,11 @@ function Get-GitMetadata {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"
-        $commit = (& git -c "safe.directory=*" -c "core.excludesfile=NUL" -C $projectRoot rev-parse HEAD 2>$null) -join ""
+        $commit = (& git -c "safe.directory=*" -C $projectRoot rev-parse HEAD 2>$null) -join ""
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
             $commit = "unknown"
         }
-        $status = (& git -c "safe.directory=*" -c "core.excludesfile=NUL" -C $projectRoot status --porcelain 2>$null) -join [Environment]::NewLine
+        $status = (& git -c "safe.directory=*" -C $projectRoot status --porcelain 2>$null) -join [Environment]::NewLine
         $dirty = if ($LASTEXITCODE -eq 0) { -not [string]::IsNullOrWhiteSpace($status) } else { $null }
     }
     finally {
@@ -366,6 +366,140 @@ function Write-Observations {
 - 시작부터 dropped iteration이 발생하면 애플리케이션 저하와 구분해 부하 생성기 VU 포화 여부를 먼저 확인한다.
 "@
     Write-Utf8File (Join-Path $ResultDirectory "observations.md") $content
+}
+
+function Get-MedianValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [double[]]$Values
+    )
+
+    if ($Values.Count -ne 3) {
+        throw "중앙값 계산에는 정확히 세 값이 필요하다."
+    }
+    $sorted = @($Values | Sort-Object)
+    return [double]$sorted[1]
+}
+
+function Format-MetricValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [double]$Value
+    )
+
+    return $Value.ToString("0.###############", [System.Globalization.CultureInfo]::InvariantCulture)
+}
+
+function Get-BaselineMetricRow {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Label,
+        [Parameter(Mandatory = $true)]
+        [double[]]$Values
+    )
+
+    $formatted = @($Values | ForEach-Object { Format-MetricValue $_ })
+    $median = Format-MetricValue (Get-MedianValue $Values)
+    return "| $Label | $($formatted[0]) | $($formatted[1]) | $($formatted[2]) | $median |"
+}
+
+function Write-BaselineDraft {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$ResultDirectories,
+        [Parameter(Mandatory = $true)]
+        [int]$TargetRps
+    )
+
+    if ($ResultDirectories.Count -ne 3) {
+        throw "기준선 초안에는 정확히 세 실행 결과가 필요하다."
+    }
+
+    $runs = @(
+        $ResultDirectories | ForEach-Object {
+            $summaryPath = Join-Path $_ "summary.json"
+            $metadataPath = Join-Path $_ "metadata.json"
+            if (-not (Test-Path -LiteralPath $summaryPath -PathType Leaf)) {
+                throw "기준선 원본 summary가 없다: $summaryPath"
+            }
+            if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
+                throw "기준선 원본 metadata가 없다: $metadataPath"
+            }
+
+            $summary = [System.IO.File]::ReadAllText($summaryPath) | ConvertFrom-Json
+            $metadata = [System.IO.File]::ReadAllText($metadataPath) | ConvertFrom-Json
+            if ($summary.profile -ne "load" -or [int]$summary.rps -ne $TargetRps) {
+                throw "기준선 원본의 profile 또는 RPS가 일치하지 않는다: $summaryPath"
+            }
+            if (
+                [string]::IsNullOrWhiteSpace([string]$metadata.git.commit) -or
+                $metadata.git.commit -eq "unknown" -or
+                $metadata.git.dirty -isnot [bool]
+            ) {
+                throw "기준선 원본의 Git commit 또는 dirty 상태가 유효하지 않다: $metadataPath"
+            }
+
+            [pscustomobject]@{
+                Directory = $_
+                Summary = $summary
+                Metadata = $metadata
+            }
+        }
+    )
+
+    $baselineId = "{0}-baseline-{1}" -f (
+        [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssZ")
+    ), ([guid]::NewGuid().ToString("N").Substring(0, 8))
+    $baselineDirectory = Join-Path $resultsRoot $baselineId
+    [void](New-Item -ItemType Directory -Path $baselineDirectory -Force)
+
+    $firstMetadata = $runs[0].Metadata
+    $lines = New-Object System.Collections.Generic.List[string]
+    [void]$lines.Add("# 회원가입 load 기준선 초안")
+    [void]$lines.Add("")
+    [void]$lines.Add("> 같은 머신·Docker 자원·데이터·k6 버전·부하 조건의 결과끼리만 비교한다. 다른 머신 결과와 운영 TPS·SLO·용량 보증으로 해석하지 않는다.")
+    [void]$lines.Add("")
+    [void]$lines.Add("## 비교 조건")
+    [void]$lines.Add("")
+    [void]$lines.Add("- RPS: ``$TargetRps``")
+    [void]$lines.Add("- Docker Server: ``$($firstMetadata.dockerVersion)``")
+    [void]$lines.Add("- k6: ``$($firstMetadata.images.k6)``")
+    [void]$lines.Add("- 각 회차: 앱·성능 DB 초기화, 30초 워밍업 후 10분 load 측정")
+    [void]$lines.Add("")
+    [void]$lines.Add("| 서비스 | CPU | 메모리 |")
+    [void]$lines.Add("|---|---:|---:|")
+    [void]$lines.Add("| 애플리케이션 | $($firstMetadata.resources.app.cpus) | $($firstMetadata.resources.app.memory) |")
+    [void]$lines.Add("| PostgreSQL | $($firstMetadata.resources.postgres.cpus) | $($firstMetadata.resources.postgres.memory) |")
+    [void]$lines.Add("| k6 | $($firstMetadata.resources.k6.cpus) | $($firstMetadata.resources.k6.memory) |")
+    [void]$lines.Add("")
+    [void]$lines.Add("## 실행 결과")
+    [void]$lines.Add("")
+    [void]$lines.Add("| 회차 | testid | 원본 | 측정 시작(UTC) | 측정 종료(UTC) | 결과 | Git commit | dirty |")
+    [void]$lines.Add("|---:|---|---|---|---|---|---|---|")
+    for ($index = 0; $index -lt $runs.Count; $index++) {
+        $run = $runs[$index]
+        $resultLeaf = Split-Path -Leaf $run.Directory
+        [void]$lines.Add(
+            "| $($index + 1) | ``$($run.Summary.testid)`` | [summary.json](../$resultLeaf/summary.json) | $($run.Summary.measurementStartedAtUtc) | $($run.Summary.measurementEndedAtUtc) | $($run.Metadata.outcome) | ``$($run.Metadata.git.commit)`` | $($run.Metadata.git.dirty) |"
+        )
+    }
+    [void]$lines.Add("")
+    [void]$lines.Add("## 지표별 중앙값")
+    [void]$lines.Add("")
+    [void]$lines.Add("| 지표 | 1회 | 2회 | 3회 | 중앙값 |")
+    [void]$lines.Add("|---|---:|---:|---:|---:|")
+    [void]$lines.Add((Get-BaselineMetricRow "요청 수" @($runs | ForEach-Object { [double]$_.Summary.metrics.throughput.count })))
+    [void]$lines.Add((Get-BaselineMetricRow "처리량 (req/s)" @($runs | ForEach-Object { [double]$_.Summary.metrics.throughput.rate })))
+    [void]$lines.Add((Get-BaselineMetricRow "오류율" @($runs | ForEach-Object { [double]$_.Summary.metrics.errorRate })))
+    [void]$lines.Add((Get-BaselineMetricRow "checks 성공률" @($runs | ForEach-Object { [double]$_.Summary.metrics.checksRate })))
+    [void]$lines.Add((Get-BaselineMetricRow "dropped iterations" @($runs | ForEach-Object { [double]$_.Summary.metrics.droppedIterations })))
+    [void]$lines.Add((Get-BaselineMetricRow "p50 (ms)" @($runs | ForEach-Object { [double]$_.Summary.metrics.responseTimeMs.p50 })))
+    [void]$lines.Add((Get-BaselineMetricRow "p95 (ms)" @($runs | ForEach-Object { [double]$_.Summary.metrics.responseTimeMs.p95 })))
+    [void]$lines.Add((Get-BaselineMetricRow "p99 (ms)" @($runs | ForEach-Object { [double]$_.Summary.metrics.responseTimeMs.p99 })))
+
+    $draftPath = Join-Path $baselineDirectory "baseline.md"
+    Write-Utf8File $draftPath (($lines -join [Environment]::NewLine) + [Environment]::NewLine)
+    return $draftPath
 }
 
 function Invoke-K6Run {
@@ -497,6 +631,7 @@ function Invoke-ProfileRun {
         if ($measurementSucceeded) {
             try {
                 Remove-DatabaseEnvironment
+                $script:LastResultDirectory = $resultDirectory
                 Write-Output "$Name 성공: 앱·성능 DB와 전용 DB 볼륨을 정리했다."
                 Write-Output "결과: $resultDirectory"
             }
@@ -545,7 +680,23 @@ try {
     Invoke-PerformanceDocker ($script:ComposeArguments + @("up", "-d", "prometheus", "grafana"))
 
     $currentRps = if ($Profile -eq "smoke") { 1 } else { [int]$Rps }
-    Invoke-ProfileRun $Profile $currentRps $k6TargetBaseUrl
+    if ($Profile -eq "baseline") {
+        $baselineResultDirectories = New-Object System.Collections.Generic.List[string]
+        for ($run = 1; $run -le 3; $run++) {
+            Write-Output "baseline $run/3 시작."
+            $script:LastResultDirectory = $null
+            Invoke-ProfileRun "load" $currentRps $k6TargetBaseUrl
+            if ([string]::IsNullOrWhiteSpace($script:LastResultDirectory)) {
+                throw "baseline $run/3 원본 결과 경로를 확인하지 못했다."
+            }
+            [void]$baselineResultDirectories.Add($script:LastResultDirectory)
+        }
+        $baselineDraftPath = Write-BaselineDraft @($baselineResultDirectories) $currentRps
+        Write-Output "기준선 초안: $baselineDraftPath"
+    }
+    else {
+        Invoke-ProfileRun $Profile $currentRps $k6TargetBaseUrl
+    }
 
     Write-Output "Prometheus: http://127.0.0.1:19090"
     Write-Output "Grafana: http://127.0.0.1:13000/d/k6-app-performance"
