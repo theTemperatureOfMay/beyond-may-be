@@ -30,10 +30,10 @@ invoked skill must show the exact final target and change batch and obtain separ
 The route most work travels. You have an idea and want it built.
 
 1. **`/grill`** — sharpen the idea with questions. Choose its one-question or batch route, and add the documentation route when resolved terms or decisions should be recorded in `CONTEXT.md` or ADRs.
-2. **Branch — can you settle every question in conversation?** If a question needs a runnable answer (state, business logic, a UI you have to see), detour through a prototype, bridged by **`/handoff`** in both directions (see Crossing sessions):
-   - **`/handoff`** out, then open a fresh session against that file,
+2. **Branch — can you settle every question in conversation?** If a question needs a runnable answer (state, business logic, a UI you have to see), detour through a prototype using the current tool's native session fork (see Crossing sessions):
+   - fork the current or saved conversation,
    - **`/prototype`** to answer the question with throwaway code,
-   - **`/handoff`** back what you learned, and reference it from the original idea thread.
+   - return to the original session and reference the resulting artifact, diff, or canonical record.
 3. **Classify the work with `AGENTS.md`.** Session length and file count do not choose the route.
    - **Small work** → recommend the direct approval path; do not add `plan` or `implement`.
    - **General implementation** → recommend **`/plan`** and stop. Its separate approval is the
@@ -53,8 +53,10 @@ responsibilities into this router.
 
 ### Context hygiene
 
-Use `/handoff` when a later stage needs a fresh session. The router does not start that stage or
-carry out any work on its behalf.
+Use the current tool's native resume or continue feature to return to a saved session, and its native
+fork feature when a later stage needs a fresh branch. Keep in-progress context in issues or plans,
+and move decisions that must persist into ADRs or canonical docs. The router does not start that
+stage or carry out any work on its behalf.
 
 ## On-ramps
 
@@ -92,8 +94,9 @@ Two model-invoked references that run *beneath* the other skills — each the si
 
 ## Crossing sessions
 
-- **`/handoff`** — when a thread is full or you need to branch off (e.g. into a `/prototype` session), this compacts the conversation into a markdown file. You don't continue in place — you **open a new session and reference that file** to carry the context across. It's the bridge between context windows, in either direction. Use it when you want a **fresh session** but need the **current conversation preserved**.
-- **`/compact`** (built-in) — stay in the **same conversation**, letting the earlier turns be summarized. Use it at **intentional breaks between phases**, when you don't mind losing the verbatim history. Don't compact mid-phase — the agent can lose its way. `/handoff` forks; `/compact` continues.
+- **Native resume or continue** — reload a saved conversation when you want to keep working in the same thread.
+- **Native fork** — branch from the current or saved conversation when an experiment needs a fresh session while preserving the original transcript.
+- **`/compact`** (built-in) — stay in the **same conversation**, letting the earlier turns be summarized. Use it at **intentional breaks between phases**, when you don't mind losing the verbatim history. Don't compact mid-phase — the agent can lose its way.
 
 ## Standalone
 

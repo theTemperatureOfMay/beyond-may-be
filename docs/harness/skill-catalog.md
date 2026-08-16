@@ -74,7 +74,7 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 | 새 GitHub 이슈 접수·분류 | `triage` 호출 제안 | 호출 승인 → 분류안 검토 → 승인된 댓글·label·상태만 반영 |
 | 작업 결과를 검토 | `code-review` | Standards와 Spec을 별도로 확인 |
 | 방금 한 작업을 배우고 싶음 | `teach-me` | 한 단계씩 이해 확인 → 종료 전 지속 학습 기록 판단 |
-| 세션을 다른 에이전트로 넘김 | `handoff` | 새 세션에서 handoff 문서 참조 |
+| 저장된 세션을 이어가거나 분기 | 도구 기본 resume·continue·fork | 대화는 도구에서 재개하고 지속 결정만 정본에 기록 |
 
 ## 스킬 카탈로그
 
@@ -130,8 +130,6 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
-| `handoff` | 현재 대화를 임시 handoff 문서로 압축 | 새 세션에서 현재 맥락을 이어야 할 때 | 지원 |
-| `claude-handoff` | handoff 요약을 Claude 백그라운드 세션으로 전달 | Claude CLI를 사용해 별도 agent에게 넘길 때 | 조건부·Claude 전용 |
 | `loop-me` | 반복 업무를 `workflows/*.md` workflow spec으로 정리 | 반복 가능한 개인·팀 작업을 자동화 대상으로 정의할 때 | 선택 |
 | `to-questionnaire` | 다른 사람의 지식을 받기 위한 비동기 질문지 생성 | 사용자가 혼자 결정할 수 없는 사실을 수집할 때 | 선택 |
 | `teach` | 여러 세션에 걸친 학습 workspace와 lesson을 관리 | 장기 학습을 별도 workspace로 운영할 때 | 선택 |
@@ -141,6 +139,10 @@ GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
 `teach-me`는 완료·요약·중단·일시정지·주제 전환 전에 기록 후보 또는 생략 이유를
 표시한다. 개인 학습 기록의 기본 경로는 Git에서 제외된 `.dev/learning/teach-me.md`이며,
 정확한 경로와 최종 내용을 보여주고 사용자가 승인한 뒤에만 파일을 생성·수정한다.
+
+세션 연속성은 프로젝트 스킬로 감싸지 않는다. 같은 대화는 Codex·Claude Code의 기본
+resume·continue로 재개하고, 별도 분기는 fork를 사용한다. 진행 중 맥락은 Issue·plan에
+두고, 지속할 결정은 ADR 또는 정본 문서로 옮긴다.
 
 ## 프로젝트에서의 표준 흐름
 
@@ -190,8 +192,8 @@ API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impa
    Windows PowerShell과 AGENTS 승인 규칙에 맞춘다.
 2. **작업 추적**: `to-spec`, `to-tickets`, `triage`, `gh-create-*`, `wayfinder`가
    현재 GitHub 설정과 외부 쓰기 승인 규칙을 사용하도록 맞춘다.
-3. **선택 스킬**: `handoff`, `claude-handoff`, `loop-me`, `teach`, `teach-me`,
-   `to-questionnaire`, `writing-great-skills`는 실제 사용 사례가 생길 때만 튜닝한다.
+3. **선택 스킬**: `loop-me`, `teach`, `teach-me`, `to-questionnaire`,
+   `writing-great-skills`는 실제 사용 사례가 생길 때만 튜닝한다.
 
 ## 정합성·검증
 
