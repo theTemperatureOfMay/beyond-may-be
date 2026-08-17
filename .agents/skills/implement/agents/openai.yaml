@@ -3,4 +3,4 @@ interface:
   short_description: "승인된 plan 또는 implementation ticket을 구현하고 검증"
   default_prompt: "Use $implement to implement this approved plan or implementation ticket and read any linked spec as context."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

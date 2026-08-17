@@ -1,7 +1,6 @@
 ---
 name: to-spec
-description: Synthesize a resolved conversation or cleared wayfinder map into exactly one parent GitHub spec issue. Use only after explicit invocation approval; publishing requires separate final-batch approval.
-disable-model-invocation: true
+description: Synthesize a resolved conversation or cleared wayfinder map into exactly one parent GitHub spec issue. Use when resolved context needs a parent spec; reading and drafting may start automatically, while publishing requires separate final-batch approval.
 ---
 
 # To Spec
@@ -9,12 +8,13 @@ disable-model-invocation: true
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
 This skill creates exactly one parent spec issue. It does not create an implementation plan,
-implementation tickets, code changes, commits, or issue-state transitions. Invocation approval does
-not approve publishing. Ask for separate explicit approval immediately before writing.
+implementation tickets, code changes, commits, or issue-state transitions. Automatic selection
+permits reading and drafting but does not approve publishing. Ask for separate explicit approval
+immediately before writing.
 
 Use this project's GitHub issue tracker and `docs/agents/issue-tracker.md`. If the tracker or label
-mapping is missing, stop and recommend `/setup-skills` with its expected read/write scope and ask
-for invocation approval; do not invoke it automatically.
+mapping is missing, stop and recommend `/setup-skills`. It may inspect and draft automatically,
+but repository or GitHub writes still require the applicable exact-batch approval.
 
 ## Process
 

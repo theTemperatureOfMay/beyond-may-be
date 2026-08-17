@@ -1,7 +1,6 @@
 ---
 name: to-tickets
-description: Break an approved spec into tracer-bullet implementation tickets with blocking edges. Use only after explicit invocation approval; publishing the exact GitHub batch requires separate approval.
-disable-model-invocation: true
+description: Break an approved spec into tracer-bullet implementation tickets with blocking edges. Use when an approved spec needs executable tickets; reading and drafting may start automatically, while publishing the exact GitHub batch requires separate approval.
 ---
 
 # To Tickets
@@ -13,7 +12,8 @@ the source; do not synthesize a replacement spec inside this skill.
 This skill drafts and publishes implementation tickets. It does not revise the parent spec,
 implement a ticket, commit, or change parent issue state. Use this project's GitHub tracker and
 `docs/agents/issue-tracker.md`. If tracker configuration is missing, stop and recommend
-`/setup-skills` with its expected read/write scope and ask for invocation approval.
+`/setup-skills`. It may inspect and draft automatically, but repository or GitHub writes still
+require the applicable exact-batch approval.
 
 ## Process
 
@@ -26,7 +26,9 @@ issue number, or URL, fetch it and read its full body and comments. Re-read it b
 
 If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
 
-Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
+Identify only prefactoring that is genuinely required for a slice to land green. Represent it as a
+separate blocking implementation ticket; this skill does not implement it. Keep small same-scope
+cleanup in the affected slice and omit speculative refactors.
 
 ### 3. Draft vertical slices
 
@@ -37,11 +39,13 @@ Break the work into **tracer bullet** tickets.
 - Each slice cuts a narrow but COMPLETE path through every layer (schema, API, UI, tests) — vertical, NOT a horizontal slice of one layer
 - A completed slice is demoable or verifiable on its own
 - Each slice is sized to fit in a single fresh context window
-- Any prefactoring should be done first
+- Required prefactoring is a separate blocking implementation ticket; this skill does not implement it
 
 </vertical-slice-rules>
 
 Give each ticket its **blocking edges** — the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
+Each complete ticket is a direct `/implement` input once its blockers are resolved; a complete
+implementation ticket is not necessarily currently unblocked.
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket — green is promised only there.
 

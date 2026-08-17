@@ -50,9 +50,9 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 3. `.env`, credential·secret·인증서·개인 키의 내용은 읽거나 출력하지 않는다.
 4. 커밋·브랜치·push·Pull Request·외부 이슈 작성은 사용자가 명시적으로 요청한
    경우에만 실행한다.
-5. GitHub 연동 user-invoked 스킬은 정확한 스킬명·목적·읽기·쓰기 범위를 제시하고
-   `~ 스킬을 호출할까요?`라고 물은 뒤 명시적인 호출 승인을 받아 시작한다.
-   호출 승인은 읽기·분류·초안 작성만 허용하며 외부 쓰기 승인을 대신하지 않는다.
+5. GitHub 연동 스킬은 필요한 상황에 자동 선택되어 읽기·조회·분류·분석·초안을
+   작성할 수 있다. 실제 GitHub 쓰기 직전에 최종 대상과 최종 내용을 보여 주고 별도
+   승인받는다.
 6. 삭제·외부 쓰기처럼 되돌리기 어려운 작업은 대상과 복구 방법을 보여주고 실행
    직전에 확인한다.
 7. 작은 문서·설정 변경은 스킬을 과도하게 연결하지 말고 AGENTS 규칙과 관련 검증만
@@ -64,14 +64,14 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 |---|---|---|
 | 어떤 스킬을 써야 할지 모름 | `ask-matt` | 상황에 맞는 흐름으로 이동 |
 | 요구사항·의사결정이 모호함 | `grill` | 요청 의도에 따라 1문 1답·batch·문서화 경로를 선택한 뒤 일반 구현이면 `plan`, 큰 작업이면 `wayfinder` |
-| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` 호출 제안 | 호출 승인 → 결정 지도 → 각 GitHub 변경 승인 → `to-spec` 호출 제안 |
+| 큰 기능·구조·API·데이터·보안 결정 | `wayfinder` | 결정 지도 → 각 GitHub 변경 승인 → `to-spec` |
 | 승인된 일반 구현 | `plan` | 승인 후 `implement` → `code-review` |
 | 어려운 버그·성능 회귀 | `diagnosing-bugs` | `.dev` 진단 보고서에서 종료; 수정은 별도 요청 |
 | 테스트부터 구현 | `tdd` | Java/JUnit·Gradle의 기존 seam에서 Red → Green → 동작 보존 코드 정리 |
 | 프로젝트 스킬 생성·수정·업데이트 | 실행 도구의 공식 `skill-creator` | 이 문서의 작성 기준을 함께 적용 |
 | 현재 변경의 정합성 검토 | `change-impact-review` | 관련 정본·코드·테스트 재검사 |
 | 하네스 완성도 평가 | `harness-audit` | 읽기 전용 평가와 개선 우선순위 |
-| 새 GitHub 이슈 접수·분류 | `triage` 호출 제안 | 호출 승인 → 분류안 검토 → 승인된 댓글·label·상태만 반영 |
+| 새 GitHub 이슈 접수·분류 | `triage` | 분류안 검토 → 승인된 댓글·label·상태만 반영 |
 | 작업 결과를 검토 | `code-review` | Standards와 Spec을 별도로 확인 |
 | 방금 한 작업을 배우고 싶음 | `teach-me` | 한 단계씩 이해 확인 → 종료 전 지속 학습 기록 판단 |
 | 저장된 세션을 이어가거나 분기 | 도구 기본 resume·continue·fork | 대화는 도구에서 재개하고 지속 결정만 정본에 기록 |
@@ -110,10 +110,10 @@ Claude Code 작성 경로는 `.claude/settings.json`에서 활성화하는 외�
 ### 이슈·GitHub·외부 작업
 
 아래의 `setup-skills`, `gh-create-issue-from-template`, `gh-create-project-pr`, `triage`,
-`to-spec`, `to-tickets`, `wayfinder`는 모두 user-invoked다. 라우터와 에이전트는 정확한
-스킬명·목적·예상 읽기·쓰기 범위를 제시하고 호출할지 물을 수만 있으며, 사용자가
-승인하기 전에는 시작하지 않는다. 호출 승인은 읽기·분류·초안 작성을 허용하고,
-GitHub에 실제 반영하는 최종 묶음은 별도로 승인받는다.
+`to-spec`, `to-tickets`, `wayfinder`는 필요한 상황에 자동 선택되어 GitHub와 저장소를
+읽고 조회·분류·분석·초안을 작성할 수 있다. 자동 선택이나 사용자의 스킬명 지정은
+외부 쓰기 승인이 아니다. GitHub에 실제 반영하기 직전에 최종 대상과 최종 내용을
+보여 주고 별도 승인받는다.
 
 | 스킬 | 역할 | 언제 사용하는가 | 상태 |
 |---|---|---|---|
@@ -152,16 +152,17 @@ resume·continue로 재개하고, 별도 분기는 fork를 사용한다. 진행 
 
 ### 일반 구현
 
-`/grill`로 미해결 요구사항을 정리한 뒤 `plan`을 작성하고 승인받는다. 이후
-`implement`가 구현하고 `code-review`와 필요한 영향 검사를 수행한다.
+`/grill`로 미해결 요구사항을 정리한 뒤 `plan`을 작성하고 승인받는다. 그 승인 한 번으로
+별도 구현 요청이나 두 번째 승인 없이 `implement`가 구현하고 `code-review`와 필요한
+영향 검사를 수행한다.
 
 ### 큰 작업
 
-`wayfinder` 호출을 제안해 승인받은 뒤 결정 지도와 각 tracker 변경 묶음을 승인받아
-해결한다. 지도는 기본적으로 spec·계획·구현 ticket·코드를 만들지 않으며, `Notes`가 이름과
-범위를 명시한 실행 task만 예외로 수행한다. 이어서 `to-spec`이 ready label 없는 parent spec
-하나를, `to-tickets`가 ready 구현 tickets를 각각 별도 호출·쓰기 승인 뒤 게시하고, 승인된
-ticket을 `implement`로 실행한다. Parent spec은 구현 맥락이며 직접 실행 입력이 아니다. 단,
+`wayfinder`가 결정 지도를 만들고 각 tracker 변경 묶음을 승인받아 해결한다. 지도는
+기본적으로 spec·계획·구현 ticket·코드를 만들지 않으며, `Notes`가 이름과 범위를 명시한
+실행 task만 예외로 수행한다. 이어서 `to-spec`이 ready label 없는 parent spec 하나를,
+`to-tickets`가 ready 구현 tickets를 각각 별도 쓰기 승인 뒤 게시하고, 승인된 ticket을
+`implement`로 실행한다. Parent spec은 구현 맥락이며 직접 실행 입력이 아니다. 단,
 승인된 `Notes`가 destination을 실행·검증까지 완료했다면 중복 spec·ticket을 만들지 않는다.
 API·데이터·보안·아키텍처·하네스 의미가 바뀌면 `change-impact-review`까지 완료해야
 한다.

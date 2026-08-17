@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: "Synthesize the resolved conversation into one parent GitHub spec issue after a separate final write approval."
+description: "Read and synthesize the resolved conversation into one parent GitHub spec issue draft automatically, and publish it only after separate final write approval."
 ---
 
 # Claude Code 연결 파일

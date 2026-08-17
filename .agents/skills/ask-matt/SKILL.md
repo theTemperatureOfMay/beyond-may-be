@@ -14,16 +14,17 @@ its expected read/write scope, and the next approval the user must give.
 
 A **flow** is a path through the skills. Most paths run along one **main flow**, and two **on-ramps** merge onto it. Everything else is standalone, or a vocabulary layer that runs underneath.
 
-## GitHub-linked user-invoked skills
+## GitHub-linked auto-read skills
 
 `/wayfinder`, `/to-spec`, `/to-tickets`, `/triage`, `/setup-skills`,
 `/gh-create-issue-from-template`, and `/gh-create-project-pr` can read or write GitHub and are
-user-invoked. This router may only recommend one: state the exact skill, why it fits, and its expected
-read/write scope, ask whether to invoke it, then stop. A user request that names the skill or a later
-explicit yes is invocation approval.
+automatically selectable for reading, classifying, analyzing, and drafting. This router may only
+recommend one: state the exact skill, why it fits, and its expected read/write scope, then stop. It
+does not start the recommended skill itself.
 
-Invocation approval starts only reading, classifying, and drafting. Before any GitHub write, the
-invoked skill must show the exact final target and change batch and obtain separate approval.
+Automatic selection and a user request that names the skill do not approve a GitHub write. Before
+any GitHub write, the selected skill must show the exact final target and change batch and obtain
+separate approval.
 
 ## The main flow: idea → ship
 
@@ -37,15 +38,18 @@ The route most work travels. You have an idea and want it built.
 3. **Classify the work with `AGENTS.md`.** Session length and file count do not choose the route.
    - **Small work** → recommend the direct approval path; do not add `plan` or `implement`.
    - **General implementation** → recommend **`/plan`** and stop. Its separate approval is the
-     entry gate for **`/implement`**.
-   - **Large work** → recommend **`/wayfinder`** and ask for invocation approval. When its decision
+     entry gate for **`/implement`** and hands off immediately without a second implementation
+     request or approval.
+   - **Large work** → recommend **`/wayfinder`** and stop. When its decision
      map is clear and its `Notes` did not carry the destination through execution, recommend
-     **`/to-spec`**, then **`/to-tickets`**, each with separate invocation and GitHub-write approval,
-     before **`/implement`**.
-   - **An approved plan or ticket named for implementation** → recommend **`/implement`**; do not
-     recreate earlier lifecycle artifacts.
-   - **A parent spec named without an implementation ticket** → recommend **`/to-tickets`** and ask
-     for invocation approval. A spec supplies context; it is not the unit `/implement` executes.
+     **`/to-spec`**, then **`/to-tickets`**, with separate approval before each GitHub write, before
+     **`/implement`**.
+   - **An approved plan, or an implementation ticket whose native blockers are all resolved** →
+     recommend **`/implement`**; do not recreate earlier lifecycle artifacts.
+   - **An implementation ticket with unresolved native blockers** → report the blockers and stop;
+     do not recommend `implement`.
+   - **A parent spec named without an implementation ticket** → recommend **`/to-tickets`** and
+     stop. A spec supplies context; it is not the unit `/implement` executes.
 
 `wayfinder` owns the long-lived decision map, `to-spec` one parent implementation target,
 `to-tickets` executable child tickets, and `implement` repository changes. Do not collapse those
@@ -62,19 +66,26 @@ stage or carry out any work on its behalf.
 
 A starting situation that generates work, then merges onto the main flow.
 
-- **Bugs and requests piling up** → recommend **`/triage`** and ask for invocation approval. Once approved, it reads incoming issues, drafts triage roles and briefs, and applies separately approved tracker changes to produce agent-ready issues, which **`/implement`** later picks up.
+- **An issue's current readiness or disposition is unclear** → recommend **`/triage`** and stop.
+  When selected, it reads an existing standalone work issue or implementation
+  ticket regardless of who created it, assesses its current state and next route, and drafts tracker
+  changes. It applies only changes separately approved immediately before writing and does not create
+  implementation approval.
 
-  Triage is only for issues **you didn't create** — bug reports, incoming feature requests, anything that arrives raw. Tickets that `/to-tickets` produced are already agent-ready, so **don't triage them**.
+  Only when the assessed state supports agent implementation, small work asks for direct
+  implementation approval, general implementation goes to **`/plan`**, and a complete
+  implementation ticket whose native blockers are all resolved may go to **`/implement`** after
+  the user confirms.
 
 - **Something's broken** → **`/diagnosing-bugs`**. For the hard ones: the bug that resists a first glance, the intermittent flake, the regression that crept in between two known-good states. It refuses to theorise until it has a **tight feedback loop** — one command that already goes red on *this* bug — then records the evidence, cause or uncertainty, and recommended fix in `.dev`. It stops at the diagnosis report. A fix and permanent regression test begin only from a separate user request; hand off an architectural seam finding to **`/improve-codebase-architecture`** only then.
 
-- **A huge, foggy effort — a greenfield project or a huge feature build, too big for one session** → recommend **`/wayfinder`**, explain its scope, and ask for invocation approval. Once approved, it charts a **shared map** of **decision tickets** — producing **decisions, not deliverables** — until the fog is pushed back and the way is clear. Reading and drafting need no further approval; before any issue-tracker or other external write it shows the exact final batch and applies only what the user separately approves. Where **`/grill`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't — and it's slower and denser, so save it for exactly that, never a well-scoped feature.
+- **A huge, foggy effort — a greenfield project or a huge feature build, too big for one session** → recommend **`/wayfinder`**, explain its scope, and stop. When selected, it charts a **shared map** of **decision tickets** — producing **decisions, not deliverables** — until the fog is pushed back and the way is clear. Reading and drafting need no approval; before any issue-tracker or other external write it shows the exact final batch and applies only what the user separately approves. Where **`/grill`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't — and it's slower and denser, so save it for exactly that, never a well-scoped feature.
 
   Decision work is the default. A map may carry execution tasks only when its `Notes` explicitly
   opts into them and names their scope; the usual repository and external-write approvals still apply.
 
   When the map clears without completing the destination under its `Notes` execution override,
-  **it hands off**: recommend **`/to-spec`** and ask for invocation approval so it can collapse the
+  **it hands off**: recommend **`/to-spec`** so it can collapse the
   map's linked decisions into a buildable target, then separately recommend `/to-tickets` before
   `/implement`. If the approved `Notes` already carried the destination through verified execution,
   report that outcome and stop instead of creating redundant lifecycle artifacts.
@@ -115,5 +126,5 @@ Off the main flow entirely.
 ## Precondition
 
 Recommend **`/setup-skills`** before the first engineering flow when the issue tracker, triage labels,
-or document layout is not configured, then ask for invocation approval. Custom issue trackers also
-work.
+or document layout is not configured. It may explore and draft automatically; repository or
+GitHub writes still require the applicable exact-batch approval. Custom issue trackers also work.

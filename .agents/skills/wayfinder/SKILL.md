@@ -1,7 +1,6 @@
 ---
 name: wayfinder
 description: Plan a multi-session effort as a shared map of decision tickets, applying issue-tracker and other external changes only after explicit user approval.
-disable-model-invocation: true
 ---
 
 A loose idea has arrived — too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. Wayfinding is about finding that way, not charging at the destination. This skill charts the way as a **shared map** on the repo's issue tracker, then works its **decision tickets** — questions whose resolution is a decision, not slices of a build to execute — one at a time until the route is clear.
@@ -20,10 +19,10 @@ ticket without needing that override, but they do not deliver the destination or
 
 ## External-write gate
 
-After invocation approval, reading and classifying tracker state, exploring local context, and
-drafting maps, tickets, comments, labels, assignees, dependencies, and status changes require no
-additional approval. Do not mutate the issue tracker, Git state, repository files, services, access,
-data, or any other external state until this gate passes.
+Automatic selection permits reading and classifying tracker state, exploring local context, and
+drafting maps, tickets, comments, labels, assignees, dependencies, and status changes without
+approval. Do not mutate the issue tracker, Git state, repository files, services, access, data, or
+any other external state until this gate passes.
 
 Before each write batch:
 
@@ -53,8 +52,8 @@ The map is an **index**, not a store. It lists the decisions made and points at 
 
 This project stores the map, child tickets, blocking edges, and frontier in GitHub. Follow
 `docs/agents/issue-tracker.md` exactly. If that configuration is missing, stop and recommend
-`/setup-skills` with its expected read/write scope and ask for invocation approval; do not invoke it
-or fall back to local files.
+`/setup-skills`. It may inspect and draft automatically, but repository or GitHub writes still
+require the applicable exact-batch approval; do not fall back to local files.
 
 ### The map body
 
@@ -141,7 +140,7 @@ Two modes. Either way, **never resolve more than one ticket per session** — wi
 
 ### Chart the map
 
-User invokes with a loose idea.
+The skill is selected with a loose idea.
 
 1. **Name the destination.** Run `/grill` in its documentation route to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Run `/grill` in its batch route, **breadth-first** this time: fan out across the whole space rather than deep on one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
@@ -159,7 +158,7 @@ User invokes with a loose idea.
 
 ### Work through the map
 
-User invokes with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
+The skill is selected with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
 
 1. Load the **map** — the low-res view, not every ticket body — and query the current frontier.
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in
@@ -178,6 +177,7 @@ User invokes with a map (URL or number). A ticket is **optional** — without on
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.
 
 When the map is clear and its `Notes` did not carry the destination through execution, stop and
-recommend `/to-spec` with its expected read/write scope and ask for separate invocation approval.
-If the approved `Notes` already carried the destination through verified execution, report that
-outcome and stop. In either case, do not invoke `/to-spec`, `/to-tickets`, or `/implement` from the map.
+hand off to `/to-spec`. Its reading and drafting may begin automatically, while its GitHub write
+still requires separate approval. If the approved `Notes` already carried the destination through
+verified execution, report that outcome and stop. Do not invoke `/to-tickets` or `/implement` from
+the map.

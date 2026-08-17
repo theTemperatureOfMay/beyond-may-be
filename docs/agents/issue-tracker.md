@@ -37,10 +37,10 @@ Run `gh issue view <number> --comments`.
 
 Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
 
-The commands below describe GitHub mechanics, not write permission. After `/wayfinder` invocation
-approval, it may read and draft without further approval, but it must show the exact final batch and
-pass its external-write gate before any create, edit, assign, label, dependency, comment, close,
-reopen, or delete operation.
+The commands below describe GitHub mechanics, not write permission. `/wayfinder` may be
+automatically selected to read, classify, and draft without approval, but it must show the exact
+final batch and pass its external-write gate before any create, edit, assign, label, dependency,
+comment, close, reopen, or delete operation.
 
 - **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `gh issue create --label wayfinder:map`.
 - **Child ticket**: an issue linked to the map as a GitHub sub-issue (`gh api` on the sub-issues endpoint). Where sub-issues aren't enabled, add the child to a task list in the map body and put `Part of #<map>` at the top of the child body. Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.

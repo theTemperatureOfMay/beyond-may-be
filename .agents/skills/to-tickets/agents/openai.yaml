@@ -3,4 +3,4 @@ interface:
   short_description: "승인된 spec을 blocker가 있는 구현 tickets로 분할"
   default_prompt: "Use $to-tickets to draft implementation tickets and their blocking edges from the approved spec."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

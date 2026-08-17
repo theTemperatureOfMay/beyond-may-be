@@ -3,4 +3,4 @@ interface:
   short_description: "합의된 대화를 하나의 GitHub spec issue로 정리"
   default_prompt: "Use $to-spec to draft one parent GitHub spec issue from the resolved conversation."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

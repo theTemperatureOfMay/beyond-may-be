@@ -1,7 +1,6 @@
 ---
 name: triage
-description: Read and classify incoming issues and external PRs, draft triage comments and role changes, and apply only the tracker writes the user explicitly approves.
-disable-model-invocation: true
+description: Read and classify incoming issues and external PRs, draft triage comments and role changes, and apply only separately approved tracker writes. Reading and drafting may start automatically.
 ---
 
 # Triage
@@ -21,9 +20,9 @@ Every comment or issue posted to the issue tracker during triage **must** start 
 Separate read-only triage from issue-tracker writes. Follow the repository's
 [external-write safety policy](../../../docs/harness/safety-policy.md).
 
-- After invocation approval, read and query issues or PRs, inspect the codebase, and draft the
-  category, state, labels, comments, briefs, and close or reopen recommendations without further
-  approval.
+- Automatic selection permits reading and querying issues or PRs, inspecting the codebase, and
+  preparing drafts without approval, including the category, state, labels, comments, briefs, and
+  close or reopen recommendations.
 - Do not check out a PR branch, switch branches, or change repository files as part of that
   read-only scope. Inspect the remote diff read-only. Run local state-changing commands only
   within the repository's approved scope, and change branches only when the user explicitly asks.
@@ -67,6 +66,19 @@ Every triaged issue should carry exactly one category role and one state role. I
 These are canonical role names — the actual label strings used in the issue tracker may differ. The mapping should have been provided to you - run `/setup-skills` if not.
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time — flag transitions that look unusual and ask before proceeding.
+
+## Implementation handoff
+
+A state recommendation never approves implementation. Never invoke implement automatically.
+
+Only when the selected state is `ready-for-agent` and evidence supports agent implementation,
+recommend an implementation route:
+
+- For small work, ask for direct implementation approval.
+- For general implementation, recommend plan.
+- For a complete implementation ticket whose native blockers are all resolved, ask whether to
+  invoke implement and wait for user confirmation.
+- If any native blocker remains unresolved, report it and do not recommend implementation.
 
 ## Invocation
 

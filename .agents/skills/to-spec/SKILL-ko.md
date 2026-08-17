@@ -1,7 +1,6 @@
 ---
 name: to-spec
-description: 확정된 대화 또는 clear된 wayfinder map을 parent GitHub spec issue 하나로 합성한다. 명시적 호출 승인 뒤 사용하며 게시에는 별도 최종 묶음 승인이 필요하다.
-disable-model-invocation: true
+description: 확정된 대화 또는 clear된 wayfinder map을 parent GitHub spec issue 하나로 합성한다. 해결된 맥락에 parent spec이 필요할 때 사용하며 읽기·초안은 자동 시작할 수 있고 게시에는 별도 최종 묶음 승인이 필요하다.
 ---
 
 # 명세로 정리하기
@@ -9,12 +8,12 @@ disable-model-invocation: true
 현재 대화 맥락과 코드베이스에 대한 이해를 바탕으로 명세(PRD라고도 한다)를 작성한다. 사용자를 추가로 인터뷰하지 않고 이미 논의한 내용을 종합한다.
 
 이 스킬은 parent spec issue 하나만 만든다. 구현 계획, 구현 ticket, 코드 변경, commit 또는 issue
-상태 변경을 만들지 않는다. 호출 승인은 게시를 승인하지 않는다. 쓰기 직전에 별도의 명시적
-승인을 요청한다.
+상태 변경을 만들지 않는다. 자동 선택은 읽기와 초안 작성을 허용하지만 게시를 승인하지
+않는다. 쓰기 직전에 별도의 명시적 승인을 요청한다.
 
 이 프로젝트의 GitHub issue tracker와 `docs/agents/issue-tracker.md`를 사용한다. Tracker 또는 label
-mapping이 없으면 예상 읽기·쓰기 범위와 함께 `/setup-skills`를 추천하고 호출 승인을 요청한 뒤
-멈춘다. 자동으로 호출하지 않는다.
+mapping이 없으면 `/setup-skills`를 추천하고 멈춘다. 이 스킬은 자동으로 조사·초안을 작성할
+수 있지만 저장소 또는 GitHub 쓰기에는 해당 최종 묶음 승인이 필요하다.
 
 ## 절차
 

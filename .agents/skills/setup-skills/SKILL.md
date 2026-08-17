@@ -1,7 +1,6 @@
 ---
 name: setup-skills
 description: Configure this repo for the engineering skills — set up its issue tracker, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills.
-disable-model-invocation: true
 ---
 
 # Setup Skills
@@ -12,7 +11,9 @@ Scaffold the per-repo configuration that the engineering skills assume:
 - **Triage labels** — the strings used for the five canonical triage roles
 - **Domain docs** — where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
 
-This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
+This is a prompt-driven skill, not a deterministic script. Automatic selection permits exploring
+and drafting without approval. Present what you found and obtain approval for the exact final file
+batch before writing.
 
 ## Process
 
@@ -68,6 +69,8 @@ Show the user a draft of:
 - The contents of `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, and `docs/agents/triage-labels.md` (the last only when `triage` is installed)
 
 Let them edit before writing.
+Ask for explicit approval of the final paths and contents. If they change after the preview, show
+the revised batch and ask again.
 
 ### 4. Write
 
