@@ -1,12 +1,19 @@
 ---
 name: to-spec
-description: Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
-disable-model-invocation: true
+description: Synthesize a resolved conversation or cleared wayfinder map into exactly one local Markdown spec. Use when resolved context needs an implementation target; writing requires approval.
 ---
+
+# To Spec
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-skills` if not.
+This skill creates exactly one local `spec.md`. It does not create an implementation plan,
+implementation tickets, code changes, commits, or tracker state transitions. Automatic selection
+permits reading and drafting but does not approve the local file write.
+
+Use `docs/agents/issue-tracker.md`. Reuse the wayfinder initiative directory when one is supplied;
+otherwise choose the next configured initiative directory. If the local tracker configuration is
+missing, stop and do not invent another path or fall back to GitHub.
 
 ## Process
 
@@ -14,16 +21,22 @@ The issue tracker and triage label vocabulary should have been provided to you �
 
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
-Check with the user that these seams match their expectations.
+Use the resolved context for this choice. If a seam would require a new material public or structural
+decision, stop and route that decision back to `grill` or the source wayfinder map; do not interview
+inside this skill.
 
-3. Write the spec using the template below. Show the user the target repository,
-   final title, full body, and labels, then ask for approval.
+3. Write the spec using the template below. Re-read the target, then show the exact `spec.md` path
+   and full final content. Ask for explicit approval immediately before writing that local file.
 
-   The issue records the intended implementation target. Determine the
+   The spec records the intended implementation target. Determine the
    current implemented state from code and canonical documentation.
 
-4. After approval, publish the spec to the project issue tracker. Apply the
-   `ready-for-agent` triage label - no need for additional triage.
+4. After that separate approval, create or update exactly one local `spec.md` file and verify it.
+   `/to-tickets` owns implementation ticket files and their readiness statuses.
+
+5. Stop after reporting the verified path. When implementation is intended, recommend
+   `/to-tickets` with its expected read/write scope; it may produce one or more implementation
+   tickets. Do not invoke it.
 
 <spec-template>
 

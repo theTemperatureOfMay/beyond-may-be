@@ -1,5 +1,6 @@
 interface:
   display_name: "To Spec"
-  short_description: "대화를 명세로 정리"
+  short_description: "합의된 맥락을 하나의 로컬 Markdown spec으로 정리"
+  default_prompt: "Use $to-spec to draft one local Markdown spec from the resolved conversation or wayfinder map."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

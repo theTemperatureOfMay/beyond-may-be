@@ -11,7 +11,8 @@
 3. `candidate_impacts`를 기준으로 저장소에서 feature ID, ADR ID, API 경로와 도메인명을
    검색해 영향 집합을 확정한다.
 4. 변경한 대상, 확인했지만 변경하지 않은 대상, 확인하지 못한 대상과 미해결 항목을
-   PR 또는 Issue에 기록한다.
+   완료 보고에 기록한다. 사용자가 PR 또는 Issue 작성을 명시적으로 요청하고 외부 쓰기를
+   별도 승인한 경우에만 같은 내용을 해당 외부 기록에도 반영한다.
 
 오탈자, 내부 변수명 변경처럼 공개 의미와 정본에 영향을 주지 않는 작은 변경은 이
 절차를 생략할 수 있다. 복수 유형의 변경은 각 유형의 영향 집합을 합친다. “영향 없음”은
@@ -42,7 +43,7 @@ PR·Issue는 현재 사실을 보관하는 정본이 아니다. 기록이 닫혔
 | `data` | Entity, 저장 형식, Repository, Flyway migration, 데이터 수명 변경 | `backend.md`, 관련 `docs/adr/`, 실제 Entity·migration·`application*.yml` | Repository·Service·테스트·API·기능 명세·안전 문서·운영 절차 | 아키텍처·애플리케이션 컨텍스트 테스트, 품질 검사·빌드, migration 적용 순서 검토 | 데이터 손실 위험, migration 범위 불명확, 운영 DB 영향 |
 | `architecture` | 패키지·도메인 경계, 의존 방향, 배포 대상·인프라 구조, ADR 생성·수정·대체 | `docs/architecture/backend.md`, `docs/adr/` | 도메인 코드, Terraform·Docker, 배포 workflow, 운영 문서, ArchUnit 테스트, 제품 문서, `AGENTS.md`, `docs/harness/*`, `.agents/skills/`, `.claude/skills/` | `change-impact-review`, 결정 기록·코드·인프라·운영 흐름과 관련 테스트 의미 비교, ADR 영향 대상·미해결 항목 확인 | 기존 결정과 충돌, 목표와 현재 상태 혼동, 활성 하네스에 이전 결정 잔존, 큰 구조 변경 |
 | `security` | 인증·인가, 개인정보, 비밀값, OIDC·외부 쓰기·자동 배포 승인, 보호 영역 변경 | `AGENTS.md`, `docs/harness/safety-policy.md`, 실제 보안·배포 설정 | `application*.yml`, Terraform IAM·SSM, 배포 workflow, 로그, README·runbook·운영 문서, 테스트 | 보호 경로 검사, 관련 테스트, 비밀값 노출·최소 권한·배포 승인 경계 검토 | 승인 없는 외부 쓰기, 비밀값 접근·출력, 보호 규칙 충돌 |
-| `harness` | 공통 지침, skill, 검증 명령, CI·자동 배포 workflow, 회귀 기준, 문서 책임 변경 | `AGENTS.md`, 활성 `docs/harness/*`, 관련 `.agents/skills/` | 검증 scripts, 회귀 tests, README·docs index, PR template, CI·배포 workflow, ADR·운영 문서 | `verify-harness.ps1`, 관련 회귀 테스트, G6 재검사, 필요 시 전체 검증 | 규칙 충돌, 보호 정책 약화, 실행하지 않은 검증을 완료로 기록 |
+| `harness` | 공통 지침, skill, 검증 명령, CI·자동 배포 workflow, 회귀 기준, 문서 책임 변경 | `AGENTS.md`, 활성 `docs/harness/*`, 관련 `.agents/skills/` | 검증 scripts, 회귀 tests, README·docs index, PR template, CI·배포 workflow, ADR·운영 문서 | `verify-harness.ps1`, 관련 회귀 테스트, `change-impact-review`, 필요 시 전체 검증 | 규칙 충돌, 보호 정책 약화, 실행하지 않은 검증을 완료로 기록 |
 
 ## 검증 결과 기록
 

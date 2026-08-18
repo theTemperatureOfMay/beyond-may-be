@@ -1,5 +1,6 @@
 interface:
-  display_name: 승인 계획 구현
-  short_description: 승인된 계획을 따라 구현하고 전체 검증을 수행합니다
+  display_name: "승인 입력 구현"
+  short_description: "승인된 한 세션 요청·frontier ticket 구현"
+  default_prompt: "Use $implement to implement this approved one-session request or frontier ticket and read any linked spec as context."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

@@ -5,11 +5,11 @@
 - 결정 일자: 2026-07-22
 - 현재 상태 확인 일자: 2026-07-25
 - 병합 근거: Pull Request #1 (`bbcf6f7`), Pull Request #3 (`5a9ed83`)
-- 기준 문서: [하네스 완성 기준 및 평가표](completion-criteria.md)
+- 당시 기준 문서: `completion-criteria.md`(현재 삭제됨)
 
 이 문서는 2026-07-25까지의 구축 과정과 당시 검증 근거를 보존하기 위해 동결한다.
-현재 하네스 정책, 완료 기준과 재검사 조건은 [하네스 완성 기준 및 평가표](completion-criteria.md),
-[하네스 문서](README.md), [안전 정책](safety-policy.md)을 따른다. 이 문서에는
+현재 하네스 정책과 재검사 경로는 [하네스 문서](README.md),
+[변경 영향 지도](change-impact-map.md), [안전 정책](safety-policy.md)을 따른다. 이 문서에는
 새로운 진행 상태나 현재 프로젝트 사실을 추가하지 않으며, 과거 사실 또는 링크의
 오류만 필요한 범위에서 바로잡는다.
 
@@ -69,8 +69,7 @@ Public repository와 관리 권한을 구성하고 실제 실패·복구 Pull Re
 
 ## 후속 세션 우선순위
 
-하네스 담당 역할, 갱신 조건과 재검사 조건은
-[완성 기준의 운영과 유지관리 정책](completion-criteria.md#g6-운영과-유지관리)에서
+하네스 담당 역할, 갱신 조건과 재검사 조건은 당시 `completion-criteria.md`에서
 확정했다.
 
 1. 보호 영역, 외부 콘텐츠, MCP·플러그인과 외부 쓰기 승인 기준을 공통 지침과 상세

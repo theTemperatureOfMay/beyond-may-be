@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed."
+description: "Synthesize resolved context into one local Markdown spec and write it only after approval."
 ---
 
 # Claude Code 연결 파일

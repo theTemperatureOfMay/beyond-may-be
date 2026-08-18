@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards and Spec. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to review since a fixed point."
+description: "Read-only review of WIP, branch, PR, or user-pinned changes along separate repository Standards and approved Spec axes."
 ---
 
 # Claude Code 연결 파일

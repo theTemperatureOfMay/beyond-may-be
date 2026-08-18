@@ -1,5 +1,6 @@
 interface:
   display_name: "To Tickets"
-  short_description: "계획을 추적탄 구현 티켓으로 분할"
+  short_description: "승인된 spec을 blocker가 있는 구현 tickets로 분할"
+  default_prompt: "Use $to-tickets to draft local Markdown implementation tickets and blockers from the approved spec."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

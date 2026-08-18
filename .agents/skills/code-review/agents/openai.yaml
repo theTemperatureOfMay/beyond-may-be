@@ -1,3 +1,3 @@
 interface:
   display_name: "Code Review"
-  short_description: "표준과 명세를 기준으로 변경 사항 검토"
+  short_description: "WIP·branch·PR을 Standards와 Spec으로 읽기 전용 검토"
