@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: "Break an approved spec into implementation tickets with blocking edges and publish only a separately approved batch."
+description: "Break an approved local spec into Markdown implementation tickets with textual blockers."
 ---
 
 # Claude Code 연결 파일

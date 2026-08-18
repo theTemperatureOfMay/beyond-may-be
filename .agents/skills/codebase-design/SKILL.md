@@ -98,7 +98,7 @@ Good interfaces make testing natural:
    least two genuinely different alternatives; parallel agents are not required.
 4. Compare interface size, hidden complexity, locality, caller migration, error behavior, and the test
    surface.
-5. Recommend one option and identify unresolved decisions or validation that a later plan must carry.
+5. Recommend one option and identify unresolved decisions or validation that a later implementation workflow must carry.
 
 ## Going deeper
 

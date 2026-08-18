@@ -37,8 +37,8 @@ that repository tooling already enforces.
 
 ### 3. Identify the Spec sources
 
-Spec comes from approved ticket or plan completion criteria; a parent spec or issue supplies intent and
-context. Prefer a source the user named, then references in the approved implementation record, branch,
+Spec comes from an approved one-session request or ticket completion criteria; a parent spec or
+issue supplies intent and context. Prefer a source the user named, then references in the approved implementation record, branch,
 or commits. Use `docs/agents/issue-tracker.md` only to read an already-referenced tracker item; never
 invoke setup or mutate the tracker.
 
@@ -60,7 +60,7 @@ untracked files, and change scope.
 
 **Spec brief**
 
-- Provide the approved ticket/plan completion criteria and parent context.
+- Provide the approved one-session request or ticket completion criteria and parent context.
 - Find missing or partial requirements, incorrect implementations, and unrequested scope.
 - Cite a tight file/line range and the matching requirement.
 

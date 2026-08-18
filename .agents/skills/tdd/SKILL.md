@@ -22,7 +22,7 @@ mocking guidance.
 A **seam** is the public surface where a test drives behavior and observes a result without reaching into
 private implementation.
 
-- For an approved plan or ticket at an existing seam, do not ask for seam approval again.
+- For an approved one-session request or a frontier ticket at an existing seam, do not ask for seam approval again.
 - When a clear existing public seam is not recorded, choose it and record it.
 - Stop and ask only if test choices materially change validation scope or require a new public interface
   or structure.
@@ -55,4 +55,4 @@ Cycle: Red -> Green -> behavior-preserving cleanup.
 
 Use JUnit 5, AssertJ, Mockito, MockMvc, Testcontainers, and Gradle according to the existing test style.
 On Windows, prefer `.\gradlew.bat test --tests "<fully.qualified.TestName>"` for the focused cycle, then
-run the broader commands required by the approved plan.
+run the broader commands required by the approved input.

@@ -1,50 +1,77 @@
-# Issue tracker: GitHub
+# Issue tracker: Local Markdown
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+여러 세션 작업의 생명주기 산출물은 `.dev/initiatives/`에 둔다. 이 파일들은 Git에서 무시되는 개인
+작업 기록이며 프로젝트 정본이 아니다. 지속해야 하는 결론은 관련 정본 문서나 ADR로 옮긴다.
 
-## Conventions
+## Initiative 이름과 구조
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
-- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Comment on an issue**: `gh issue comment <number> --body "..."`
-- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+- 디렉터리: `.dev/initiatives/yymmdd-nn-<initiative-slug>/`
+- 날짜는 Asia/Seoul 기준이고 `nn`은 같은 날짜의 기존 initiative 다음 번호다.
+- 기존 wayfinder 산출물이 있으면 `to-spec`과 `to-tickets`는 같은 initiative 디렉터리를 쓴다.
+- wayfinder 없이 `to-spec`부터 시작하면 다음 initiative 디렉터리를 만든다.
 
-Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+```text
+.dev/initiatives/
+└── yymmdd-nn-<initiative-slug>/
+    ├── map.md
+    ├── decisions/
+    │   ├── 01-<decision>.md
+    │   └── 02-<decision>.md
+    ├── spec.md
+    └── tickets/
+        ├── 01-<implementation>.md
+        └── 02-<implementation>.md
+```
 
-## Pull requests as a triage surface
+`map.md`와 `decisions/`는 wayfinder를 쓸 때만 생긴다. `spec.md`는 initiative당 정확히
+하나이고 decision과 implementation ticket은 파일 하나가 항목 하나를 소유한다. 번호는
+blocker가 먼저 오도록 두 자리 순번으로 정한다.
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+## 공통 필드와 기록
 
-When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
+- decision과 implementation ticket의 상태는 문서 제목 바로 아래의 `Status: <value>` 한 줄로 기록한다.
+- blocker는 `Blocked by: NN, NN` 또는 `Blocked by: None`으로 기록한다.
+- blocker는 같은 `decisions/` 또는 `tickets/` 디렉터리의 번호를 참조한다.
+- 참조된 모든 문서가 `Status: resolved`일 때만 blocker가 해소된다.
+- 이력은 기존 내용을 덮어쓰지 않고 `## Comments` 아래에 시간순으로 추가한다.
+- 이 문서에서 `publish`는 구성된 로컬 파일을 생성하거나 갱신하는 것, `fetch`는 대상 파일과
+  필요한 parent·blocker 파일을 읽는 것을 뜻한다.
+- 경로 또는 필수 필드 구성이 없으면 중단한다. GitHub나 다른 로컬 경로로 대체하지 않는다.
 
-- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
-- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
-- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+`wayfinder`, `to-spec`, `to-tickets`, `triage`는 변경 직전에 정확한 파일 경로와 최종
+내용을 보여 주고 그 묶음의 명시적 승인을 받은 뒤에만 파일을 바꾼다. 현재 frontier ticket의
+구현 요청은 성공적인 검증 뒤 그 ticket을 `resolved`로 바꾸는 것까지 승인된 실행 입력에 포함한다.
 
-GitHub shares one number space across issues and PRs, so a bare `#42` may be either — resolve with `gh pr view 42` and fall back to `gh issue view 42`.
+## Wayfinder decision
 
-## When a skill says "publish to the issue tracker"
+- 파일: `decisions/NN-<decision-slug>.md`
+- `Type`: `research`, `prototype`, `grilling`, `task`
+- `Status`: `open`, `claimed`, `resolved`
+- frontier: `Status: open`이고 blocker가 모두 해결됐으며 claimed되지 않은 decision 가운데
+  번호가 가장 낮은 항목
+- claim: 선택한 파일을 `Status: claimed`로 변경
+- resolve: `## Answer`를 기록하고 `Status: resolved`로 변경한 뒤 `map.md`의
+  `## Decisions so far`에 이름·상대 링크·한 줄 요약을 추가
+- out of scope로 해결한 decision은 대신 `## Out of scope`에 링크하고 의존 decision을 같은
+  묶음에서 정리한다.
 
-Create a GitHub issue.
+## Spec
 
-## When a skill says "fetch the relevant ticket"
+- 파일: initiative 루트의 `spec.md`
+- 입력: 해결된 대화 또는 모든 필요한 decision이 해결된 `map.md`
+- 역할: 여러 세션 작업의 구현 목표와 결정 맥락. 직접 구현 단위나 프로젝트 정본은 아니다.
+- `to-spec`은 이 파일 하나만 만들거나 갱신한다.
 
-Run `gh issue view <number> --comments`.
+## Implementation ticket
 
-## Wayfinding operations
-
-Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
-
-The commands below describe GitHub mechanics, not write permission. `/wayfinder` may be
-automatically selected to read, classify, and draft without approval, but it must show the exact
-final batch and pass its external-write gate before any create, edit, assign, label, dependency,
-comment, close, reopen, or delete operation.
-
-- **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `gh issue create --label wayfinder:map`.
-- **Child ticket**: an issue linked to the map as a GitHub sub-issue (`gh api` on the sub-issues endpoint). Where sub-issues aren't enabled, add the child to a task list in the map body and put `Part of #<map>` at the top of the child body. Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.
-- **Blocking**: GitHub's **native issue dependencies** — the canonical, UI-visible representation. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only — the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
-- **Frontier query**: list the map's open children (`gh issue list --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or an assignee; first in map order wins.
-- **Claim**: `gh issue edit <n> --add-assignee @me` — the session's first approved write after the wayfinder external-write gate.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
+- 파일: `tickets/NN-<implementation-slug>.md`
+- parent: `Parent: ../spec.md`
+- `Status`: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`,
+  `resolved`
+- frontier: `Status: ready-for-agent`이고 blocker가 모두 해결된 ticket 가운데 번호가 가장
+  낮은 항목
+- `to-tickets`는 ticket마다 파일 하나를 만들고 `Blocked by`에 번호를 기록한다.
+- `triage`는 모든 sibling ticket을 읽어 frontier를 계산하고 대상이 frontier일 때만
+  `implement`를 추천한다. `Status`와 `## Comments`만 승인된 내용으로 갱신한다.
+- `implement`는 전체 검증이 성공했을 때만 실행한 ticket을 `Status: resolved`로 갱신한다.
+  실패하거나 미실행 검사가 있으면 상태를 바꾸지 않는다.

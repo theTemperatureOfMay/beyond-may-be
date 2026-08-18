@@ -163,7 +163,6 @@ try {
         "README.md",
         "docs/harness/README.md",
         $changeImpactMapRelativePath,
-        "docs/harness/completion-criteria.md",
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
         "docs/harness/setup-roadmap.md",
@@ -180,7 +179,6 @@ try {
         "README.md",
         "docs/harness/README.md",
         $changeImpactMapRelativePath,
-        "docs/harness/completion-criteria.md",
         "docs/harness/safety-policy.md",
         "docs/harness/behavioral-validation.md",
         "docs/harness/setup-roadmap.md",
@@ -240,7 +238,6 @@ try {
 
     $routingContractPaths = @(
         "AGENTS.md",
-        ".agents/skills/plan/SKILL.md",
         ".agents/skills/to-spec/SKILL.md",
         ".agents/skills/triage/SKILL.md",
         ".agents/skills/diagnosing-bugs/SKILL.md",
@@ -253,18 +250,19 @@ try {
             "작은 작업",
             "일반 구현",
             "큰 작업",
-            "(?s)일반 구현.*?plan.*?계획 승인.*?implement",
-            "(?s)큰 작업.*?wayfinder.*?to-spec.*?to-tickets.*?implement",
+            "(?s)위험도 분류.*?생명주기 산출물.*?별도 판단",
+            "(?s)미해결 요구사항.*?grill.*?한 세션.*?implement.*?여러 세션.*?to-spec.*?to-tickets.*?Status: ready-for-agent.*?blocker.*?모두 해결.*?최저 번호.*?frontier.*?implement",
+            "(?s)모호.*?wayfinder.*?같은 initiative.*?to-spec",
+            "(?s)triage.*?sibling.*?frontier.*?implement",
             "(?s)작업 중.*?다시 승인"
         )
-        ".agents/skills/plan/SKILL.md" = @("일반 구현", "대화 요구사항", "implement")
         ".agents/skills/to-spec/SKILL.md" = @(
-            "(?s)target repository.*?final title.*?full body.*?labels.*?approval",
+            "(?is)target.*?spec\.md.*?full final content.*?explicit approval.*?immediately before writing",
             "(?s)intended implementation target.*?current implemented state.*?code.*?canonical documentation"
         )
         ".agents/skills/triage/SKILL.md" = @(
-            "(?is)Automatic selection.*?reading.*?querying.*?inspecting.*?drafts.*?without\s+approval",
-            "(?s)Before any tracker write.*?labels to add or remove.*?full final comment.*?final state",
+            "(?is)Automatic selection.*?reading\s+local\s+work\s+items.*?inspecting.*?drafts.*?without\s+approval",
+            "(?s)Before any tracker write.*?exact file path.*?Status.*?full final comment",
             "(?s)Ask for explicit approval immediately before writing.*?Apply only the approved batch",
             "(?s)Without approval.*?recommendation and drafts"
         )
@@ -275,13 +273,13 @@ try {
             "skill ends at the diagnosis report"
         )
         ".agents/skills/wayfinder/SKILL.md" = @(
-            "(?is)Automatic selection.*?reading.*?classifying.*?drafting.*?without\s+approval.*?Do not mutate",
-            "(?s)Show the final batch exactly.*?labels.*?assignee.*?status.*?dependency edges",
+            "(?is)Automatic selection.*?reading.*?classifying\s+local\s+tracker.*?drafting.*?without\s+approval.*?Do not change tracker files",
+            "(?s)Show the final local file batch exactly.*?paths.*?content.*?Status.*?Blocked by",
             "(?s)explicit user approval.*?immediately before applying",
             "(?s)Apply only the approved batch.*?changes.*?fresh approval",
-            "(?s)Without approval.*?stop without changing external state"
+            "(?s)Without approval.*?stop without changing tracker files"
         )
-        ".agents/skills/implement/SKILL.md" = @("일반 구현", "승인된 일반 구현")
+        ".agents/skills/implement/SKILL.md" = @("한 세션", "frontier")
         ".agents/skills/grill/SKILL.md" = @(
             "grilling", "grill-with-docs", "batch-grill-me", "batch-grill-with-docs",
             "(?s)조합안.*?승인할 때까지.*?질문 절차.*?문서 기록.*?시작하지 않는다",
@@ -344,44 +342,49 @@ try {
 
     $skillLifecycleContracts = [ordered]@{
         ".agents/skills/ask-matt/SKILL.md" = @(
-            "(?is)router only.*?recommend.*?stop",
-            "(?is)does not.*?invoke.*?plan.*?spec.*?ticket.*?code change.*?commit.*?external write",
-            "(?is)implementation\s+ticket.*?native\s+blockers.*?all\s+resolved.*?recommend.*?implement.*?unresolved\s+native\s+blockers.*?do\s+not\s+recommend.*?implement"
+            "(?is)this skill is a router only\.\s*recommend a route and stop",
+            "(?is)does not.*?invoke.*?spec.*?ticket.*?code change.*?commit.*?external write",
+            "(?is)fits one agent session.*?recommend.*?implement.*?spans sessions.*?recommend.*?to-spec.*?to-tickets",
+            "(?is)multi-session effort.*?foggy.*?wayfinder.*?to-spec",
+            "(?is)lowest-numbered.*?ready-for-agent.*?blockers.*?resolved.*?implement",
+            "(?is)implementation\s+ticket.*?unresolved\s+local\s+Markdown\s+blockers.*?do\s+not\s+recommend.*?implement"
         )
         ".agents/skills/triage/SKILL.md" = @(
             "(?is)state recommendation.*?never approves implementation",
             "(?is)never\s+invoke\s+implement\s+automatically",
-            "(?is)only\s+when.*?selected\s+state.*?ready-for-agent.*?evidence.*?agent\s+implementation",
-            "(?is)small\s+work.*?direct\s+implementation\s+approval.*?general\s+implementation.*?recommend\s+plan.*?complete\s+implementation\s+ticket.*?native\s+blockers.*?all\s+resolved.*?ask\s+whether\s+to\s+invoke\s+implement.*?wait\s+for\s+user\s+confirmation",
-            "(?is)native\s+blocker.*?unresolved.*?do\s+not\s+recommend\s+implementation"
-        )
-        ".agents/skills/plan/SKILL.md" = @(
-            "(?s)개인 작업 기록.*?정본.*?대체하지 않는다",
-            "(?s)(?:승인된 뒤|계획 승인 후).*?별도 구현 요청.*?두 번째 승인 없이.*?implement.*?(?:즉시|넘긴다)",
-            "(?s)계획 승인.*?implement.*?외부 쓰기.*?승인하지 않는다"
+            "(?is)only\s+when.*?target.*?ready-for-agent.*?current frontier.*?evidence.*?agent\s+implementation",
+            "(?is)every\s+sibling\s+ticket.*?lowest-numbered.*?ready-for-agent.*?blockers.*?resolved",
+            "(?is)target.*?not.*?current frontier.*?do not recommend implementation",
+            "(?is)target.*?current frontier.*?ask whether to invoke implement.*?wait for user confirmation"
         )
         ".agents/skills/to-spec/SKILL.md" = @(
-            "(?is)automatic selection.*?reading.*?drafting.*?does\s+not\s+approve\s+publishing.*?separate\s+explicit\s+approval.*?immediately\s+before\s+writing",
-            "(?is)exactly one parent spec issue.*?do not apply.*?ready-for-agent.*?to-tickets",
+            "(?is)automatic selection.*?reading.*?drafting.*?does\s+not\s+approve.*?local\s+file\s+write",
+            "(?is)spec\.md.*?full final content.*?explicit\s+approval.*?immediately\s+before\s+writing",
+            "(?is)exactly one.*?spec\.md.*?to-tickets.*?implementation\s+ticket\s+files",
             "(?is)implementation is intended.*?to-tickets.*?one or more implementation.*?tickets.*?do not invoke"
         )
         ".agents/skills/to-tickets/SKILL.md" = @(
-            "(?is)breakdown approval.*?does not approve GitHub writes",
+            "(?is)breakdown approval.*?approves only the structure.*?never approves.*?file write.*?not yet been shown",
             "(?is)required\s+prefactor.*?separate\s+blocking\s+implementation\s+ticket.*?does\s+not\s+implement",
-            "(?is)exact issue bodies.*?labels.*?parent\s+relationships.*?dependency\s+edges.*?separate\s+explicit\s+approval.*?immediately\s+before\s+writing",
-            "(?is)do not edit or close the parent body or state.*?ready-for-agent.*?complete\s+implementation\s+tickets",
-            "(?is)publish\s+one\s+GitHub\s+issue\s+per\s+ticket.*?sub-issue.*?native\s+blocking\s+relationships.*?docs/agents/issue-tracker\.md"
+            "(?is)complete ticket.*?direct.*?/implement.*?only.*?current lowest-numbered.*?ready-for-agent.*?frontier.*?blockers.*?resolved.*?resolved blockers alone.*?do not make.*?execution input",
+            "(?is)exact ticket paths.*?bodies.*?spec\.md.*?Status.*?Blocked by.*?separate explicit\s+approval.*?immediately\s+before\s+writing.*?only that approval.*?exact shown batch",
+            "(?is)do not edit.*?parent spec.*?Status:\s*ready-for-agent.*?complete\s+implementation\s+tickets",
+            "(?is)one\s+Markdown\s+file\s+per\s+ticket.*?textual\s+blockers.*?docs/agents/issue-tracker\.md"
         )
         ".agents/skills/wayfinder/SKILL.md" = @(
-            "(?is)planning by default.*?Notes.*?explicitly opt into.*?execution tasks.*?Without that override.*?decisions,\s+not\s+deliverables.*?do\s+not\s+create.*?spec.*?implementation\s+plan.*?implementation\s+ticket.*?code\s+change",
-            "(?is)map is clear.*?Notes.*?did not carry.*?destination.*?hand off.*?to-spec.*?GitHub write.*?separate approval.*?approved.*?Notes.*?carried.*?destination.*?verified execution.*?report.*?stop",
-            "(?is)stores\s+the\s+map.*?GitHub.*?docs/agents/issue-tracker\.md.*?do\s+not.*?fall\s+back\s+to\s+local\s+files"
+            "(?is)description:.*?foggy.*?unresolved.*?multi-session effort",
+            "(?is)Wayfinder is planning.*?decisions,\s+not\s+deliverables.*?do\s+not\s+create.*?spec.*?implementation\s+plan.*?implementation\s+ticket.*?code\s+change",
+            "(?is)map is clear.*?hand.*?same initiative directory.*?to-spec.*?do not invoke.*?to-tickets.*?implement",
+            "(?is)stor(?:e|es).*?map\.md.*?decision files.*?docs/agents/issue-tracker\.md.*?do not invent another path",
+            "(?is)# <decision title>\s*Status:\s*open\s*Type:\s*<research\|prototype\|grilling\|task>"
         )
         ".agents/skills/implement/SKILL.md" = @(
-            "(?s)승인된 일반 구현 plan.*?큰 작업의 implementation ticket.*?Spec은 실행 단위가.*?아니라.*?맥락",
-            "(?s)승인된 plan.*?별도 구현 요청.*?두 번째 승인 없이.*?즉시 실행 입력",
-            "(?s)특정 implementation ticket.*?구현을 명확히 요청.*?승인된 입력.*?미해결 blocker.*?구현하지",
-            "(?s)spec만 지정되면 구현하지 않고.*?to-tickets.*?자동.*?GitHub 게시.*?별도 승인",
+            "(?s)한 세션 구현 요청.*?frontier implementation ticket.*?Spec은 실행 단위가.*?아니라.*?맥락",
+            "(?s)해결·승인된 한 세션 구현 요청.*?즉시 실행 입력",
+            "(?s)특정 frontier implementation ticket.*?구현을 명확히 요청.*?승인된 입력.*?미해결 blocker.*?구현하지",
+            "(?s)spec만 지정되면 구현하지 않고.*?to-tickets.*?자동.*?local ticket (?:파일 쓰기|file 생성).*?(?:별도 승인|breakdown 승인)",
+            "(?is)local Markdown.*?ticket.*?모든 sibling.*?Blocked by.*?frontier.*?아니면 구현하지",
+            "(?is)local(?: Markdown)? ticket.*?Status.*?resolved.*?실패.*?(?:resolved|해결\s*상태).*?바꾸지 않는다",
             "(?s)커밋.*?브랜치.*?push.*?Pull Request.*?GitHub.*?comment.*?close.*?label.*?status.*?별도 요청.*?승인"
         )
     }
@@ -520,26 +523,25 @@ try {
         }
     }
 
-    $githubAutoReadSkills = @(
+    $autoReadSkills = @(
         "wayfinder",
         "to-spec",
         "to-tickets",
         "triage",
-        "setup-skills",
         "gh-create-issue-from-template",
         "gh-create-project-pr"
     )
-    foreach ($skillName in $githubAutoReadSkills) {
+    foreach ($skillName in $autoReadSkills) {
         $skillRelativePath = ".agents/skills/$skillName/SKILL.md"
         $skillFullPath = Join-Path $resolvedRoot ($skillRelativePath -replace "/", "\")
         if (-not (Test-Path -LiteralPath $skillFullPath -PathType Leaf)) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "GitHub 연동 스킬 원본이 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $skillRelativePath "자동 선택 스킬 원본이 없다."
             continue
         }
 
         try { $skillText = [System.IO.File]::ReadAllText($skillFullPath, $utf8) }
         catch {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "스킬 frontmatter를 UTF-8로 읽을 수 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $skillRelativePath "스킬 frontmatter를 UTF-8로 읽을 수 없다."
             continue
         }
 
@@ -549,34 +551,34 @@ try {
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
         if (-not $frontmatter.Success) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "GitHub 연동 스킬 frontmatter가 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $skillRelativePath "자동 선택 스킬 frontmatter가 없다."
         }
         elseif ($frontmatter.Groups["body"].Value -match "(?m)^disable-model-invocation:\s*") {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $skillRelativePath "GitHub 연동 스킬의 자동 선택을 막는 frontmatter가 있다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $skillRelativePath "스킬의 자동 선택을 막는 frontmatter가 있다."
         }
 
         $codexMetadataRelativePath = ".agents/skills/$skillName/agents/openai.yaml"
         $codexMetadataFullPath = Join-Path $resolvedRoot ($codexMetadataRelativePath -replace "/", "\")
         if (-not (Test-Path -LiteralPath $codexMetadataFullPath -PathType Leaf)) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책이 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책이 없다."
             continue
         }
 
         try { $codexMetadataText = [System.IO.File]::ReadAllText($codexMetadataFullPath, $utf8) }
         catch {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책을 UTF-8로 읽을 수 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $codexMetadataRelativePath "Codex 스킬 호출 정책을 UTF-8로 읽을 수 없다."
             continue
         }
 
-        $githubPolicyBlock = [regex]::Match(
+        $autoReadPolicyBlock = [regex]::Match(
             $codexMetadataText,
             "(?ms)^policy:[ \t]*\r?\n(?<body>(?:[ \t]+[^\r\n]*(?:\r?\n|$))*)"
         )
         if (
-            -not $githubPolicyBlock.Success -or
-            $githubPolicyBlock.Groups["body"].Value -notmatch "(?m)^[ \t]+allow_implicit_invocation:\s*true\s*$"
+            -not $autoReadPolicyBlock.Success -or
+            $autoReadPolicyBlock.Groups["body"].Value -notmatch "(?m)^[ \t]+allow_implicit_invocation:\s*true\s*$"
         ) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $codexMetadataRelativePath "Codex의 GitHub 연동 스킬 자동 선택이 허용되지 않았다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $codexMetadataRelativePath "Codex의 스킬 자동 선택이 허용되지 않았다."
         }
 
         $claudeSkillRelativePath = ".claude/skills/$skillName/SKILL.md"
@@ -584,13 +586,13 @@ try {
             $claudeSkillRelativePath -replace '/', [IO.Path]::DirectorySeparatorChar
         )
         if (-not (Test-Path -LiteralPath $claudeSkillFullPath -PathType Leaf)) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결이 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결이 없다."
             continue
         }
 
         try { $claudeSkillText = [System.IO.File]::ReadAllText($claudeSkillFullPath, $utf8) }
         catch {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결을 UTF-8로 읽을 수 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결을 UTF-8로 읽을 수 없다."
             continue
         }
 
@@ -613,16 +615,16 @@ try {
         $claudeDescriptionValue = $claudeDescriptionMatch.Groups["value"].Value.Trim().
             Trim([char[]]@([char]39, [char]34)).Trim()
         if (-not $claudeFrontmatter.Success) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결 frontmatter가 없다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결 frontmatter가 없다."
         }
         elseif (
             $claudeNameValue -ne $skillName -or
             [string]::IsNullOrWhiteSpace($claudeDescriptionValue)
         ) {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결 name이 디렉터리명과 다르거나 description이 비어 있다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $claudeSkillRelativePath "Claude 스킬 연결 name이 디렉터리명과 다르거나 description이 비어 있다."
         }
         elseif ($claudeFrontmatter.Groups["body"].Value -match "(?m)^disable-model-invocation:\s*true\s*$") {
-            Add-RuleFailure "GITHUB-SKILL-INVOCATION" $claudeSkillRelativePath "Claude의 GitHub 연동 스킬 자동 선택이 차단됐다."
+            Add-RuleFailure "AUTO-SKILL-INVOCATION" $claudeSkillRelativePath "Claude의 스킬 자동 선택이 차단됐다."
         }
     }
 
@@ -647,7 +649,7 @@ try {
             -not $implementPolicyBlock.Success -or
             $implementPolicyBlock.Groups["body"].Value -notmatch "(?m)^[ \t]+allow_implicit_invocation:\s*true\s*$"
         ) {
-            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $implementMetadataRelativePath "승인된 plan의 Codex implement 자동 handoff가 허용되지 않았다."
+            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $implementMetadataRelativePath "승인된 실행 입력의 Codex implement 자동 handoff가 허용되지 않았다."
         }
     }
 
@@ -694,7 +696,7 @@ try {
         elseif (
             $implementClaudeFrontmatter.Groups["body"].Value -match "(?m)^disable-model-invocation:\s*true\s*$"
         ) {
-            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $implementClaudeRelativePath "승인된 plan의 Claude implement 자동 handoff가 차단됐다."
+            Add-RuleFailure "SKILL-LIFECYCLE-CONTRACT" $implementClaudeRelativePath "승인된 실행 입력의 Claude implement 자동 handoff가 차단됐다."
         }
     }
 
@@ -706,9 +708,35 @@ try {
         "docs/harness/safety-policy.md" = @(
             "(?s)GitHub.*스킬.*자동.*선택.*읽기.*분류.*분석.*초안.*외부 쓰기를 승인하지 않는다.*실제로 변경.*직전.*최종 대상.*최종 내용.*별도 승인"
         )
+    }
+
+    $localTrackerContracts = [ordered]@{
         "docs/agents/issue-tracker.md" = @(
-            "(?is)wayfinder.*automatically\s+selected.*?read.*?classify.*?draft.*?without\s+approval.*?exact\s+final\s+batch.*?external-write\s+gate"
+            "(?s)\.dev/initiatives/.*?yymmdd-nn-<initiative-slug>",
+            "(?s)map\.md.*?decisions/(?:NN-<slug>\.md|.*?01-<decision>\.md).*?spec\.md.*?tickets/(?:NN-<slug>\.md|.*?01-<implementation>\.md)",
+            "(?s)Status: <value>.*?Blocked by: NN, NN.*?None.*?Status: resolved",
+            "(?is)frontier.*?(?:lowest-numbered.*?ready-for-agent|ready-for-agent.*?번호가 가장.*?낮은)",
+            "(?is)(?:configuration is missing|구성이 없으면).*?stop|중단.*?GitHub.*?(?:another local path|대체하지 않는다)"
         )
+    }
+    foreach ($contract in $localTrackerContracts.GetEnumerator()) {
+        $contractFullPath = Join-Path $resolvedRoot ($contract.Key -replace "/", "\")
+        if (-not (Test-Path -LiteralPath $contractFullPath -PathType Leaf)) {
+            Add-RuleFailure "LOCAL-TRACKER-CONTRACT" $contract.Key "Local Markdown tracker 계약 원본이 없다."
+            continue
+        }
+
+        try { $contractText = [System.IO.File]::ReadAllText($contractFullPath, $utf8) }
+        catch {
+            Add-RuleFailure "LOCAL-TRACKER-CONTRACT" $contract.Key "Local Markdown tracker 계약을 UTF-8로 읽을 수 없다."
+            continue
+        }
+
+        foreach ($contractPattern in $contract.Value) {
+            if ($contractText -notmatch $contractPattern) {
+                Add-RuleFailure "LOCAL-TRACKER-CONTRACT" $contract.Key "Local Markdown tracker 계약이 누락됐다."
+            }
+        }
     }
     foreach ($contract in $githubAutoReadContracts.GetEnumerator()) {
         $contractFullPath = Join-Path $resolvedRoot ($contract.Key -replace "/", "\")
@@ -979,49 +1007,43 @@ try {
     }
 
     $behaviorRows = @()
-    if ($contents.ContainsKey("docs/harness/completion-criteria.md")) {
-        $completionText = $contents["docs/harness/completion-criteria.md"]
-        $operationHeadings = @("#### 관리 역할", "#### 갱신 조건", "#### 재검사 조건")
-        $missingOperationHeadings = @(
-            $operationHeadings | Where-Object {
-                $completionText -notmatch ("(?m)^" + [regex]::Escape($_) + "\s*$")
-            }
+    if ($contents.ContainsKey("docs/harness/behavioral-validation.md")) {
+        $behaviorText = $contents["docs/harness/behavioral-validation.md"]
+        $normalizedOperations = [regex]::Replace(
+            $contents["docs/harness/README.md"] + " " +
+            $contents["docs/harness/safety-policy.md"] + " " +
+            $behaviorText,
+            "\s+",
+            " "
         )
-        if ($missingOperationHeadings.Count -gt 0) {
-            Add-RuleFailure "OPERATIONS-STRUCTURE" "docs/harness/completion-criteria.md" (
-                "운영 section이 누락됐다: " + ($missingOperationHeadings -join ", ")
-            )
-        }
-
-        $normalizedCompletion = [regex]::Replace($completionText, "\s+", " ")
         $operationContracts = [ordered]@{
-            "하네스 관리자" = "하네스 관리자.*(Admin|배포)"
+            "하네스 관리자" = "(하네스 관리자.*(Admin|배포)|(Admin|배포).*하네스 관리자)"
             "변경 작성자" = "변경 작성자"
             "검토자" = "(검토자|하네스 관리자 검토)"
-            "정기 전체 회귀 제외" = "정기 전체 회귀 시험은 실행하지 않는다"
-            "완성 전 전체 실행" = "(완성 판정|required approval).*(Codex|10개).*전체"
-            "Claude 정적·Codex 행동 범위" = "Claude Code.*정적.*Codex"
+            "선택 실행" = "behavioral.*사용자가 요청할 때만"
+            "approval 전 전체 실행" = "Codex.*10개.*required approval.*전체 통과"
+            "Claude 정적·Codex 행동 범위" = "(Claude Code.*정적.*Codex|Codex.*Claude Code.*정적)"
         }
         $missingOperationContracts = @()
         foreach ($contract in $operationContracts.GetEnumerator()) {
-            if ($normalizedCompletion -notmatch $contract.Value) {
+            if ($normalizedOperations -notmatch $contract.Value) {
                 $missingOperationContracts += $contract.Key
             }
         }
         if ($missingOperationContracts.Count -gt 0) {
-            Add-RuleFailure "OPERATIONS-CONTRACT" "docs/harness/completion-criteria.md" (
+            Add-RuleFailure "OPERATIONS-CONTRACT" "docs/harness" (
                 "운영 계약이 누락됐다: " + ($missingOperationContracts -join ", ")
             )
         }
 
-        $behaviorLines = $completionText -split "\r?\n" |
+        $behaviorLines = $behaviorText -split "\r?\n" |
             Where-Object { $_ -match "^\|\s*B\d{2}\s*\|" }
         $allowedResults = @("미평가", "통과", "조건부 통과", "실패", "안전 실패")
 
         foreach ($line in $behaviorLines) {
             $cells = @($line.Trim().Trim("|").Split("|") | ForEach-Object { $_.Trim() })
             if ($cells.Count -ne 5) {
-                Add-RuleFailure "BEHAVIOR-TABLE" "docs/harness/completion-criteria.md" "시나리오 행의 열 개수가 5개가 아니다."
+                Add-RuleFailure "BEHAVIOR-TABLE" "docs/harness/behavioral-validation.md" "시나리오 행의 열 개수가 5개가 아니다."
                 continue
             }
 
@@ -1032,7 +1054,7 @@ try {
             }
             $behaviorRows += $row
             if (-not ($allowedResults -contains $row.Result)) {
-                Add-RuleFailure "BEHAVIOR-RESULT-VALUE" "docs/harness/completion-criteria.md" (
+                Add-RuleFailure "BEHAVIOR-RESULT-VALUE" "docs/harness/behavioral-validation.md" (
                     "$($row.Id)의 결과 값이 허용 목록에 없다: $($row.Result)"
                 )
             }
@@ -1046,39 +1068,30 @@ try {
             @($expectedIds | Where-Object { $rowIds -notcontains $_ }).Count -eq 0
         )
         if (-not $rowIdSetMatches) {
-            Add-RuleFailure "BEHAVIOR-SCENARIO-SET" "docs/harness/completion-criteria.md" "결과표에 B01부터 B10까지 정확히 한 번씩 있어야 한다."
+            Add-RuleFailure "BEHAVIOR-SCENARIO-SET" "docs/harness/behavioral-validation.md" "결과표에 B01부터 B10까지 정확히 한 번씩 있어야 한다."
         }
 
-        if ($contents.ContainsKey("docs/harness/behavioral-validation.md")) {
-            $guideIds = @(
-                [regex]::Matches(
-                    $contents["docs/harness/behavioral-validation.md"],
-                    "(?m)^##\s+(B\d{2})\b"
-                ) | ForEach-Object {
-                    $_.Groups[1].Value
-                }
-            )
-            $guideIdSetMatches = (
-                $guideIds.Count -eq 10 -and
-                @($guideIds | Select-Object -Unique).Count -eq 10 -and
-                @($expectedIds | Where-Object { $guideIds -notcontains $_ }).Count -eq 0
-            )
-            if (-not $guideIdSetMatches) {
-                Add-RuleFailure "BEHAVIOR-SCENARIO-SET" "docs/harness/behavioral-validation.md" "실행 설명서에 B01부터 B10까지 정확히 한 번씩 있어야 한다."
+        $guideIds = @(
+            [regex]::Matches($behaviorText, "(?m)^##\s+(B\d{2})\b") | ForEach-Object {
+                $_.Groups[1].Value
             }
+        )
+        $guideIdSetMatches = (
+            $guideIds.Count -eq 10 -and
+            @($guideIds | Select-Object -Unique).Count -eq 10 -and
+            @($expectedIds | Where-Object { $guideIds -notcontains $_ }).Count -eq 0
+        )
+        if (-not $guideIdSetMatches) {
+            Add-RuleFailure "BEHAVIOR-SCENARIO-SET" "docs/harness/behavioral-validation.md" "실행 설명서에 B01부터 B10까지 정확히 한 번씩 있어야 한다."
+        }
 
-            $behaviorScopeText = [regex]::Replace(
-                $completionText + " " + $contents["docs/harness/behavioral-validation.md"],
-                "\s+",
-                " "
-            )
-            if (
-                $behaviorScopeText -notmatch "사용자가 요청할 때만" -or
-                $behaviorScopeText -notmatch "Claude Code.*정적" -or
-                $behaviorScopeText -notmatch "Codex"
-            ) {
-                Add-RuleFailure "BEHAVIOR-SCOPE" "docs/harness/behavioral-validation.md" "선택 실행, Codex 대상과 Claude 정적 범위가 일치하지 않는다."
-            }
+        $behaviorScopeText = [regex]::Replace($behaviorText, "\s+", " ")
+        if (
+            $behaviorScopeText -notmatch "사용자가 요청할 때만" -or
+            $behaviorScopeText -notmatch "Claude Code.*정적" -or
+            $behaviorScopeText -notmatch "Codex"
+        ) {
+            Add-RuleFailure "BEHAVIOR-SCOPE" "docs/harness/behavioral-validation.md" "선택 실행, Codex 대상과 Claude 정적 범위가 일치하지 않는다."
         }
 
         $requiredBehaviorIds = @()
@@ -1096,7 +1109,7 @@ try {
                 $row.Result -ne "통과" -or
                 $row.Evidence -notmatch "^\d{4}-\d{2}-\d{2}.+\S"
             ) {
-                Add-RuleFailure "BEHAVIOR-COMPLETE" "docs/harness/completion-criteria.md" (
+                Add-RuleFailure "BEHAVIOR-COMPLETE" "docs/harness/behavioral-validation.md" (
                     "$requiredId 결과는 통과이며 날짜와 근거가 있어야 한다."
                 )
             }

@@ -1,20 +1,19 @@
 ---
 name: to-spec
-description: Synthesize a resolved conversation or cleared wayfinder map into exactly one parent GitHub spec issue. Use when resolved context needs a parent spec; reading and drafting may start automatically, while publishing requires separate final-batch approval.
+description: Synthesize a resolved conversation or cleared wayfinder map into exactly one local Markdown spec. Use when resolved context needs an implementation target; writing requires approval.
 ---
 
 # To Spec
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-This skill creates exactly one parent spec issue. It does not create an implementation plan,
-implementation tickets, code changes, commits, or issue-state transitions. Automatic selection
-permits reading and drafting but does not approve publishing. Ask for separate explicit approval
-immediately before writing.
+This skill creates exactly one local `spec.md`. It does not create an implementation plan,
+implementation tickets, code changes, commits, or tracker state transitions. Automatic selection
+permits reading and drafting but does not approve the local file write.
 
-Use this project's GitHub issue tracker and `docs/agents/issue-tracker.md`. If the tracker or label
-mapping is missing, stop and recommend `/setup-skills`. It may inspect and draft automatically,
-but repository or GitHub writes still require the applicable exact-batch approval.
+Use `docs/agents/issue-tracker.md`. Reuse the wayfinder initiative directory when one is supplied;
+otherwise choose the next configured initiative directory. If the local tracker configuration is
+missing, stop and do not invent another path or fall back to GitHub.
 
 ## Process
 
@@ -22,20 +21,20 @@ but repository or GitHub writes still require the applicable exact-batch approva
 
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
-Check with the user that these seams match their expectations.
+Use the resolved context for this choice. If a seam would require a new material public or structural
+decision, stop and route that decision back to `grill` or the source wayfinder map; do not interview
+inside this skill.
 
-3. Write the spec using the template below. Re-read the target, then show the target repository,
-   final title, full body, labels, expected impact, and recovery path. Ask for explicit approval for
-   that exact GitHub write batch.
+3. Write the spec using the template below. Re-read the target, then show the exact `spec.md` path
+   and full final content. Ask for explicit approval immediately before writing that local file.
 
-   The issue records the intended implementation target. Determine the
+   The spec records the intended implementation target. Determine the
    current implemented state from code and canonical documentation.
 
-4. After that separate approval, create exactly one parent spec issue and verify its title, body,
-   labels, and URL. Do not apply `ready-for-agent` to the parent spec; `/to-tickets` owns complete
-   implementation tickets and their readiness labels.
+4. After that separate approval, create or update exactly one local `spec.md` file and verify it.
+   `/to-tickets` owns implementation ticket files and their readiness statuses.
 
-5. Stop after reporting the verified issue. When implementation is intended, recommend
+5. Stop after reporting the verified path. When implementation is intended, recommend
    `/to-tickets` with its expected read/write scope; it may produce one or more implementation
    tickets. Do not invoke it.
 

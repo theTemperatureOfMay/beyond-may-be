@@ -1,6 +1,6 @@
 ---
 name: implement
-description: 승인된 일반 구현 plan 또는 큰 작업의 implementation ticket을 구현하고, 연결된 spec은 맥락으로 읽으며 TDD, 전체 검증과 구현 기록을 연결한다.
+description: 해결·승인된 한 세션 요청 또는 frontier implementation ticket을 구현하고 필요한 TDD·검증을 수행한다.
 ---
 
 # Claude Code 연결 파일

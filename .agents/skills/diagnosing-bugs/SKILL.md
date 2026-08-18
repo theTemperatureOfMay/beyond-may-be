@@ -157,7 +157,7 @@ canonical project document. Use this structure:
 
 Record sanitised evidence rather than secrets, credentials, personal data, or raw protected-file
 contents. If there is no correct regression seam, make that an architectural finding in the report.
-Recommend `plan`, `tdd`, `implement`, or architectural follow-up only as the next separately requested
+Recommend `tdd`, `implement`, or architectural follow-up only as the next separately requested
 task.
 
 ### Completion criterion

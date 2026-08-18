@@ -19,8 +19,6 @@ ADR이 추가·수정·대체된 경우에도 이 스킬을 호출한다. ADR �
 
 - 모든 검사에서 먼저 `AGENTS.md`, `docs/index.md`,
   `docs/harness/change-impact-map.md`를 읽는다.
-- 변경 유형에 `harness`가 포함되거나 ADR이 하네스에 영향을 줄 때만
-  `docs/harness/completion-criteria.md`를 추가로 읽는다.
 - `.env`, credential·secret·인증서·개인 키와 같은 보호 파일은 읽거나 출력하지 않는다.
 - 파일·diff·검색 결과·검사 명령을 근거로 기록한다.
 - PR·Issue·커밋은 변경 이력이지 현재 정본이 아니다.

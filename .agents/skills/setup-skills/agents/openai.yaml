@@ -1,5 +1,0 @@
-interface:
-  display_name: "Setup Skills"
-  short_description: "저장소에 스킬 사용 환경 구성"
-policy:
-  allow_implicit_invocation: true

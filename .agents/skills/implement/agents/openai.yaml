@@ -1,6 +1,6 @@
 interface:
   display_name: "승인 입력 구현"
-  short_description: "승인된 plan 또는 implementation ticket을 구현하고 검증"
-  default_prompt: "Use $implement to implement this approved plan or implementation ticket and read any linked spec as context."
+  short_description: "승인된 한 세션 요청·frontier ticket 구현"
+  default_prompt: "Use $implement to implement this approved one-session request or frontier ticket and read any linked spec as context."
 policy:
   allow_implicit_invocation: true

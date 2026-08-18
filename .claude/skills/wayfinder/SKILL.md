@@ -1,6 +1,6 @@
 ---
 name: wayfinder
-description: "Maintain a multi-session decision map; carry execution tasks only when Notes explicitly opt in, and apply only explicitly approved tracker changes."
+description: "Map a foggy multi-session effort in local Markdown and apply only explicitly approved tracker-file changes."
 ---
 
 # Claude Code 연결 파일

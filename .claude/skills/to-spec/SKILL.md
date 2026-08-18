@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: "Read and synthesize the resolved conversation into one parent GitHub spec issue draft automatically, and publish it only after separate final write approval."
+description: "Synthesize resolved context into one local Markdown spec and write it only after approval."
 ---
 
 # Claude Code 연결 파일

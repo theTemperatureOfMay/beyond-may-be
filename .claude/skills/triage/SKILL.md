@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Read and classify incoming issues and external PRs, draft triage comments and role changes, and apply only the tracker writes the user explicitly approves."
+description: "Assess a local Markdown ticket, its blockers, and the current frontier; apply only approved status and comment changes."
 ---
 
 # Claude Code 연결 파일
