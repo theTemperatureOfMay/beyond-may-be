@@ -7,3 +7,4 @@ description: |-
   각 API에는 요청 설명, 성공 saved example, 실제로 적용되는 대표 오류 saved example을 함께 기록합니다.
 variables:
   baseUrl: http://localhost:8080
+  accessToken: ""

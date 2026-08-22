@@ -398,20 +398,25 @@
       "description": "여행 일정, 장소 추천·검색, 코스 생성·확정 API 템플릿입니다.",
       "item": [
         {
-          "name": "여행 일정 등록",
-          "description": "여행 일정 등록 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "name": "추천 세트 생성",
+          "description": "인증 사용자의 저장된 성향 점수와 여행 기간으로 현재 추천 세트를 생성하거나 같은 일정의 저장 결과를 반환합니다. 최초 유형별 할당량보다 활성 DB 장소가 부족하면 TourAPI 광주 변경분을 최대 한 번 조회해 유효한 신규 장소를 먼저 저장하며, 외부 실패 시 기존 DB 후보로 계속합니다. 새 추천 응답에 포함된 장소의 빈 설명·운영시간은 응답과 분리된 내부 작업으로 최선 노력 보강하며 현재 응답은 변경하지 않습니다. Authorization Bearer 토큰이 필요하며 사용자 ID와 성향 점수는 요청에 넣지 않습니다.",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/trip-schedules",
+            "url": "{{baseUrl}}/api/v1/recommendations/sets",
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"travelSchedule\": \"ONE_NIGHT_TWO_DAYS\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-21\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -421,19 +426,24 @@
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "200 - 추천 세트",
               "originalRequest": {
                 "method": "POST",
                 "header": [
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
                   }
                 ],
-                "url": "{{baseUrl}}/api/v1/trip-schedules",
+                "url": "{{baseUrl}}/api/v1/recommendations/sets",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"travelSchedule\": \"ONE_NIGHT_TWO_DAYS\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-21\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -451,22 +461,27 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"recommendationId\": 12,\n    \"travelSchedule\": \"ONE_NIGHT_TWO_DAYS\",\n    \"startDate\": \"2099-08-20\",\n    \"endDate\": \"2099-08-21\",\n    \"minimumSelectionCount\": 5,\n    \"batch\": {\n      \"batchNumber\": 1,\n      \"places\": [\n        {\n          \"placeId\": 101,\n          \"name\": \"국립아시아문화전당\",\n          \"category\": \"문화시설\",\n          \"tags\": [\"복합문화공간\"],\n          \"summary\": null,\n          \"thumbnailUrl\": null\n        }\n      ]\n    }\n  },\n  \"success\": true\n}"
             },
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "400 - 일정 규칙 오류",
               "originalRequest": {
                 "method": "POST",
                 "header": [
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
                   }
                 ],
-                "url": "{{baseUrl}}/api/v1/trip-schedules",
+                "url": "{{baseUrl}}/api/v1/recommendations/sets",
                 "body": {
                   "mode": "raw",
-                  "raw": "{}",
+                  "raw": "{\n  \"travelSchedule\": \"ONE_NIGHT_TWO_DAYS\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-20\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -474,8 +489,8 @@
                   }
                 }
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Bad Request",
+              "code": 400,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -484,28 +499,66 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": "{\n  \"message\": \"여행 기간이 올바르지 않습니다.\",\n  \"code\": \"RECOMMENDATION400\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },
         {
-          "name": "AI 추천 장소 리스트 조회",
-          "description": "AI 추천 장소 리스트 조회 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
+          "name": "추천 세트 생성 오류 확인",
+          "description": "추천 세트 생성의 인증·최종 성향 오류 예시입니다. 최종 성향이 없는 인증 사용자는 409, 토큰이 없거나 만료되면 401을 반환합니다.",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/v1/places/recommendations"
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/recommendations/sets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"travelSchedule\": \"DAY_TRIP\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-20\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": [
             {
-              "name": "200 - 목표 빈 응답",
+              "name": "409 - 최종 성향 없음",
               "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/v1/places/recommendations"
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/recommendations/sets",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"travelSchedule\": \"DAY_TRIP\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
-              "status": "OK",
-              "code": 200,
+              "status": "Conflict",
+              "code": 409,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -514,17 +567,31 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {},\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"완료된 여행 성향 검사가 필요합니다.\",\n  \"code\": \"RECOMMENDATION409\",\n  \"data\": null,\n  \"success\": false\n}"
             },
             {
-              "name": "500 - 내부 로직 미구현",
+              "name": "401 - 인증 정보 없음",
               "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/v1/places/recommendations"
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/recommendations/sets",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"travelSchedule\": \"DAY_TRIP\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -533,7 +600,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+              "body": ""
             }
           ]
         },

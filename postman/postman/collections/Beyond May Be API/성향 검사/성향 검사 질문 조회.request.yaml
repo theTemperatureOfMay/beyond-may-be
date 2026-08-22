@@ -1,0 +1,5 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/preference-tests/questions"
+method: GET
+examples: ./.resources/성향 검사 질문 조회.resources/examples
+order: 1000

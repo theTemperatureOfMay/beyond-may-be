@@ -1,0 +1,5 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1"
+method: GET
+examples: ./.resources/코스(확정) 조회.resources/examples
+order: 6000

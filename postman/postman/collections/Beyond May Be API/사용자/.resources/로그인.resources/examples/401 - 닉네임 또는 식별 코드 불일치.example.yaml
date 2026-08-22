@@ -1,0 +1,28 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/users/login"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "nickname": "여행자",
+        "identificationCode": 99
+      }
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "닉네임 또는 식별 코드가 올바르지 않습니다.",
+        "code": "USER401",
+        "data": null,
+        "success": false
+      }
+order: 2000

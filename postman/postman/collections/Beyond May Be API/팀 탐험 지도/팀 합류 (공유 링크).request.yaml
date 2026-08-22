@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/join"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/팀 합류 (공유 링크).resources/examples
+order: 2000

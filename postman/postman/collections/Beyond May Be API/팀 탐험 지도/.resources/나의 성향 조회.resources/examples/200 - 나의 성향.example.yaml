@@ -1,0 +1,29 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/users/me/preference"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "userId": 1,
+          "nickname": "여행자",
+          "preferenceType": "ARTIST",
+          "thinkerScore": 1,
+          "foodieScore": 2,
+          "artistScore": 4,
+          "remembererScore": 0
+        },
+        "success": true
+      }
+order: 1000
