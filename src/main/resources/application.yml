@@ -17,6 +17,14 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+tour-api:
+  base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
+  service-key: ${TOUR_API_SERVICE_KEY:}
+
+groq:
+  base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
+  api-key: ${GROQ_API_KEY:}
+
 socketio:
   host: 0.0.0.0
   port: ${SOCKETIO_PORT:9092}

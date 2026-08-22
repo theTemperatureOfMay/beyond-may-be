@@ -38,7 +38,12 @@ public enum ErrorStatus implements BaseErrorCode {
   // Visit
   PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "장소를 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),
-  VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다.");
+  VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다."),
+
+  // Recommendation
+  RECOMMENDATION_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "RECOMMENDATION400", "여행 기간이 올바르지 않습니다."),
+  RECOMMENDATION_PREFERENCE_REQUIRED(
+      HttpStatus.CONFLICT, "RECOMMENDATION409", "완료된 여행 성향 검사가 필요합니다.");
 
   private final HttpStatus httpStatus;
   private final String code;

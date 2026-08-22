@@ -19,6 +19,6 @@ class ProductionMetricsSecurityIntegrationTest {
 
   @Test
   void prodProfileDoesNotExposePrometheusMetrics() throws Exception {
-    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isForbidden());
+    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
   }
 }

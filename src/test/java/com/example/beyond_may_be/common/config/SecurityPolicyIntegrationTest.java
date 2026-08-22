@@ -36,9 +36,9 @@ class SecurityPolicyIntegrationTest {
 
   @Test
   void unlistedEndpointsRequireAuthentication() throws Exception {
-    mockMvc.perform(get("/api/not-allowed")).andExpect(status().isForbidden());
-    mockMvc.perform(get("/actuator/env")).andExpect(status().isForbidden());
-    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/not-allowed")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
   }
 
   @Test
@@ -53,7 +53,7 @@ class SecurityPolicyIntegrationTest {
 
   @Test
   void healthEndpointOnlyAllowsGet() throws Exception {
-    mockMvc.perform(post("/actuator/health").with(csrf())).andExpect(status().isForbidden());
+    mockMvc.perform(post("/actuator/health").with(csrf())).andExpect(status().isUnauthorized());
   }
 
   @SpringBootConfiguration

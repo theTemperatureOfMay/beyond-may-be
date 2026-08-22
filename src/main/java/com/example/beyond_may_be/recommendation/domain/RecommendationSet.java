@@ -80,4 +80,17 @@ public class RecommendationSet extends BaseEntity {
   private static List<Long> toMutableList(List<Long> values) {
     return values == null ? new ArrayList<>() : new ArrayList<>(values);
   }
+
+  public void replace(
+      TravelSchedule travelSchedule,
+      LocalDate startDate,
+      LocalDate endDate,
+      List<Long> recommendedPlaceIds) {
+    this.travelSchedule = travelSchedule;
+    this.startDate = startDate;
+    this.endDate = endDate;
+    this.recommendedPlaceIds = toMutableList(recommendedPlaceIds);
+    this.likedPlaceIds.clear();
+    this.dislikedPlaceIds.clear();
+  }
 }
