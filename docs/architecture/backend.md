@@ -16,7 +16,8 @@
 - PostgreSQL은 재접속·공유·기록에 필요한 서버 정본을 보존한다.
 - 현재 카드, 되돌리기와 일괄 전송 전 반응은 프런트엔드 로컬 스토리지에 둔다.
 - `Course`와 `Exploration`은 생명주기가 다르므로 분리한다.
-- 한국관광공사 OpenAPI는 초기 장소 수집에만 사용하고 런타임에는 `places`를 사용한다.
+- 한국관광공사 OpenAPI는 초기 장소 수집, 부족 유형 변경분 보충과 추천 응답 장소의
+  상세정보 사후 보강에 제한해 사용하고 런타임 장소 정본은 `places`로 유지한다.
 - Redis는 MVP 범위에서 사용하지 않는다.
 
 ## 도메인 책임
@@ -61,12 +62,12 @@ Socket.IO 핸드셰이크는 같은 토큰을 쿼리 파라미터(`?token=...`)�
 
 ## 현재 코드의 영속 구조
 
-현재 최신 스키마 버전은 `V5__place_coordinate_precision.sql`이며 업무 테이블은 12개다.
+현재 최신 스키마 버전은 `V9__expand_place_business_hours.sql`이며 업무 테이블은 12개다.
 V1이 11개를 만들고 V4가 `auth_tokens`를 추가한다. Flyway가 실행 중 생성하는
 `flyway_schema_history`는 업무 ERD에서 제외한다.
 
 아래 선은 Entity의 ID 필드와 테이블 열이 나타내는 **논리 참조**다. 현재 Entity는
-JPA 연관관계 대신 `Long` ID를 저장하고, V1~V5 migration에는 `FOREIGN KEY`와
+JPA 연관관계 대신 `Long` ID를 저장하고, V1~V9 migration에는 `FOREIGN KEY`와
 `REFERENCES`가 없다. 따라서 선은 DB 외래키나 cascade를 뜻하지 않으며, 참조 대상의
 존재와 부모 삭제 안전성은 현재 스키마만으로 보장되지 않는다.
 
@@ -112,11 +113,13 @@ erDiagram
 
 ### 현재 자동 검증 범위
 
-- 애플리케이션 컨텍스트 테스트는 PostgreSQL에 V1~V5 migration을 적용한 뒤
+- 애플리케이션 컨텍스트 테스트는 PostgreSQL에 V1~V9 migration을 적용한 뒤
   `ddl-auto=validate`로 Entity의 테이블·열 매핑을 검증한다.
-- `ErdEntityMappingTest`는 enum 필드가 `EnumType.STRING`을 사용하는지만 검사한다.
-  ERD의 테이블 집합, 논리 참조, nullable·unique와 외래키 유무까지 비교하는 자동
-  검사는 아직 없다.
+- `ErdEntityMappingTest`는 enum 필드의 `EnumType.STRING` 사용, 장소 상세 정보와
+  TourAPI 식별자의 nullable 매핑 및 콘텐츠 ID 유일 선언을 검사한다.
+- `TourApiPlaceCatalogMigrationTest`는 실제 PostgreSQL에서 콘텐츠 ID 유일 제약,
+  171곳 적재와 유형별 수량 및 기존 콘텐츠 ID 보존을 검사한다. ERD의 테이블 집합,
+  논리 참조와 외래키 유무까지 비교하는 자동 검사는 아직 없다.
 
 ## 테이블별 목표 기준
 
@@ -149,12 +152,20 @@ erDiagram
 ### `places`
 
 - 이름, 카테고리, 단일 `TravelMbti` 유형, 태그 배열, 주소, 좌표, 운영시간, 설명,
-  썸네일과 활성 상태를 보존한다.
+  썸네일, TourAPI 식별자와 활성 상태를 보존한다.
 - `travel_mbti_type`은 사용자 `preference_type`과 같은
   `THINKER`, `FOODIE`, `ARTIST`, `REMEMBERER` 값 중 하나를 저장한다.
 - `tags`는 PostgreSQL JSONB 문자열 배열로 저장한다.
+- `business_hours`와 `description`은 외부 제공 데이터에 값이 없을 수 있어 nullable이다.
+  값이 없는 상태를 `정보 없음` 문자열로 대신 저장하지 않는다. TourAPI의 가변 길이
+  운영시간을 자르지 않도록 두 필드 모두 PostgreSQL `text`로 저장한다.
+- 새 추천 응답에 포함된 TourAPI 장소는 응답과 분리된 비동기 작업에서 비어 있는
+  `description`과 `business_hours`만 조건부 갱신한다. 외부 값이 비어 있거나 작업이
+  실패하면 null을 유지하며 기존 값은 덮어쓰지 않는다.
+- `tour_content_id`는 TourAPI `contentid`를 nullable·unique로 저장해 외부 중복 제거에
+  사용하고, `tour_content_type_id`는 nullable로 저장해 상세 조회에 사용한다.
 - 5·18 연관 의미는 별도 컬럼 없이 검수된 `description`에 포함한다.
-- 외부 제공자와 콘텐츠 ID, 추천 점수, 동기화 시각은 저장하지 않는다.
+- 외부 제공자명, 추천 점수와 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
 - 방문 인증 반경 100m를 검증하려면 위도·경도에 소수점 이하 최소 6자리 정밀도가
   필요하다. V5 migration이 두 열을 `numeric(9,6)`으로 변경해 현재 저장 정밀도는
@@ -175,6 +186,33 @@ erDiagram
   같은 배열 뒤에 붙인다. 제공 가능한 장소가 남아 있는 동안 최소 기준 충족까지
   반복한다.
 - `recommendation_items` 하위 테이블은 두지 않는다.
+- 현재 생성 진입점은 인증이 필요한 `POST /api/v1/recommendations/sets`다. 요청에는
+  일정 유형과 시작·종료일만 받으며 사용자와 네 성향 점수는 서버 저장값을 사용한다.
+- DB 규칙 기반 생성은 활성 장소 최대 20곳을 최대 나머지 방식으로 배분하고, 부족 유형은
+  원래 성향 점수 비율로 여유 유형에 재배분한다. 사용자와 날짜가 같으면 안정적인 셔플과
+  유형 교차 배치 결과도 같다.
+- AI 후보는 유형별 최종 할당량의 최대 3배, 전체 최대 60곳이며 Groq
+  `openai/gpt-oss-20b`가 strict JSON Schema로 후보 Place ID 순서만 반환한다. 서버는
+  전달 후보·중복·현재 활성 상태·목표 수·유형별 할당량을 저장 직전에 전부 검증하고,
+  외부 호출이나 계약 검증이 실패하면 AI 결과를 부분 보정하지 않고 규칙 결과 전체로
+  대체한다.
+- 최초 유형별 할당량보다 활성 장소가 부족하면 `areaBasedSyncList2` 광주 변경분을 요청당
+  최대 한 번 조회한다. `NA`, `FD`, `VE`, `HS`의 필수값을 갖춘 신규 장소만
+  `tour_content_id` 유일 제약과 충돌 무시 방식으로 저장하고 활성 후보를 다시 조회한다.
+  외부 실패나 유효한 신규 장소가 없으면 저장된 후보와 기존 재배분 규칙으로 계속한다
+  ([ADR-0014](../adr/0014-tourapi-shortage-refill.md)).
+- TourAPI와 Groq 조회는 DB 트랜잭션 밖에서 수행한다. TourAPI 응답 뒤 사용자 행 잠금을
+  획득해 신규 장소 저장·후보 준비를 첫 번째 짧은 트랜잭션에서 처리하고, Groq 호출 뒤
+  잠금과 현재 활성 장소를 다시 확인해 추천 세트 저장을 두 번째 짧은 트랜잭션에서 처리한다
+  ([ADR-0015](../adr/0015-groq-recommendation-ranking.md)).
+- 같은 일정으로 재진입하면 저장된 결과를 그대로 반환하고, 저장된 ID의 장소가 삭제됐거나
+  비활성이면 응답에서만 제외한다.
+- 새 추천 저장 또는 기간 변경 재생성의 트랜잭션이 끝난 뒤, 실제 응답 장소 ID만
+  상세정보 보강 작업에 넘긴다. `detailCommon2` 설명과 `detailIntro2` 유형별 운영시간
+  조회·조건부 갱신은 내부 비동기 최선 노력 경계이며 현재 응답을 기다리게 하거나
+  추천 세트를 변경하지 않는다. 같은 일정 재진입은 작업을 시작하지 않고, 자동 재시도와
+  별도 작업 상태 저장은 하지 않는다
+  ([ADR-0016](../adr/0016-asynchronous-tourapi-place-detail-enrichment.md)).
 
 상태 소유권과 회차 경계는
 [ADR-0008](../adr/0008-recommendation-batches.md)을 따른다.
@@ -279,7 +317,7 @@ Exploration 완료 → COMPLETED
 |---|---|
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
-| 한국관광공사 OpenAPI | 초기 광주 장소 수집 입력. 런타임 정본이 아님 |
+| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충과 추천 응답 장소 상세정보 사후 보강 입력. 런타임 정본이 아님(ADR-0014, ADR-0016) |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
@@ -324,6 +362,16 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
   `places.latitude`, `places.longitude`를 `numeric(9,6)`으로 좁혀 소수점 이하 6자리
   정밀도를 보존한다(ADR-0012). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
   않는다.
+- `V6__allow_missing_place_details.sql`이 외부 데이터에 운영시간이나 설명이 없는 장소를
+  사실과 다르게 채우지 않도록 `places.business_hours`, `places.description`의
+  `NOT NULL` 제약을 제거한다.
+- `V7__tourapi_place_identifiers.sql`이 nullable TourAPI 콘텐츠 ID와 콘텐츠 유형 ID 및
+  콘텐츠 ID 유일 제약을 추가한다.
+- `V8__gwangju_place_catalog.sql`이 광주 장소 171곳을 적재한다. 성향별 수는
+  `THINKER` 19곳, `FOODIE` 84곳, `ARTIST` 36곳, `REMEMBERER` 32곳이며 기존
+  콘텐츠 ID와 충돌하면 기존 장소를 유지한다.
+- `V9__expand_place_business_hours.sql`이 TourAPI의 255자를 넘는 운영시간도 자르지 않고
+  저장하도록 `places.business_hours`를 `text`로 넓힌다.
 - 기존 테이블 삭제나 공유 Docker volume 초기화는 별도 구현 계획과 실행 직전 승인을
   거친다.
 
