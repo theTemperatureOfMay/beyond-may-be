@@ -47,6 +47,14 @@ dynamodb_table = "beyond-may-be-tfstate-lock"
 
 ## 초기화와 적용
 
+Git에서 제외된 `terraform/terraform.tfvars`에 운영 TourAPI Decoding 인증키와 Groq API 키를
+준비한다. 실제 키는 문서, 명령 기록이나 추적 파일에 남기지 않는다.
+
+```hcl
+tour_api_service_key = "<TOUR_API_SERVICE_KEY>"
+groq_api_key         = "<GROQ_API_KEY>"
+```
+
 ```bash
 cd terraform
 terraform init -backend-config=backend.hcl

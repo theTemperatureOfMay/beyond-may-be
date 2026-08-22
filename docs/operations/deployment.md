@@ -9,7 +9,8 @@
 
 - 인터넷 요청은 AWS ALB를 거쳐 ECS Fargate의 Spring Boot 컨테이너로 전달된다.
 - 애플리케이션 데이터는 RDS PostgreSQL에 저장한다.
-- ECS task는 SSM Parameter Store에서 DB 연결 설정을 주입받는다.
+- ECS task는 SSM Parameter Store에서 DB 연결 설정, TourAPI 인증키와 Groq API 키를
+  주입받는다.
 - GitHub Actions는 장기 AWS 키 대신 OIDC로 배포 역할을 맡는다.
 
 실제 계정 ID, role ARN, DB 값과 기타 비밀값은 이 문서나 명령 기록에 남기지 않는다.

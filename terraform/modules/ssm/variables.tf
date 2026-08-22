@@ -29,3 +29,15 @@ variable "db_name" {
   description = "데이터베이스 이름"
   type        = string
 }
+
+variable "tour_api_service_key" {
+  description = "한국관광공사 TourAPI 운영 인증키"
+  type        = string
+  sensitive   = true
+}
+
+variable "groq_api_key" {
+  description = "Groq 운영 API 키"
+  type        = string
+  sensitive   = true
+}

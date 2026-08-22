@@ -82,3 +82,15 @@ variable "db_master_username" {
   type    = string
   default = "beyond_may_be_admin"
 }
+
+variable "tour_api_service_key" {
+  description = "한국관광공사 TourAPI 운영 인증키"
+  type        = string
+  sensitive   = true
+}
+
+variable "groq_api_key" {
+  description = "Groq 운영 API 키"
+  type        = string
+  sensitive   = true
+}

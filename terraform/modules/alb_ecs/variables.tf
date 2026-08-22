@@ -76,3 +76,11 @@ variable "db_username_parameter_arn" {
 variable "db_password_parameter_arn" {
   type = string
 }
+
+variable "tour_api_service_key_parameter_arn" {
+  type = string
+}
+
+variable "groq_api_key_parameter_arn" {
+  type = string
+}

@@ -15,3 +15,15 @@ resource "aws_ssm_parameter" "db_url" {
   type  = "SecureString"
   value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}"
 }
+
+resource "aws_ssm_parameter" "tour_api_service_key" {
+  name  = "${var.name}/tour-api/service-key"
+  type  = "SecureString"
+  value = var.tour_api_service_key
+}
+
+resource "aws_ssm_parameter" "groq_api_key" {
+  name  = "${var.name}/groq/api-key"
+  type  = "SecureString"
+  value = var.groq_api_key
+}
