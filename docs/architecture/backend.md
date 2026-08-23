@@ -5,8 +5,10 @@
 현재 구현 상태는 [백엔드 MVP 상태](../product/mvp.md), 아직 확정되지 않은 조건은
 [제품 논의 필요](../product/open-questions.md)를 따른다.
 
-현재 코드가 이 문서와 다르면 이 문서를 목표 구조로 사용하되, 구현 완료 여부를
-추정하지 않고 백엔드 MVP 상태와 실제 코드를 함께 확인한다.
+아래 `현재 코드의 영속 구조`는 최신 Flyway migration과 JPA Entity를 기준으로 한
+구현 스냅샷이다. `테이블별 목표 기준`과 상태 전환은 목표 규칙이므로 현재 코드와
+구분해서 읽는다. 둘이 다르면 구현 완료 여부를 추정하지 않고 백엔드 MVP 상태와
+실제 코드를 함께 확인한다.
 
 ## 설계 원칙
 
@@ -57,28 +59,69 @@
 Socket.IO 핸드셰이크는 같은 토큰을 쿼리 파라미터(`?token=...`)로 전달한다
 (ADR-0012). 토큰 재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
 
-## 목표 논리 관계
+## 현재 코드의 영속 구조
+
+현재 최신 스키마 버전은 `V5__place_coordinate_precision.sql`이며 업무 테이블은 12개다.
+V1이 11개를 만들고 V4가 `auth_tokens`를 추가한다. Flyway가 실행 중 생성하는
+`flyway_schema_history`는 업무 ERD에서 제외한다.
+
+아래 선은 Entity의 ID 필드와 테이블 열이 나타내는 **논리 참조**다. 현재 Entity는
+JPA 연관관계 대신 `Long` ID를 저장하고, V1~V5 migration에는 `FOREIGN KEY`와
+`REFERENCES`가 없다. 따라서 선은 DB 외래키나 cascade를 뜻하지 않으며, 참조 대상의
+존재와 부모 삭제 안전성은 현재 스키마만으로 보장되지 않는다.
+
+카디널리티는 참조 대상이 존재한다고 가정하고 현재 nullable·unique 제약이 허용하는
+범위를 표시한다. 질문의 선택지 네 개, Course의 최소 한 개 CoursePlace와 같은 목표
+최소 개수는 아직 DB 제약으로 강제되지 않으므로 `0..N`으로 표시한다.
 
 ```mermaid
 erDiagram
     USERS ||--o{ AUTH_TOKENS : authenticates
     USERS ||--o| RECOMMENDATION_SETS : keeps_current
-    QUESTIONS ||--|{ QUESTION_OPTIONS : contains
+    QUESTIONS ||--o{ QUESTION_OPTIONS : contains
 
     USERS ||--o{ COURSES : creates
-    COURSES ||--|{ COURSE_PLACES : contains
+    COURSES ||--o{ COURSE_PLACES : contains
     PLACES ||--o{ COURSE_PLACES : referenced_by
     COURSES ||--o| EXPLORATIONS : activates
-    EXPLORATIONS ||--|{ EXPLORATION_PARTICIPANTS : has
+    EXPLORATIONS ||--o{ EXPLORATION_PARTICIPANTS : has
     USERS ||--o{ EXPLORATION_PARTICIPANTS : joins
-    EXPLORATION_PARTICIPANTS o|--o| EXPLORATIONS : starts
+    EXPLORATION_PARTICIPANTS o|--o{ EXPLORATIONS : starts
     PLACES ||--o{ VISITS : visited_at
     COURSE_PLACES o|--o{ VISITS : course_context
     EXPLORATION_PARTICIPANTS ||--o{ VISITS : records
     VISITS ||--o{ VISIT_PHOTOS : has
 ```
 
-## 테이블별 기준
+### 현재 논리 참조 열과 물리 제약
+
+| 테이블 | 논리 참조 열 | 현재 물리 제약 |
+|---|---|---|
+| `auth_tokens` | `user_id` | `NOT NULL`, 일반 인덱스(외래 키 없음) |
+| `question_options` | `question_id` | `NOT NULL`, `(question_id, display_order)` 유일 |
+| `recommendation_sets` | `user_id` | `NOT NULL`, `user_id` 유일 |
+| `courses` | `owner_user_id` | `NOT NULL` |
+| `course_places` | `course_id`, `place_id` | 모두 `NOT NULL`, 코스·장소와 코스·일자·순서 조합 유일 |
+| `explorations` | `course_id`, `started_by_participant_id` | `course_id`는 `NOT NULL`·유일, 시작 참여자는 nullable |
+| `exploration_participants` | `exploration_id`, `user_id` | 모두 `NOT NULL`, 탐험·사용자 조합 유일 |
+| `visits` | `participant_id`, `place_id`, `course_place_id` | 참여자·장소는 `NOT NULL`·조합 유일, 코스 장소는 nullable |
+| `visit_photos` | `visit_id` | `NOT NULL`, 방문·표시 순서 조합 유일 |
+
+`recommendation_sets`의 추천·좋아요·싫어요 Place ID는 관계 열이 아니라 JSONB 배열로
+저장한다. 배열 원소의 `places` 존재 여부도 DB 외래키가 아닌 서비스 검증 대상이다.
+
+### 현재 자동 검증 범위
+
+- 애플리케이션 컨텍스트 테스트는 PostgreSQL에 V1~V5 migration을 적용한 뒤
+  `ddl-auto=validate`로 Entity의 테이블·열 매핑을 검증한다.
+- `ErdEntityMappingTest`는 enum 필드가 `EnumType.STRING`을 사용하는지만 검사한다.
+  ERD의 테이블 집합, 논리 참조, nullable·unique와 외래키 유무까지 비교하는 자동
+  검사는 아직 없다.
+
+## 테이블별 목표 기준
+
+아래 항목은 제품과 아키텍처가 요구하는 목표 규칙이다. 현재 스키마가 강제하는 범위는
+위 `현재 논리 참조 열과 물리 제약`을 기준으로 판단한다.
 
 ### `users`
 
@@ -114,8 +157,8 @@ erDiagram
 - 외부 제공자와 콘텐츠 ID, 추천 점수, 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
 - 방문 인증 반경 100m를 검증하려면 위도·경도에 소수점 이하 최소 6자리 정밀도가
-  필요하다. 현재 `numeric(38,2)` 스키마는 후속 마이그레이션 전까지 이 기준을
-  충족하지 못한다.
+  필요하다. V5 migration이 두 열을 `numeric(9,6)`으로 변경해 현재 저장 정밀도는
+  이 기준을 충족한다. 다만 V5 적용 전에 이미 저장된 값의 원래 정밀도는 복원하지 않는다.
 
 ### `recommendation_sets`
 

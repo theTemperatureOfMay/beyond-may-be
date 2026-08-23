@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: "Diagnosis loop for hard bugs and performance regressions. Use when the user says diagnose or debug, or reports something broken, throwing, failing, or slow."
+description: "Diagnose cause-unclear, hard-to-reproduce, flaky, or slow failures and stop after a .dev/logs evidence report without implementing the fix."
 ---
 
 # Claude Code 연결 파일

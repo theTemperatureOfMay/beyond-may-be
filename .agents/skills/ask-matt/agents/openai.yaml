@@ -1,5 +1,6 @@
 interface:
   display_name: "Ask Matt"
-  short_description: "적합한 스킬 또는 작업 흐름 찾기"
+  short_description: "요청에 맞는 프로젝트 작업 경로와 스킬을 안내"
+  default_prompt: "Use $ask-matt to recommend the correct repository work route and stop at its next approval gate."
 policy:
   allow_implicit_invocation: false

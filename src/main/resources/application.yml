@@ -1,8 +1,6 @@
 spring:
   application:
     name: beyond-may-be
-  config:
-    import: optional:file:.env[.properties]
   profiles:
     default: local
   datasource:

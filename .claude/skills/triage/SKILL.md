@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Move issues and external PRs through a state machine of triage roles — categorise, verify, grill if needed, and write agent-ready briefs."
+description: "Assess a local Markdown ticket, its blockers, and the current frontier; apply only approved status and comment changes."
 ---
 
 # Claude Code 연결 파일

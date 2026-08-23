@@ -13,6 +13,7 @@
 | 현재 백엔드가 책임지는 MVP 기능과 구현 상태는 무엇인가? | [백엔드 MVP 상태](product/mvp.md) |
 | 사용자가 어떤 순서와 권한으로 서비스를 이용하는가? | [MVP 사용자 흐름](product/user-flow.md) |
 | 백엔드 도메인의 책임과 관계는 무엇인가? | [백엔드 아키텍처](architecture/backend.md) |
+| 현재 DB 업무 테이블과 논리 참조·물리 제약은 무엇인가? | [현재 코드의 영속 구조](architecture/backend.md#현재-코드의-영속-구조) |
 | 현재 API 요청·응답 계약은 무엇인가? | 실행 중인 애플리케이션이 생성하는 OpenAPI. 접근 방법은 [README의 API 문서](../README.md#api-문서)를 따른다. |
 | Controller·Service·Converter·DTO를 어떻게 작성하는가? | [API 계층 코딩 컨벤션](api-layer-convention.md) |
 | 커밋 메시지를 어떻게 작성하는가? | [커밋 컨벤션](development/commit-convention.md) |
@@ -24,7 +25,7 @@
 | AI 에이전트는 어떤 규칙과 검증 절차를 따르는가? | [AI 작업 규칙](../AGENTS.md) |
 | 보호 영역과 외부 작업의 안전 기준은 무엇인가? | [AI 에이전트 안전 정책](harness/safety-policy.md) |
 | 하네스의 상세 문서와 검증 방법은 어디에 있는가? | [하네스 문서 안내](harness/README.md) |
-| 설치된 AI 스킬의 역할과 호출 시점은 어디에서 확인하는가? | [프로젝트 AI 스킬 사용 안내](harness/skill-catalog.md) |
+| 여러 세션 작업의 map·decision·spec·ticket은 어디에 기록하는가? | [Local Markdown 작업 추적 규칙](agents/issue-tracker.md) |
 
 ## 정본 관리 원칙
 
@@ -36,9 +37,8 @@
 - 현재 적용할 기준이 없는 항목만 해당 문서의 `논의 필요` 영역에 기록한다.
 - `docs/product/feature-spec.md`는 기능 영역별 상세 정본을 연결하는 대표 지도이고,
   `docs/product/features/`의 각 문서가 해당 영역의 상세 동작을 관리한다.
-- `docs/product/mvp.md`는 백엔드 책임과 구현 상태를, GitHub Issues와 Project는
-  개발 작업의 진행 상태를 관리한다.
+- `docs/product/mvp.md`는 백엔드 책임과 구현 상태를, `.dev/initiatives/`는 여러 세션 작업의 개인
+  생명주기 상태를 관리한다. GitHub Issue와 PR은 사용자가 명시적으로 요청한 외부 협업
+  기록에 사용한다.
 - `.dev/`의 개인 설계·계획은 정본이 아니며, 지속해서 필요한 결론만 정본 문서로
   옮긴다.
-
-| 설치 스킬의 중복과 재구성 방향 | [스킬 재구성 분석 기록](harness/skill-reorganization-analysis.md) |

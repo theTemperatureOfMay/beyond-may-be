@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: "Break a plan, spec, or the current conversation into tracer-bullet tickets, each declaring its blocking edges, and publish them to the configured tracker."
+description: "Break an approved local spec into Markdown implementation tickets with textual blockers."
 ---
 
 # Claude Code 연결 파일
