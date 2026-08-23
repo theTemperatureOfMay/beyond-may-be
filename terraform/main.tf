@@ -77,14 +77,15 @@ module "rds" {
 }
 
 module "ssm" {
-  source       = "./modules/ssm"
-  name         = "/${var.project_name}/prod"
-  db_username  = var.db_master_username
-  db_password  = random_password.db.result
-  db_host      = module.rds.address
-  db_port      = module.rds.port
-  db_name      = module.rds.db_name
-  groq_api_key = var.groq_api_key
+  source          = "./modules/ssm"
+  name            = "/${var.project_name}/prod"
+  db_username     = var.db_master_username
+  db_password     = random_password.db.result
+  db_host         = module.rds.address
+  db_port         = module.rds.port
+  db_name         = module.rds.db_name
+  groq_api_key    = var.groq_api_key
+  tourism_api_key = var.tourism_api_key
 }
 
 module "alb_ecs" {
@@ -104,10 +105,13 @@ module "alb_ecs" {
   aws_region         = var.aws_region
   log_retention_days = var.log_retention_days
 
-  db_url_parameter_arn       = module.ssm.db_url_parameter_arn
-  db_username_parameter_arn  = module.ssm.db_username_parameter_arn
-  db_password_parameter_arn  = module.ssm.db_password_parameter_arn
-  groq_api_key_parameter_arn = module.ssm.groq_api_key_parameter_arn
+  db_url_parameter_arn            = module.ssm.db_url_parameter_arn
+  db_username_parameter_arn       = module.ssm.db_username_parameter_arn
+  db_password_parameter_arn       = module.ssm.db_password_parameter_arn
+  groq_api_key_parameter_arn      = module.ssm.groq_api_key_parameter_arn
+  tourism_api_key_parameter_arn   = module.ssm.tourism_api_key_parameter_arn
+  tourism_api_base_url            = var.tourism_api_base_url
+  tourism_popularity_api_base_url = var.tourism_popularity_api_base_url
 }
 
 module "iam" {

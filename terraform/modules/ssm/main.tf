@@ -21,3 +21,9 @@ resource "aws_ssm_parameter" "groq_api_key" {
   type  = "SecureString"
   value = var.groq_api_key
 }
+
+resource "aws_ssm_parameter" "tourism_api_key" {
+  name  = "${var.name}/tourism/api-key"
+  type  = "SecureString"
+  value = var.tourism_api_key
+}

@@ -35,3 +35,9 @@ variable "groq_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "tourism_api_key" {
+  description = "한국관광공사 TourAPI 키 (아직 코드에서 사용하지 않음 — 인프라 선반영)"
+  type        = string
+  sensitive   = true
+}
