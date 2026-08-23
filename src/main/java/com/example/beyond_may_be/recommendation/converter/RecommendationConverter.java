@@ -28,6 +28,38 @@ public final class RecommendationConverter {
         batchNumber, places.stream().map(RecommendationConverter::toPlaceResponse).toList());
   }
 
+  public static RecommendationDtos.CurrentRecommendationResponse toCurrentRecommendationResponse(
+      RecommendationSet recommendationSet,
+      int batchSize,
+      int minimumSelectionCount,
+      List<RecommendationDtos.BatchStateResponse> batches) {
+    int selectedPlaceCount = recommendationSet.getLikedPlaceIds().size();
+    return new RecommendationDtos.CurrentRecommendationResponse(
+        recommendationSet.getId(),
+        recommendationSet.getTravelSchedule(),
+        recommendationSet.getStartDate(),
+        recommendationSet.getEndDate(),
+        batchSize,
+        minimumSelectionCount,
+        selectedPlaceCount,
+        selectedPlaceCount >= minimumSelectionCount,
+        batches);
+  }
+
+  public static RecommendationDtos.BatchStateResponse toBatchStateResponse(
+      int batchNumber,
+      List<Place> places,
+      List<Long> likedPlaceIds,
+      List<Long> dislikedPlaceIds,
+      boolean completed) {
+    return new RecommendationDtos.BatchStateResponse(
+        batchNumber,
+        places.stream().map(RecommendationConverter::toPlaceResponse).toList(),
+        likedPlaceIds,
+        dislikedPlaceIds,
+        completed);
+  }
+
   public static RecommendationDtos.ReactionResponse toReactionResponse(
       Long recommendationId,
       int batchNumber,

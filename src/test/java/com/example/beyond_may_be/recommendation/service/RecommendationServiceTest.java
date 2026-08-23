@@ -104,6 +104,107 @@ class RecommendationServiceTest {
     assertThat(response.nextBatch()).isNull();
   }
 
+  @Test
+  void getsCurrentRecommendationWithPersistedBatchProgress() {
+    List<Long> recommendedPlaceIds =
+        java.util.stream.LongStream.rangeClosed(1, 25).boxed().toList();
+    List<Long> dislikedPlaceIds =
+        java.util.stream.LongStream.rangeClosed(2, 20)
+            .filter(placeId -> placeId != 3)
+            .boxed()
+            .collect(Collectors.toCollection(ArrayList::new));
+    dislikedPlaceIds.add(22L);
+    RecommendationSet stored =
+        recommendationSet(
+            12L,
+            TravelSchedule.DAY_TRIP,
+            recommendedPlaceIds,
+            List.of(1L, 3L, 21L),
+            dislikedPlaceIds);
+    List<Place> places = places(7).subList(0, 25);
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllById(recommendedPlaceIds)).willReturn(places);
+
+    RecommendationDtos.CurrentRecommendationResponse response =
+        recommendationService.getCurrent(1L);
+
+    assertThat(response.recommendationId()).isEqualTo(12L);
+    assertThat(response.travelSchedule()).isEqualTo(TravelSchedule.DAY_TRIP);
+    assertThat(response.batchSize()).isEqualTo(20);
+    assertThat(response.minimumSelectionCount()).isEqualTo(3);
+    assertThat(response.selectedPlaceCount()).isEqualTo(3);
+    assertThat(response.selectionReady()).isTrue();
+    assertThat(response.batches()).hasSize(2);
+    assertThat(response.batches().getFirst().places()).hasSize(20);
+    assertThat(response.batches().getFirst().likedPlaceIds()).containsExactly(1L, 3L);
+    assertThat(response.batches().getFirst().dislikedPlaceIds()).hasSize(18);
+    assertThat(response.batches().getFirst().completed()).isTrue();
+    assertThat(response.batches().get(1).places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .containsExactly(21L, 22L, 23L, 24L, 25L);
+    assertThat(response.batches().get(1).likedPlaceIds()).containsExactly(21L);
+    assertThat(response.batches().get(1).dislikedPlaceIds()).containsExactly(22L);
+    assertThat(response.batches().get(1).completed()).isFalse();
+  }
+
+  @Test
+  void omitsUnavailablePlacesFromCurrentRecommendationProgress() {
+    RecommendationSet stored =
+        recommendationSet(
+            12L, TravelSchedule.DAY_TRIP, List.of(1L, 2L, 3L), List.of(1L, 2L), List.of(3L));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllById(List.of(1L, 2L, 3L)))
+        .willReturn(
+            List.of(
+                place(1L, TravelPreferenceType.THINKER, true),
+                place(2L, TravelPreferenceType.FOODIE, false)));
+
+    RecommendationDtos.CurrentRecommendationResponse response =
+        recommendationService.getCurrent(1L);
+
+    assertThat(response.selectedPlaceCount()).isEqualTo(2);
+    assertThat(response.batches())
+        .singleElement()
+        .satisfies(
+            batch -> {
+              assertThat(batch.places())
+                  .extracting(RecommendationDtos.PlaceResponse::placeId)
+                  .containsExactly(1L);
+              assertThat(batch.likedPlaceIds()).containsExactly(1L);
+              assertThat(batch.dislikedPlaceIds()).isEmpty();
+              assertThat(batch.completed()).isTrue();
+            });
+  }
+
+  @Test
+  void returnsTerminalEmptyBatchForCurrentRecommendationWithoutPlaces() {
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, List.of(), List.of(), List.of());
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+
+    RecommendationDtos.CurrentRecommendationResponse response =
+        recommendationService.getCurrent(1L);
+
+    assertThat(response.batches())
+        .singleElement()
+        .satisfies(
+            batch -> {
+              assertThat(batch.batchNumber()).isEqualTo(1);
+              assertThat(batch.places()).isEmpty();
+              assertThat(batch.completed()).isTrue();
+            });
+  }
+
+  @Test
+  void reportsMissingCurrentRecommendationForLookup() {
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> recommendationService.getCurrent(1L))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_NOT_FOUND);
+  }
+
   @ParameterizedTest
   @MethodSource("invalidReactionRequests")
   void rejectsReactionsThatDoNotPartitionTheBatch(RecommendationDtos.ReactionRequest request) {
@@ -286,7 +387,7 @@ class RecommendationServiceTest {
   }
 
   @Test
-  void fillsTheFinalNextBatchWithPreviouslyDislikedPlaces() {
+  void doesNotReuseDislikedPlacesToFillAPartialNextBatch() {
     User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
     List<Place> activePlaces =
         places(
@@ -317,13 +418,13 @@ class RecommendationServiceTest {
         response.nextBatch().places().stream()
             .map(RecommendationDtos.PlaceResponse::placeId)
             .toList();
-    assertThat(nextPlaceIds).hasSize(20).containsAll(newPlaceIds).doesNotContain(1L);
-    assertThat(nextPlaceIds.stream().filter(dislikedPlaceIds::contains).toList()).hasSize(10);
-    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+    assertThat(nextPlaceIds).containsExactlyInAnyOrderElementsOf(newPlaceIds);
+    assertThat(nextPlaceIds).doesNotContainAnyElementsOf(dislikedPlaceIds);
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(30).doesNotHaveDuplicates();
   }
 
   @Test
-  void reusesOnlyDislikedPlacesOnceWhenNoNewPlacesRemain() {
+  void doesNotReuseDislikedPlacesWhenNoNewPlacesRemain() {
     User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
     List<Place> activePlaces = places(5);
     List<Long> firstBatch = activePlaces.stream().map(Place::getId).toList();
@@ -332,26 +433,20 @@ class RecommendationServiceTest {
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
     given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
     given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
-    given(placeRepository.findAllById(any())).willReturn(activePlaces);
     given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
     RecommendationDtos.ReactionRequest request =
         new RecommendationDtos.ReactionRequest(List.of(), firstBatch);
 
-    RecommendationDtos.ReactionResponse firstResponse =
-        recommendationService.replaceBatchReactions(1L, 1, request);
-    RecommendationDtos.ReactionResponse retriedResponse =
+    RecommendationDtos.ReactionResponse response =
         recommendationService.replaceBatchReactions(1L, 1, request);
 
-    assertThat(firstResponse.nextBatch().places()).hasSize(20);
-    assertThat(firstResponse.nextBatch().places())
-        .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactlyInAnyOrderElementsOf(firstBatch);
-    assertThat(retriedResponse.nextBatch().batchNumber()).isEqualTo(2);
-    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+    assertThat(stored.getRecommendedPlaceIds()).containsExactlyElementsOf(firstBatch);
   }
 
   @Test
-  void doesNotAppendAPartialNextBatchWhenAllFallbacksCannotReachTwenty() {
+  void appendsRemainingUnseenPlacesAsFinalPartialBatch() {
     User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
     List<Place> activePlaces =
         places(
@@ -380,43 +475,37 @@ class RecommendationServiceTest {
                 List.of(1L, 2L), firstBatch.subList(2, firstBatch.size())));
 
     assertThat(response.selectionReady()).isFalse();
-    assertThat(response.hasNextBatch()).isFalse();
-    assertThat(response.nextBatch()).isNull();
-    assertThat(stored.getRecommendedPlaceIds()).hasSize(20);
+    assertThat(response.hasNextBatch()).isTrue();
+    assertThat(response.nextBatch().batchNumber()).isEqualTo(2);
+    assertThat(response.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .containsExactly(21L);
+    assertThat(stored.getRecommendedPlaceIds())
+        .containsExactlyElementsOf(java.util.stream.LongStream.rangeClosed(1, 21).boxed().toList());
   }
 
   @Test
-  void preservesAPartialFirstBatchWhenAppendingAFullNextBatch() {
+  void keepsAnExistingPartialBatchTerminalWhenMorePlacesBecomeAvailable() {
     User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
-    List<Place> activePlaces = places(7);
     List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 8).boxed().toList();
-    List<Long> secondBatch = java.util.stream.LongStream.rangeClosed(9, 28).boxed().toList();
     RecommendationSet stored =
         recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
     given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
-    given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
-    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
 
-    RecommendationDtos.ReactionResponse firstResponse =
+    RecommendationDtos.ReactionResponse response =
         recommendationService.replaceBatchReactions(
             1L,
             1,
             new RecommendationDtos.ReactionRequest(
                 List.of(1L), firstBatch.subList(1, firstBatch.size())));
-    RecommendationDtos.ReactionResponse secondResponse =
-        recommendationService.replaceBatchReactions(
-            1L,
-            2,
-            new RecommendationDtos.ReactionRequest(
-                List.of(9L), secondBatch.subList(1, secondBatch.size())));
 
-    assertThat(firstResponse.nextBatch().batchNumber()).isEqualTo(2);
-    assertThat(firstResponse.nextBatch().places())
-        .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactlyInAnyOrderElementsOf(secondBatch);
-    assertThat(secondResponse.batchNumber()).isEqualTo(2);
-    assertThat(stored.getLikedPlaceIds()).containsExactlyInAnyOrder(1L, 9L);
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+    assertThat(stored.getRecommendedPlaceIds()).containsExactlyElementsOf(firstBatch);
+    verify(tourApiSyncClient, never()).fetchChangedPlaces();
+    verify(groqRecommendationClient, never()).rank(any());
   }
 
   @Test

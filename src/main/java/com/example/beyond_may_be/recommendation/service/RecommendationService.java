@@ -37,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -133,6 +134,44 @@ public class RecommendationService {
             status -> appendNextBatch(userId, finalPreparation, aiPlaceIds)));
   }
 
+  @Transactional(readOnly = true)
+  public RecommendationDtos.CurrentRecommendationResponse getCurrent(Long userId) {
+    RecommendationSet recommendationSet =
+        recommendationSetRepository
+            .findByUserId(userId)
+            .orElseThrow(() -> new RecommendationHandler(ErrorStatus.RECOMMENDATION_NOT_FOUND));
+    List<Long> recommendedPlaceIds = recommendationSet.getRecommendedPlaceIds();
+    Map<Long, Place> activePlacesById =
+        placeRepository.findAllById(recommendedPlaceIds).stream()
+            .filter(Place::isActive)
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+    Set<Long> likedPlaceIds = new HashSet<>(recommendationSet.getLikedPlaceIds());
+    Set<Long> dislikedPlaceIds = new HashSet<>(recommendationSet.getDislikedPlaceIds());
+    Set<Long> reactedPlaceIds = new HashSet<>(likedPlaceIds);
+    reactedPlaceIds.addAll(dislikedPlaceIds);
+    List<RecommendationDtos.BatchStateResponse> batches = new ArrayList<>();
+
+    for (int batchNumber = 1; batchNumber <= batchCount(recommendationSet); batchNumber++) {
+      List<Place> places =
+          batchPlaceIds(recommendationSet, batchNumber).stream()
+              .map(activePlacesById::get)
+              .filter(Objects::nonNull)
+              .toList();
+      List<Long> visiblePlaceIds = places.stream().map(Place::getId).toList();
+      batches.add(
+          RecommendationConverter.toBatchStateResponse(
+              batchNumber,
+              places,
+              visiblePlaceIds.stream().filter(likedPlaceIds::contains).toList(),
+              visiblePlaceIds.stream().filter(dislikedPlaceIds::contains).toList(),
+              reactedPlaceIds.containsAll(visiblePlaceIds)));
+    }
+
+    int minimumSelectionCount = minimumSelectionCount(recommendationSet.getTravelSchedule());
+    return RecommendationConverter.toCurrentRecommendationResponse(
+        recommendationSet, RECOMMENDATION_COUNT, minimumSelectionCount, batches);
+  }
+
   private ReactionPreparation prepareBatchReactions(
       Long userId, int batchNumber, RecommendationDtos.ReactionRequest request) {
     User user =
@@ -189,6 +228,15 @@ public class RecommendationService {
           null);
     }
 
+    if (hasTerminalPartialBatch(recommendationSet)) {
+      recommendationSet.replaceReactions(
+          batchPlaceIds, request.likedPlaceIds(), request.dislikedPlaceIds());
+      return new ReactionPreparation(
+          reactionResponse(recommendationSet, batchNumber, minimumSelectionCount, null),
+          null,
+          null);
+    }
+
     RecommendationDtos.CreateRequest schedule = scheduleOf(recommendationSet);
     SelectionPlan plan =
         selectionPlan(
@@ -231,24 +279,8 @@ public class RecommendationService {
     }
     syncNewPlaces(syncItems);
     ReactionSnapshot snapshot = preparation.snapshot();
-    List<Long> likedPlaceIds =
-        replacedValues(
-            recommendationSet.getLikedPlaceIds(),
-            snapshot.batchPlaceIds(),
-            snapshot.likedPlaceIds());
-    List<Long> dislikedPlaceIds =
-        replacedValues(
-            recommendationSet.getDislikedPlaceIds(),
-            snapshot.batchPlaceIds(),
-            snapshot.dislikedPlaceIds());
     SelectionPlan plan =
-        nextBatchPlan(
-            userId,
-            user,
-            recommendationSet,
-            placeRepository.findAllByActiveTrue(),
-            likedPlaceIds,
-            dislikedPlaceIds);
+        nextBatchPlan(userId, user, recommendationSet, placeRepository.findAllByActiveTrue());
     return new ReactionPreparation(null, plan, preparation.snapshot());
   }
 
@@ -269,19 +301,7 @@ public class RecommendationService {
     }
 
     List<Place> activePlaces = placeRepository.findAllByActiveTrue();
-    List<Long> likedPlaceIds =
-        replacedValues(
-            recommendationSet.getLikedPlaceIds(),
-            snapshot.batchPlaceIds(),
-            snapshot.likedPlaceIds());
-    List<Long> dislikedPlaceIds =
-        replacedValues(
-            recommendationSet.getDislikedPlaceIds(),
-            snapshot.batchPlaceIds(),
-            snapshot.dislikedPlaceIds());
-    SelectionPlan currentPlan =
-        nextBatchPlan(
-            userId, user, recommendationSet, activePlaces, likedPlaceIds, dislikedPlaceIds);
+    SelectionPlan currentPlan = nextBatchPlan(userId, user, recommendationSet, activePlaces);
     Map<Long, Place> activePlacesById =
         activePlaces.stream()
             .filter(Place::isActive)
@@ -331,43 +351,13 @@ public class RecommendationService {
   }
 
   private SelectionPlan nextBatchPlan(
-      Long userId,
-      User user,
-      RecommendationSet recommendationSet,
-      List<Place> activePlaces,
-      List<Long> likedPlaceIds,
-      List<Long> dislikedPlaceIds) {
-    RecommendationDtos.CreateRequest schedule = scheduleOf(recommendationSet);
-    SelectionPlan unseenPlan =
-        selectionPlan(
-            userId,
-            user,
-            schedule,
-            activePlaces,
-            Set.copyOf(recommendationSet.getRecommendedPlaceIds()));
-    if (unseenPlan.target() == RECOMMENDATION_COUNT) {
-      return unseenPlan;
-    }
-
-    Map<Long, Long> exposureCounts =
-        recommendationSet.getRecommendedPlaceIds().stream()
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-    Set<Long> likedPlaceIdSet = new HashSet<>(likedPlaceIds);
-    Set<Long> dislikedPlaceIdSet = new HashSet<>(dislikedPlaceIds);
-    List<Place> candidates = new ArrayList<>(unseenPlan.fallbackPlaces());
-    // ponytail: 싫어요 재추천은 ID당 한 번으로 제한한다. 반복이 필요해지면 회차별 반응 저장으로 전환한다.
-    activePlaces.stream()
-        .filter(Place::isActive)
-        .filter(place -> dislikedPlaceIdSet.contains(place.getId()))
-        .filter(place -> !likedPlaceIdSet.contains(place.getId()))
-        .filter(place -> exposureCounts.getOrDefault(place.getId(), 0L) == 1L)
-        .sorted(Comparator.comparing(Place::getId))
-        .limit(RECOMMENDATION_COUNT - candidates.size())
-        .forEach(candidates::add);
-    if (candidates.size() < RECOMMENDATION_COUNT) {
-      return selectionPlan(userId, user, schedule, List.of());
-    }
-    return selectionPlan(userId, user, schedule, candidates);
+      Long userId, User user, RecommendationSet recommendationSet, List<Place> activePlaces) {
+    return selectionPlan(
+        userId,
+        user,
+        scheduleOf(recommendationSet),
+        activePlaces,
+        Set.copyOf(recommendationSet.getRecommendedPlaceIds()));
   }
 
   private int firstPendingBatchAfter(
@@ -377,24 +367,16 @@ public class RecommendationService {
       List<Long> dislikedPlaceIds) {
     Set<Long> reactedPlaceIds = new HashSet<>(likedPlaceIds);
     reactedPlaceIds.addAll(dislikedPlaceIds);
-    Set<Long> previouslyExposedPlaceIds = new HashSet<>();
-    for (int batchNumber = 1; batchNumber <= batchCount(recommendationSet); batchNumber++) {
-      List<Long> storedPlaceIds = batchPlaceIds(recommendationSet, batchNumber);
-      if (batchNumber <= requestedBatchNumber) {
-        previouslyExposedPlaceIds.addAll(storedPlaceIds);
-        continue;
-      }
-      boolean fullyRecycled = previouslyExposedPlaceIds.containsAll(storedPlaceIds);
-      if (!fullyRecycled && reactedPlaceIds.containsAll(storedPlaceIds)) {
-        previouslyExposedPlaceIds.addAll(storedPlaceIds);
-        continue;
-      }
-      List<Long> visiblePlaceIds = activePlaces(storedPlaceIds).stream().map(Place::getId).toList();
-      if (!visiblePlaceIds.isEmpty()
-          && (fullyRecycled || !reactedPlaceIds.containsAll(visiblePlaceIds))) {
+    for (int batchNumber = requestedBatchNumber + 1;
+        batchNumber <= batchCount(recommendationSet);
+        batchNumber++) {
+      List<Long> visiblePlaceIds =
+          activePlaces(batchPlaceIds(recommendationSet, batchNumber)).stream()
+              .map(Place::getId)
+              .toList();
+      if (!visiblePlaceIds.isEmpty() && !reactedPlaceIds.containsAll(visiblePlaceIds)) {
         return batchNumber;
       }
-      previouslyExposedPlaceIds.addAll(storedPlaceIds);
     }
     return 0;
   }
@@ -453,15 +435,10 @@ public class RecommendationService {
     if (batchNumber > batchCount(recommendationSet)) {
       throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_BATCH_NOT_FOUND);
     }
-    int firstBatchSize = firstBatchSize(recommendationSet);
-    int fromIndex =
-        batchNumber == 1 ? 0 : firstBatchSize + (batchNumber - 2) * RECOMMENDATION_COUNT;
+    int fromIndex = (batchNumber - 1) * RECOMMENDATION_COUNT;
     int toIndex =
-        batchNumber == 1
-            ? firstBatchSize
-            : Math.min(
-                fromIndex + RECOMMENDATION_COUNT,
-                recommendationSet.getRecommendedPlaceIds().size());
+        Math.min(
+            fromIndex + RECOMMENDATION_COUNT, recommendationSet.getRecommendedPlaceIds().size());
     return recommendationSet.getRecommendedPlaceIds().subList(fromIndex, toIndex);
   }
 
@@ -470,16 +447,12 @@ public class RecommendationService {
     if (placeCount == 0) {
       return 1;
     }
-    return 1 + (placeCount - firstBatchSize(recommendationSet)) / RECOMMENDATION_COUNT;
+    return 1 + (placeCount - 1) / RECOMMENDATION_COUNT;
   }
 
-  private int firstBatchSize(RecommendationSet recommendationSet) {
+  private boolean hasTerminalPartialBatch(RecommendationSet recommendationSet) {
     int placeCount = recommendationSet.getRecommendedPlaceIds().size();
-    if (placeCount == 0) {
-      return 0;
-    }
-    int remainder = placeCount % RECOMMENDATION_COUNT;
-    return remainder == 0 ? RECOMMENDATION_COUNT : remainder;
+    return placeCount > 0 && placeCount % RECOMMENDATION_COUNT != 0;
   }
 
   private SelectionPreparation prepareSelection(

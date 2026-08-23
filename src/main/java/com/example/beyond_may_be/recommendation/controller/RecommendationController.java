@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecommendationController {
 
   private final RecommendationService recommendationService;
+
+  @Operation(
+      summary = "현재 추천 세트 조회",
+      description = "인증된 사용자의 저장된 추천 회차와 서버에 확정된 좋아요·싫어요 상태를 조회합니다.")
+  @GetMapping
+  public ApiResponse<RecommendationDtos.CurrentRecommendationResponse> getCurrentRecommendation(
+      @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(recommendationService.getCurrent(userId));
+  }
 
   @Operation(
       summary = "현재 추천 세트 생성",

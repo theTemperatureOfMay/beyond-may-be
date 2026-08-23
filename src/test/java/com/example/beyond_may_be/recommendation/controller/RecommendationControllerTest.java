@@ -1,9 +1,12 @@
 package com.example.beyond_may_be.recommendation.controller;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,6 +84,100 @@ class RecommendationControllerTest {
         .andExpect(jsonPath("$.data.batch.batchNumber").value(1))
         .andExpect(jsonPath("$.data.batch.places[0].placeId").value(101))
         .andExpect(jsonPath("$.data.batch.places[0].summary").doesNotExist());
+  }
+
+  @Test
+  void getsCurrentRecommendationProgress() throws Exception {
+    given(recommendationService.getCurrent(1L))
+        .willReturn(
+            new RecommendationDtos.CurrentRecommendationResponse(
+                12L,
+                TravelSchedule.ONE_NIGHT_TWO_DAYS,
+                LocalDate.of(2099, 8, 20),
+                LocalDate.of(2099, 8, 21),
+                20,
+                5,
+                3,
+                false,
+                List.of(
+                    new RecommendationDtos.BatchStateResponse(
+                        1,
+                        List.of(
+                            new RecommendationDtos.PlaceResponse(
+                                101L,
+                                "국립아시아문화전당",
+                                "문화시설",
+                                List.of("전시", "문화"),
+                                "검수된 장소 소개 문구",
+                                null),
+                            new RecommendationDtos.PlaceResponse(
+                                102L,
+                                "광주비엔날레전시관",
+                                "문화시설",
+                                List.of("비엔날레", "현대미술"),
+                                null,
+                                "https://example.com/places/102.webp")),
+                        List.of(101L),
+                        List.of(),
+                        false))));
+
+    mockMvc
+        .perform(get("/api/v1/recommendations").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.data.recommendationId").value(12))
+        .andExpect(jsonPath("$.data.travelSchedule").value("ONE_NIGHT_TWO_DAYS"))
+        .andExpect(jsonPath("$.data.startDate").value("2099-08-20"))
+        .andExpect(jsonPath("$.data.endDate").value("2099-08-21"))
+        .andExpect(jsonPath("$.data.batchSize").value(20))
+        .andExpect(jsonPath("$.data.minimumSelectionCount").value(5))
+        .andExpect(jsonPath("$.data.selectedPlaceCount").value(3))
+        .andExpect(jsonPath("$.data.selectionReady").value(false))
+        .andExpect(jsonPath("$.data.batches[0].batchNumber").value(1))
+        .andExpect(jsonPath("$.data.batches[0].places[0].placeId").value(101))
+        .andExpect(jsonPath("$.data.batches[0].places[0].name").value("국립아시아문화전당"))
+        .andExpect(jsonPath("$.data.batches[0].places[0].category").value("문화시설"))
+        .andExpect(jsonPath("$.data.batches[0].places[0].tags[0]").value("전시"))
+        .andExpect(jsonPath("$.data.batches[0].places[0].summary").value("검수된 장소 소개 문구"))
+        .andExpect(jsonPath("$.data.batches[0].places[0].thumbnailUrl").hasJsonPath())
+        .andExpect(jsonPath("$.data.batches[0].places[0].thumbnailUrl").value(nullValue()))
+        .andExpect(jsonPath("$.data.batches[0].places[1].summary").hasJsonPath())
+        .andExpect(jsonPath("$.data.batches[0].places[1].summary").value(nullValue()))
+        .andExpect(
+            jsonPath("$.data.batches[0].places[1].thumbnailUrl")
+                .value("https://example.com/places/102.webp"))
+        .andExpect(jsonPath("$.data.batches[0].likedPlaceIds[0]").value(101))
+        .andExpect(jsonPath("$.data.batches[0].dislikedPlaceIds").isEmpty())
+        .andExpect(jsonPath("$.data.batches[0].completed").value(false));
+  }
+
+  @Test
+  void reportsMissingCurrentRecommendationForLookup() throws Exception {
+    given(recommendationService.getCurrent(1L))
+        .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_NOT_FOUND));
+
+    mockMvc
+        .perform(get("/api/v1/recommendations").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECOMMENDATION404"));
+  }
+
+  @Test
+  void rejectsUnauthenticatedCurrentRecommendationLookup() throws Exception {
+    mockMvc.perform(get("/api/v1/recommendations")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void documentsNullableRecommendationPlaceFields() throws Exception {
+    mockMvc
+        .perform(get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$.components.schemas.PlaceResponse.properties.summary.type")
+                .value(hasItem("null")))
+        .andExpect(
+            jsonPath("$.components.schemas.PlaceResponse.properties.thumbnailUrl.type")
+                .value(hasItem("null")));
   }
 
   @Test
