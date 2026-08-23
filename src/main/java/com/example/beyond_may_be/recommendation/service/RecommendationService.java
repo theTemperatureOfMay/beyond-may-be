@@ -86,16 +86,19 @@ public class RecommendationService {
         hasInitialShortage(user, placeRepository.findAllByActiveTrue())
             ? fetchChangedPlaces()
             : List.of();
+    ensureRequestActive();
     // 4. 사용자 잠금 트랜잭션에서 신규 장소를 저장하고 할당량·AI 후보·규칙 폴백을 준비한다.
     SelectionPreparation preparation =
         Objects.requireNonNull(
             transactionTemplate.execute(status -> prepareSelection(userId, request, syncItems)));
+    ensureRequestActive();
     if (preparation.response() != null) {
       return preparation.response();
     }
     SelectionPlan plan = Objects.requireNonNull(preparation.plan());
     // 5. DB 트랜잭션 밖에서 AI가 후보를 선별한다. 실패하면 빈 결과로 6단계 폴백을 유도한다.
     List<Long> aiPlaceIds = plan.target() == 0 ? List.of() : rankSafely(plan.rankRequest());
+    ensureRequestActive();
     // 6. 최신 DB 상태로 AI 결과를 검증하고 현재 추천 세트를 저장하거나 교체한다.
     CreationResult result =
         Objects.requireNonNull(
@@ -528,6 +531,7 @@ public class RecommendationService {
       recommendationSet.replace(
           request.travelSchedule(), request.startDate(), request.endDate(), selectedIds);
     }
+    ensureRequestActive();
     RecommendationSet saved = recommendationSetRepository.save(recommendationSet);
     return new CreationResult(
         RecommendationConverter.toRecommendationResponse(
@@ -614,7 +618,7 @@ public class RecommendationService {
           place.name(),
           place.category(),
           place.travelMbtiType().name(),
-          "[\"" + place.category() + "\"]",
+          toTagsJson(place.tags()),
           place.address(),
           place.latitude(),
           place.longitude(),
@@ -635,30 +639,21 @@ public class RecommendationService {
         || isBlank(item.largeCategoryCode())) {
       return Optional.empty();
     }
-    TravelPreferenceType type;
-    String category;
     // TourAPI 신분류 대분류 코드를 프로젝트의 네 여행 성향으로 매핑한다.
-    switch (item.largeCategoryCode()) {
-      case "NA" -> {
-        type = TravelPreferenceType.THINKER;
-        category = "자연 관광";
-      }
-      case "FD" -> {
-        type = TravelPreferenceType.FOODIE;
-        category = "음식";
-      }
-      case "VE" -> {
-        type = TravelPreferenceType.ARTIST;
-        category = "문화 관광";
-      }
-      case "HS" -> {
-        type = TravelPreferenceType.REMEMBERER;
-        category = "역사 관광";
-      }
-      default -> {
-        return Optional.empty();
-      }
+    TravelPreferenceType type =
+        switch (item.largeCategoryCode()) {
+          case "NA" -> TravelPreferenceType.THINKER;
+          case "FD" -> TravelPreferenceType.FOODIE;
+          case "VE" -> TravelPreferenceType.ARTIST;
+          case "HS" -> TravelPreferenceType.REMEMBERER;
+          default -> null;
+        };
+    if (type == null) {
+      return Optional.empty();
     }
+    TourApiClassificationCatalog.Classification classification =
+        TourApiClassificationCatalog.resolve(
+            item.largeCategoryCode(), item.middleCategoryCode(), item.smallCategoryCode());
     try {
       long contentId = Long.parseLong(item.contentId());
       int contentTypeId = Integer.parseInt(item.contentTypeId());
@@ -687,7 +682,8 @@ public class RecommendationService {
               contentId,
               contentTypeId,
               name,
-              category,
+              classification.category(),
+              classification.tags(),
               type,
               address,
               latitude,
@@ -706,11 +702,22 @@ public class RecommendationService {
     return value.length() <= MAX_VARCHAR_LENGTH;
   }
 
+  private void ensureRequestActive() {
+    if (Thread.currentThread().isInterrupted()) {
+      throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_TIMEOUT);
+    }
+  }
+
+  private String toTagsJson(List<String> tags) {
+    return tags.stream().collect(Collectors.joining("\",\"", "[\"", "\"]"));
+  }
+
   private record SyncPlace(
       long contentId,
       int contentTypeId,
       String name,
       String category,
+      List<String> tags,
       TravelPreferenceType travelMbtiType,
       String address,
       BigDecimal latitude,

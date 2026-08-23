@@ -636,7 +636,7 @@
         },
         {
           "name": "추천 세트 생성",
-          "description": "인증 사용자의 저장된 성향 점수와 여행 기간으로 현재 추천 세트를 생성하거나 같은 일정의 저장 결과를 반환합니다. 최초 유형별 할당량보다 활성 DB 장소가 부족하면 TourAPI 광주 변경분을 최대 한 번 조회해 유효한 신규 장소를 먼저 저장하며, 외부 실패 시 기존 DB 후보로 계속합니다. 새 추천 응답에 포함된 장소의 빈 설명·운영시간은 응답과 분리된 내부 작업으로 최선 노력 보강하며 현재 응답은 변경하지 않습니다. Authorization Bearer 토큰이 필요하며 사용자 ID와 성향 점수는 요청에 넣지 않습니다.",
+          "description": "인증 사용자의 저장된 성향 점수와 여행 기간으로 현재 추천 세트를 생성하거나 같은 일정의 저장 결과를 반환합니다. 최초 유형별 할당량보다 활성 DB 장소가 부족하면 TourAPI 광주 변경분을 최대 한 번 조회해 유효한 신규 장소를 먼저 저장하며, 외부 실패 시 기존 DB 후보로 계속합니다. 새 추천 응답에 포함된 장소의 빈 설명·운영시간은 응답과 분리된 내부 작업으로 최선 노력 보강하며 현재 응답은 변경하지 않습니다. 전체 처리 시간이 30초를 넘으면 503과 RECOMMENDATION503을 반환하고 자동 재시도하지 않습니다. Authorization Bearer 토큰이 필요하며 사용자 ID와 성향 점수는 요청에 넣지 않습니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -742,7 +742,7 @@
         },
         {
           "name": "추천 세트 생성 오류 확인",
-          "description": "추천 세트 생성의 인증·최종 성향 오류 예시입니다. 최종 성향이 없는 인증 사용자는 409, 토큰이 없거나 만료되면 401을 반환합니다.",
+          "description": "추천 세트 생성의 인증·최종 성향·처리 시간 초과 오류 예시입니다. 최종 성향이 없는 인증 사용자는 409, 토큰이 없거나 만료되면 401, 전체 처리 시간이 30초를 넘으면 503을 반환합니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -838,6 +838,44 @@
               ],
               "cookie": [],
               "body": ""
+            },
+            {
+              "name": "503 - 추천 생성 시간 초과",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/recommendations/sets",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"travelSchedule\": \"DAY_TRIP\",\n  \"startDate\": \"2099-08-20\",\n  \"endDate\": \"2099-08-20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"추천 생성 시간이 초과되었습니다.\",\n  \"code\": \"RECOMMENDATION503\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },

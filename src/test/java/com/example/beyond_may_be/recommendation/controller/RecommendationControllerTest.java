@@ -1,14 +1,17 @@
 package com.example.beyond_may_be.recommendation.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
@@ -33,6 +36,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.context.request.async.WebAsyncTask;
 
 @SpringBootTest(classes = RecommendationControllerTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -40,6 +45,7 @@ class RecommendationControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private AuthTokenService authTokenService;
+  @Autowired private RecommendationController recommendationController;
   @Autowired private RecommendationService recommendationService;
 
   @BeforeEach
@@ -64,19 +70,25 @@ class RecommendationControllerTest {
                         new RecommendationDtos.PlaceResponse(
                             101L, "국립아시아문화전당", "전시", List.of("복합문화공간"), null, null)))));
 
-    mockMvc
-        .perform(
-            post("/api/v1/recommendations/sets")
-                .header("Authorization", "Bearer valid-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
+    MvcResult asyncResult =
+        mockMvc
+            .perform(
+                post("/api/v1/recommendations/sets")
+                    .header("Authorization", "Bearer valid-token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                     {
                       "travelSchedule": "ONE_NIGHT_TWO_DAYS",
                       "startDate": "2099-08-20",
                       "endDate": "2099-08-21"
                     }
                     """))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    mockMvc
+        .perform(asyncDispatch(asyncResult))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.code").value("COMMON200"))
         .andExpect(jsonPath("$.data.recommendationId").value(12))
@@ -181,6 +193,29 @@ class RecommendationControllerTest {
   }
 
   @Test
+  void limitsRecommendationGenerationToThirtySeconds() {
+    given(recommendationService.createOrGetCurrent(eq(1L), any()))
+        .willReturn(
+            new RecommendationDtos.RecommendationResponse(
+                12L,
+                TravelSchedule.DAY_TRIP,
+                LocalDate.of(2099, 8, 20),
+                LocalDate.of(2099, 8, 20),
+                3,
+                new RecommendationDtos.BatchResponse(1, List.of())));
+
+    Object result =
+        recommendationController.createRecommendationSet(
+            1L,
+            new RecommendationDtos.CreateRequest(
+                TravelSchedule.DAY_TRIP, LocalDate.of(2099, 8, 20), LocalDate.of(2099, 8, 20)));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            WebAsyncTask.class, task -> assertThat(task.getTimeout()).isEqualTo(30_000L));
+  }
+
+  @Test
   void replacesBatchReactionsAndReturnsNextBatch() throws Exception {
     given(recommendationService.replaceBatchReactions(eq(1L), eq(1), any()))
         .willReturn(
@@ -278,19 +313,25 @@ class RecommendationControllerTest {
     given(recommendationService.createOrGetCurrent(eq(1L), any()))
         .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_INVALID_PERIOD));
 
-    mockMvc
-        .perform(
-            post("/api/v1/recommendations/sets")
-                .header("Authorization", "Bearer valid-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
+    MvcResult asyncResult =
+        mockMvc
+            .perform(
+                post("/api/v1/recommendations/sets")
+                    .header("Authorization", "Bearer valid-token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                     {
                       "travelSchedule": "ONE_NIGHT_TWO_DAYS",
                       "startDate": "2099-08-20",
                       "endDate": "2099-08-20"
                     }
                     """))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    mockMvc
+        .perform(asyncDispatch(asyncResult))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("RECOMMENDATION400"));
   }
@@ -300,21 +341,56 @@ class RecommendationControllerTest {
     given(recommendationService.createOrGetCurrent(any(), any()))
         .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED));
 
-    mockMvc
-        .perform(
-            post("/api/v1/recommendations/sets")
-                .header("Authorization", "Bearer valid-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
+    MvcResult asyncResult =
+        mockMvc
+            .perform(
+                post("/api/v1/recommendations/sets")
+                    .header("Authorization", "Bearer valid-token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                     {
                       "travelSchedule": "DAY_TRIP",
                       "startDate": "2099-08-20",
                       "endDate": "2099-08-20"
                     }
                     """))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    mockMvc
+        .perform(asyncDispatch(asyncResult))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("RECOMMENDATION409"));
+  }
+
+  @Test
+  void reportsRecommendationTimeoutAsServiceUnavailable() throws Exception {
+    given(recommendationService.createOrGetCurrent(any(), any()))
+        .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_TIMEOUT));
+
+    MvcResult asyncResult =
+        mockMvc
+            .perform(
+                post("/api/v1/recommendations/sets")
+                    .header("Authorization", "Bearer valid-token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "travelSchedule": "DAY_TRIP",
+                          "startDate": "2099-08-20",
+                          "endDate": "2099-08-20"
+                        }
+                        """))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    mockMvc
+        .perform(asyncDispatch(asyncResult))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.code").value("RECOMMENDATION503"))
+        .andExpect(jsonPath("$.success").value(false));
   }
 
   @SpringBootConfiguration

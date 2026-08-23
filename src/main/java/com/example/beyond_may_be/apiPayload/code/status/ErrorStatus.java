@@ -53,7 +53,8 @@ public enum ErrorStatus implements BaseErrorCode {
   RECOMMENDATION_PREFERENCE_REQUIRED(
       HttpStatus.CONFLICT, "RECOMMENDATION409", "완료된 여행 성향 검사가 필요합니다."),
   RECOMMENDATION_BATCH_CONFLICT(
-      HttpStatus.CONFLICT, "RECOMMENDATION409_2", "요청한 추천 회차 구성이 변경되었습니다.");
+      HttpStatus.CONFLICT, "RECOMMENDATION409_2", "요청한 추천 회차 구성이 변경되었습니다."),
+  RECOMMENDATION_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE, "RECOMMENDATION503", "추천 생성 시간이 초과되었습니다.");
 
   private final HttpStatus httpStatus;
   private final String code;

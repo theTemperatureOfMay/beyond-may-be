@@ -891,9 +891,9 @@ class RecommendationServiceTest {
                 999001L,
                 12,
                 "새 자연 장소",
-                "자연 관광",
+                "산, 고개, 오름, 봉우리",
                 "THINKER",
-                "[\"자연 관광\"]",
+                "[\"자연관광\",\"자연경관(산)\",\"산, 고개, 오름, 봉우리\"]",
                 "광주광역시 북구 무등로 1 (금곡동)",
                 new BigDecimal("35.200001"),
                 new BigDecimal("126.900001"),
@@ -949,9 +949,9 @@ class RecommendationServiceTest {
             1002L,
             12,
             "자연",
-            "자연 관광",
+            "산, 고개, 오름, 봉우리",
             "THINKER",
-            "[\"자연 관광\"]",
+            "[\"자연관광\",\"자연경관(산)\",\"산, 고개, 오름, 봉우리\"]",
             "광주",
             new BigDecimal("35.1"),
             new BigDecimal("126.8"),
@@ -961,9 +961,9 @@ class RecommendationServiceTest {
             1003L,
             39,
             "음식",
-            "음식",
+            "관광식당",
             "FOODIE",
-            "[\"음식\"]",
+            "[\"음식\",\"한식\",\"관광식당\"]",
             "광주",
             new BigDecimal("35.1"),
             new BigDecimal("126.8"),
@@ -973,9 +973,9 @@ class RecommendationServiceTest {
             1004L,
             14,
             "문화",
-            "문화 관광",
+            "건물",
             "ARTIST",
-            "[\"문화 관광\"]",
+            "[\"문화관광\",\"랜드마크관광\",\"건물\"]",
             "광주",
             new BigDecimal("35.1"),
             new BigDecimal("126.8"),
@@ -985,9 +985,9 @@ class RecommendationServiceTest {
             1005L,
             12,
             "역사",
-            "역사 관광",
+            "고궁",
             "REMEMBERER",
-            "[\"역사 관광\"]",
+            "[\"역사관광\",\"역사유적지\",\"고궁\"]",
             "광주",
             new BigDecimal("35.1"),
             new BigDecimal("126.8"),
@@ -1030,6 +1030,33 @@ class RecommendationServiceTest {
     InOrder order = inOrder(tourApiSyncClient, transactionTemplate);
     order.verify(tourApiSyncClient).fetchChangedPlaces();
     order.verify(transactionTemplate, times(2)).execute(any());
+  }
+
+  @Test
+  void stopsBeforeSavingWhenTheRecommendationRequestIsCancelled() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> places = places(20);
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+    given(groqRecommendationClient.rank(any()))
+        .willAnswer(
+            invocation -> {
+              Thread.currentThread().interrupt();
+              return List.of();
+            });
+
+    try {
+      assertThatThrownBy(
+              () ->
+                  recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0)))
+          .isInstanceOf(RecommendationHandler.class)
+          .extracting("code")
+          .isEqualTo(ErrorStatus.RECOMMENDATION_TIMEOUT);
+      verify(recommendationSetRepository, never()).save(any());
+    } finally {
+      Thread.interrupted();
+    }
   }
 
   @Test

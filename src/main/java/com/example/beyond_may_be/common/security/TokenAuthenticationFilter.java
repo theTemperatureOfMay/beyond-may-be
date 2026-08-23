@@ -20,6 +20,11 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
   private final AuthTokenService authTokenService;
 
   @Override
+  protected boolean shouldNotFilterAsyncDispatch() {
+    return false;
+  }
+
+  @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
