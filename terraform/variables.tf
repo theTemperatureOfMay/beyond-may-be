@@ -82,3 +82,9 @@ variable "db_master_username" {
   type    = string
   default = "beyond_may_be_admin"
 }
+
+variable "groq_api_key" {
+  description = "Groq API 키 (코스 챗봇/AI 코스 수정 요청). terraform.tfvars 또는 TF_VAR_groq_api_key로 전달한다 — 커밋하지 않는다."
+  type        = string
+  sensitive   = true
+}

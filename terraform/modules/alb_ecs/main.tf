@@ -81,6 +81,7 @@ data "aws_iam_policy_document" "execution_secrets" {
       var.db_url_parameter_arn,
       var.db_username_parameter_arn,
       var.db_password_parameter_arn,
+      var.groq_api_key_parameter_arn,
     ]
   }
 
@@ -132,6 +133,7 @@ resource "aws_ecs_task_definition" "this" {
         { name = "DB_URL", valueFrom = var.db_url_parameter_arn },
         { name = "DB_USERNAME", valueFrom = var.db_username_parameter_arn },
         { name = "DB_PASSWORD", valueFrom = var.db_password_parameter_arn },
+        { name = "GROQ_API_KEY", valueFrom = var.groq_api_key_parameter_arn },
       ]
       logConfiguration = {
         logDriver = "awslogs"

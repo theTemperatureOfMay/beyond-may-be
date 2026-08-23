@@ -47,6 +47,15 @@ dynamodb_table = "beyond-may-be-tfstate-lock"
 
 ## 초기화와 적용
 
+`groq_api_key`는 기본값이 없는 필수 변수다(코드에 커밋하면 안 되는 값이라 default를
+두지 않았다). `terraform/terraform.tfvars`(gitignore 대상)를 만들어 채우거나
+`TF_VAR_groq_api_key` 환경변수로 전달한다.
+
+```hcl
+# terraform/terraform.tfvars (Git에 커밋하지 않는다)
+groq_api_key = "gsk_..."
+```
+
 ```bash
 cd terraform
 terraform init -backend-config=backend.hcl

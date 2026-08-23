@@ -29,3 +29,9 @@ variable "db_name" {
   description = "데이터베이스 이름"
   type        = string
 }
+
+variable "groq_api_key" {
+  description = "Groq API 키 (코스 챗봇/AI 코스 수정 요청에 사용)"
+  type        = string
+  sensitive   = true
+}
