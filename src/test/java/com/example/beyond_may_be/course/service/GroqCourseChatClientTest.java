@@ -130,8 +130,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeA, 2L, placeB, 3L, placeC);
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "야경 명소 넣어줘");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "야경 명소 넣어줘");
 
     assertThat(result).isPresent();
     assertThat(result.get().type()).isEqualTo("COURSE_REVISION");
@@ -156,8 +155,7 @@ class GroqCourseChatClientTest {
         Map.of(1L, placeAt(1L, "A"), 2L, placeAt(2L, "B"), 3L, placeAt(3L, "C"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "야경 명소 넣어줘");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "야경 명소 넣어줘");
 
     assertThat(result).isPresent();
     assertThat(result.get().days()).containsExactly(List.of(3L, 1L, 2L));
@@ -237,8 +235,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeAt(1L, "A"), 2L, placeAt(2L, "B"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
 
     assertThat(result).isEmpty();
   }
@@ -260,8 +257,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeAt(1L, "A"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
 
     assertThat(result).isEmpty();
   }
@@ -278,8 +274,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeAt(1L, "A"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
 
     assertThat(result).isEmpty();
   }
@@ -306,8 +301,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeAt(1L, "A"), 2L, placeAt(2L, "B"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
 
     assertThat(result).isPresent();
     assertThat(result.get().days()).containsExactly(List.of(2L, 1L));
@@ -323,8 +317,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeAt(1L, "A"));
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "아무거나");
 
     assertThat(result).isEmpty();
     serverHolder[0].verify();
@@ -418,8 +411,7 @@ class GroqCourseChatClientTest {
     assertThat(result).isEmpty();
   }
 
-  @DisplayName(
-      "첫 시도에서 콤마 없이 숫자가 붙어버린 응답을 받아도(예: 1031012102) 재시도에서 유효한 응답을 받으면 그 결과를 사용한다.")
+  @DisplayName("첫 시도에서 콤마 없이 숫자가 붙어버린 응답을 받아도(예: 1031012102) 재시도에서 유효한 응답을 받으면 그 결과를 사용한다.")
   @Test
   void requestPlacementRevision_firstAttemptMalformed_secondAttemptValid_returnsSecondResult() {
     MockRestServiceServer[] serverHolder = new MockRestServiceServer[1];
@@ -434,8 +426,7 @@ class GroqCourseChatClientTest {
         .andRespond(withSuccess(validResponse, MediaType.APPLICATION_JSON));
 
     List<CoursePlace> currentPlaces =
-        List.of(
-            coursePlaceAt(103L, 1, 1), coursePlaceAt(101L, 1, 2), coursePlaceAt(102L, 1, 3));
+        List.of(coursePlaceAt(103L, 1, 1), coursePlaceAt(101L, 1, 2), coursePlaceAt(102L, 1, 3));
     Map<Long, Place> placesById =
         Map.of(103L, placeAt(103L, "A"), 101L, placeAt(101L, "B"), 102L, placeAt(102L, "C"));
     Place newPlace = placeAt(4L, "D");
@@ -512,8 +503,7 @@ class GroqCourseChatClientTest {
     Map<Long, Place> placesById = Map.of(1L, placeA, 2L, placeB);
 
     Optional<GroqCourseChatClient.ChatSuggestion> result =
-        client.requestRevision(
-            draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
+        client.requestRevision(draftCourse(), currentPlaces, placesById, List.of(), "순서 바꿔줘");
 
     assertThat(result).isPresent();
     serverHolder[0].verify();
