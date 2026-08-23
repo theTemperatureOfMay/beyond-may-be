@@ -4,6 +4,8 @@ output "parameter_arns" {
     aws_ssm_parameter.db_username.arn,
     aws_ssm_parameter.db_password.arn,
     aws_ssm_parameter.db_url.arn,
+    aws_ssm_parameter.groq_api_key.arn,
+    aws_ssm_parameter.tourism_api_key.arn,
   ]
 }
 
@@ -17,4 +19,12 @@ output "db_password_parameter_arn" {
 
 output "db_url_parameter_arn" {
   value = aws_ssm_parameter.db_url.arn
+}
+
+output "groq_api_key_parameter_arn" {
+  value = aws_ssm_parameter.groq_api_key.arn
+}
+
+output "tourism_api_key_parameter_arn" {
+  value = aws_ssm_parameter.tourism_api_key.arn
 }

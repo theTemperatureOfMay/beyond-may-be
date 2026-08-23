@@ -81,6 +81,8 @@ data "aws_iam_policy_document" "execution_secrets" {
       var.db_url_parameter_arn,
       var.db_username_parameter_arn,
       var.db_password_parameter_arn,
+      var.groq_api_key_parameter_arn,
+      var.tourism_api_key_parameter_arn,
     ]
   }
 
@@ -126,12 +128,16 @@ resource "aws_ecs_task_definition" "this" {
         { containerPort = var.container_port, protocol = "tcp" }
       ]
       environment = [
-        { name = "SPRING_PROFILES_ACTIVE", value = var.spring_profiles_active }
+        { name = "SPRING_PROFILES_ACTIVE", value = var.spring_profiles_active },
+        { name = "TOURISM_API_BASE_URL", value = var.tourism_api_base_url },
+        { name = "TOURISM_POPULARITY_API_BASE_URL", value = var.tourism_popularity_api_base_url },
       ]
       secrets = [
         { name = "DB_URL", valueFrom = var.db_url_parameter_arn },
         { name = "DB_USERNAME", valueFrom = var.db_username_parameter_arn },
         { name = "DB_PASSWORD", valueFrom = var.db_password_parameter_arn },
+        { name = "GROQ_API_KEY", valueFrom = var.groq_api_key_parameter_arn },
+        { name = "TOURISM_API_KEY", valueFrom = var.tourism_api_key_parameter_arn },
       ]
       logConfiguration = {
         logDriver = "awslogs"

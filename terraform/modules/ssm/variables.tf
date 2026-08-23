@@ -29,3 +29,15 @@ variable "db_name" {
   description = "데이터베이스 이름"
   type        = string
 }
+
+variable "groq_api_key" {
+  description = "Groq API 키 (코스 챗봇/AI 코스 수정 요청에 사용)"
+  type        = string
+  sensitive   = true
+}
+
+variable "tourism_api_key" {
+  description = "한국관광공사 TourAPI 키 (아직 코드에서 사용하지 않음 — 인프라 선반영)"
+  type        = string
+  sensitive   = true
+}
