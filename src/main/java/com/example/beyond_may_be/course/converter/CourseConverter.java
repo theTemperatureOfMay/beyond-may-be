@@ -41,6 +41,21 @@ public final class CourseConverter {
         places);
   }
 
+  public static CourseDtos.ChatResponse toChatResponse(
+      String type,
+      String message,
+      List<CoursePlace> previewPlaces,
+      List<CourseDtos.PlaceRecommendation> recommendations,
+      Map<Long, Place> placesById,
+      int remainingRevisions) {
+    List<CourseDtos.CoursePlaceSummary> proposedPlaces =
+        previewPlaces.stream()
+            .filter(coursePlace -> placesById.containsKey(coursePlace.getPlaceId()))
+            .map(coursePlace -> toCoursePlaceSummary(coursePlace, placesById))
+            .toList();
+    return new CourseDtos.ChatResponse(type, message, proposedPlaces, recommendations, remainingRevisions);
+  }
+
   private static CourseDtos.CoursePlaceSummary toCoursePlaceSummary(
       CoursePlace coursePlace, Map<Long, Place> placesById) {
     Place place = placesById.get(coursePlace.getPlaceId());
@@ -48,6 +63,7 @@ public final class CourseConverter {
         place.getId(),
         place.getName(),
         place.getCategory(),
+        place.getTravelMbtiType(),
         place.getAddress(),
         place.getLatitude(),
         place.getLongitude(),
