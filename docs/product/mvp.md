@@ -88,7 +88,7 @@
 | 3.1.1 | 추천 코스 지도 보기 | 코스 장소·순서·TMAP 도보 동선·요약 조회 | 데모 핵심 | `미구현` | 코스 조회 API와 TMAP 도보 경로 연동이 없다. |
 | 3.1.2 | 코스 순서 상세 보기 | 순서·장소명·카테고리와 도보 이동 표시 | 데모 핵심 | `미구현` | 코스 순서·장소 정보 응답 DTO와 조회 API가 없다. |
 | 3.2.1 | AI 코스 수정 요청 | 수정 프롬프트 처리, 서버 관리 2회 제한과 미리보기 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/chat`(`CourseService.requestChatRevision`)이 150자 길이 검증 후 Groq(OpenAI 호환) chat completions API(`GroqCourseChatClient`)로 프롬프트를 처리해 코스 재배치 미리보기(`COURSE_REVISION`) 또는 장소 추천(`ADD_RECOMMENDATION`)을 반환하고, `Course.aiRevisionCount`로 서버가 2회 제한을 관리한다(초과 시 `COURSE_AI_REVISION_LIMIT_EXCEEDED`). `POST /api/v1/courses/{courseId}/chat/apply`로 미리보기를 실제 저장에 반영한다. 추천 키워드 칩은 프런트 전용이라 백엔드 계약에 없다. `ADD_RECOMMENDATION`은 활성(`active=true`) 장소 전체를 후보로 Groq에 전달해 그중에서만 추천하도록 강제하고(후보 밖 placeId를 반환하면 오류 처리), 응답에 실제 `placeId`·이름·카테고리·좌표를 포함한다. 추천 장소는 `PUT /api/v1/courses/{courseId}/places`로 직접 추가하거나, `POST /api/v1/courses/{courseId}/places/{placeId}`(`CourseService.addRecommendedPlace`)로 추가하면 Groq가 기존 코스 전체 + 새 장소를 다시 받아 동선을 재배치해 즉시 저장한다(미리보기 단계 없음). 이 엔드포인트는 `aiRevisionCount` 2회 제한과 무관하며 소비하지 않는다. |
-| 3.2.2 | 직접 코스 수정 | 장소 순서 변경·삭제·추가와 검증 | 일반 | `부분 구현` | `PUT /api/v1/courses/{courseId}/places`(`CourseService.editPlaces`)가 여행 기간별 최소 장소 수, 중복 placeId, day 범위를 검증한 뒤 `CoursePlace`를 새 순서로 교체 저장한다. 삭제는 요청 목록에서 제외하는 방식으로 지원한다. 코스에 없던 새 placeId도 실제 `places` 테이블에 존재하면 추가할 수 있다(신규 추가 장소의 `estimatedStayMinutes`는 기본값 60분, 존재하지 않으면 `COURSE_PLACE_NOT_FOUND`). 장소 검색 UI(2.1.2, AI 추천 장소 목록 조회)는 아직 없어 클라이언트가 placeId를 어떻게 얻는지는 3.2.1의 챗봇 추천에 의존한다. 되돌리기 이력은 프런트엔드가 로컬로 관리한다([ADR-0013](../adr/0013-course-edit-chatbot-state-ownership.md)). |
+| 3.2.2 | 직접 코스 수정 | 장소 순서 변경·삭제·추가와 검증 | 일반 | `부분 구현` | `PUT /api/v1/courses/{courseId}/places`(`CourseService.editPlaces`)가 여행 기간별 최소 장소 수, 중복 placeId, day 범위를 검증한 뒤 `CoursePlace`를 새 순서로 교체 저장한다. 삭제는 요청 목록에서 제외하는 방식으로 지원한다. 코스에 없던 새 placeId도 실제 `places` 테이블에 존재하면 추가할 수 있다(신규 추가 장소의 `estimatedStayMinutes`는 기본값 60분, 존재하지 않으면 `COURSE_PLACE_NOT_FOUND`). 장소 검색 UI(2.1.2, AI 추천 장소 목록 조회)는 아직 없어 클라이언트가 placeId를 어떻게 얻는지는 3.2.1의 챗봇 추천에 의존한다. 되돌리기 이력은 프런트엔드가 로컬로 관리한다([ADR-0014](../adr/0014-course-edit-chatbot-state-ownership.md)). |
 | 3.3.1 | 코스 확정 | AI 생성 성공 시 draft·courseId 저장, confirmed 전환, 수정 차단과 확정 취소 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/confirm`이 소유자 검증, `DRAFT→CONFIRMED` 전환, `Exploration(BEFORE)`·owner Participant 생성, 공유 만료(3일) 설정을 수행한다(`CourseService.confirm`). AI 수정 횟수 제한, 확정 취소는 아직 없다. |
 | 3.3.2 | 코스 공유 링크 생성 | Course ID 기반 URL 조합, 만료 시각 저장·검증과 재발급 | 데모 핵심 | `미구현` | `Course.shareExpiresAt` 필드만 있고 공유 만료 갱신·검증·재발급 API가 없다. |
 | 3.3.3 | 탐험 시작 | 활성 참여자의 Exploration 1회성 활성화와 상태 전환 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/start`가 조건부 UPDATE(`ExplorationRepository.startIfBefore`)로 `BEFORE→ONGOING` 1회성 전환을 보장한다(`ExplorationService.start`). |
@@ -141,7 +141,7 @@
 
 - 실제 기능 API는 회원가입·로그인, 코스 확정, 코스 조회(공개 미리보기·소유자
   전용 DRAFT 조회), 코스 수정(직접 수정·AI 챗봇), 팀 합류·팀원 목록·탐험 시작,
-  방문 인증과 Socket.IO 실시간 채널이다(ADR-0012, ADR-0013). 추천·AI 코스 생성
+  방문 인증과 Socket.IO 실시간 채널이다(ADR-0012, ADR-0014). 추천·AI 코스 생성
   관련 Controller·Service는 아직 없다(다른 작업으로 별도 진행 예정).
 - 회원가입·로그인은 opaque 인증 토큰(30일 만료, DB 기반)을 발급한다.
   닉네임 요청 검증, 세션 복구 UX, 로그아웃, rate limit은 아직 없다.
