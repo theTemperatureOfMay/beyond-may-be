@@ -4,6 +4,7 @@ import com.example.beyond_may_be.place.domain.Place;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PlaceRepository extends JpaRepository<Place, Long> {
   List<Place> findAllByActiveTrue();
+
+  Optional<Place> findByIdAndActiveTrue(Long id);
 
   @Query("select p.tourContentId from Place p where p.tourContentId in :contentIds")
   Set<Long> findExistingTourContentIds(@Param("contentIds") Collection<Long> contentIds);

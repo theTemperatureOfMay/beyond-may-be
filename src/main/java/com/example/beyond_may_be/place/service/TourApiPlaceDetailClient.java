@@ -25,10 +25,7 @@ public class TourApiPlaceDetailClient {
   }
 
   public String fetchDescription(long contentId) {
-    // 7-3. detailCommon2의 overview를 장소 설명으로 사용한다.
-    if (serviceKey.isBlank()) {
-      return null;
-    }
+    requireServiceKey();
     try {
       return nonBlank(
           firstItem(
@@ -49,17 +46,16 @@ public class TourApiPlaceDetailClient {
                       .retrieve()
                       .body(TourApiResponse.class))
               .overview());
-    } catch (RuntimeException ignored) {
+    } catch (TourApiPlaceDetailException exception) {
+      throw exception;
+    } catch (RuntimeException exception) {
       log.warn("TourAPI 장소 설명 조회에 실패했습니다.");
-      return null;
+      throw new TourApiPlaceDetailException(exception);
     }
   }
 
   public String fetchBusinessHours(long contentId, int contentTypeId) {
-    // 7-4. detailIntro2는 콘텐츠 유형마다 다른 운영시간 필드를 골라 사용한다.
-    if (serviceKey.isBlank()) {
-      return null;
-    }
+    requireServiceKey();
     try {
       DetailItem item =
           firstItem(
@@ -90,24 +86,29 @@ public class TourApiPlaceDetailClient {
             case 39 -> item.opentimefood();
             default -> null;
           });
-    } catch (RuntimeException ignored) {
+    } catch (TourApiPlaceDetailException exception) {
+      throw exception;
+    } catch (RuntimeException exception) {
       log.warn("TourAPI 장소 운영시간 조회에 실패했습니다.");
-      return null;
+      throw new TourApiPlaceDetailException(exception);
+    }
+  }
+
+  private void requireServiceKey() {
+    if (serviceKey.isBlank()) {
+      throw new TourApiPlaceDetailException();
     }
   }
 
   private DetailItem firstItem(TourApiResponse result) {
-    if (result != null
-        && result.response() != null
-        && result.response().header() != null
-        && !"0000".equals(result.response().header().resultCode())) {
-      log.warn("TourAPI 장소 상세정보 오류 응답을 받았습니다.");
+    if (result == null || result.response() == null || result.response().header() == null) {
+      throw new TourApiPlaceDetailException();
     }
-    if (result == null
-        || result.response() == null
-        || result.response().header() == null
-        || !"0000".equals(result.response().header().resultCode())
-        || result.response().body() == null
+    if (!"0000".equals(result.response().header().resultCode())) {
+      log.warn("TourAPI 장소 상세정보 오류 응답을 받았습니다.");
+      throw new TourApiPlaceDetailException();
+    }
+    if (result.response().body() == null
         || result.response().body().items() == null
         || result.response().body().items().item() == null
         || result.response().body().items().item().isEmpty()) {
@@ -118,6 +119,16 @@ public class TourApiPlaceDetailClient {
 
   private String nonBlank(String value) {
     return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  public static class TourApiPlaceDetailException extends RuntimeException {
+    TourApiPlaceDetailException() {
+      super("TourAPI 장소 상세정보 조회 실패");
+    }
+
+    TourApiPlaceDetailException(Throwable cause) {
+      super("TourAPI 장소 상세정보 조회 실패", cause);
+    }
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)

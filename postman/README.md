@@ -15,6 +15,7 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
 
 - 공유 변수는 `baseUrl` 하나이며 기본값은 `http://localhost:8080`이다.
 - 현재 확인 가능한 요청에는 `System / Health`와 인증이 필요한
+  `장소 선택 / GET {{baseUrl}}/api/v1/places/{placeId}`,
   `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/sets`,
   `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/{batchNumber}/reactions`가 있다.
 - 새 API 요청은 해당 도메인 폴더에 추가한다.

@@ -16,8 +16,9 @@
 - PostgreSQL은 재접속·공유·기록에 필요한 서버 정본을 보존한다.
 - 현재 카드, 되돌리기와 일괄 전송 전 반응은 프런트엔드 로컬 스토리지에 둔다.
 - `Course`와 `Exploration`은 생명주기가 다르므로 분리한다.
-- 한국관광공사 OpenAPI는 초기 장소 수집, 부족 유형 변경분 보충과 추천 응답 장소의
-  상세정보 사후 보강에 제한해 사용하고 런타임 장소 정본은 `places`로 유지한다.
+- 한국관광공사 OpenAPI는 초기 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소의
+  상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강에 제한해 사용하고 런타임 장소
+  정본은 `places`로 유지한다.
 - Redis는 MVP 범위에서 사용하지 않는다.
 
 ## 도메인 책임
@@ -156,15 +157,23 @@ erDiagram
 - `travel_mbti_type`은 사용자 `preference_type`과 같은
   `THINKER`, `FOODIE`, `ARTIST`, `REMEMBERER` 값 중 하나를 저장한다.
 - `tags`는 PostgreSQL JSONB 문자열 배열로 저장한다.
-- `business_hours`와 `description`은 외부 제공 데이터에 값이 없을 수 있어 nullable이다.
-  값이 없는 상태를 `정보 없음` 문자열로 대신 저장하지 않는다. TourAPI의 가변 길이
-  운영시간을 자르지 않도록 두 필드 모두 PostgreSQL `text`로 저장한다.
+- `business_hours`와 `description`은 아직 보강하지 않았거나 외부 오류 뒤 재시도할 수
+  있도록 nullable이다. TourAPI가 정상 응답했지만 값이 없거나 조회 식별자가 없으면 각각
+  `운영시간 정보 없음`·`상세 설명 정보 없음`을 저장한다. 이 문자열이 확인 완료 표식이며
+  별도 상태 열은 두지 않는다. TourAPI의 가변 길이 운영시간을 자르지 않도록 두 필드 모두
+  PostgreSQL `text`로 저장한다.
 - 새 추천 응답에 포함된 TourAPI 장소는 응답과 분리된 비동기 작업에서 비어 있는
-  `description`과 `business_hours`만 조건부 갱신한다. 외부 값이 비어 있거나 작업이
-  실패하면 null을 유지하며 기존 값은 덮어쓰지 않는다.
+  `description`과 `business_hours`만 조건부 갱신한다. 공개 장소 상세 GET도 값이 여전히
+  비어 있으면 필요한 TourAPI를 동기 호출해 저장한 뒤 같은 응답에 포함한다. 정상 빈값은
+  정보 없음 문구로 확정하고, 외부 오류는 null을 유지한 채 `PLACE503`으로 반환하며 기존
+  값은 덮어쓰지 않는다(ADR-0016, ADR-0019).
 - `tour_content_id`는 TourAPI `contentid`를 nullable·unique로 저장해 외부 중복 제거에
   사용하고, `tour_content_type_id`는 nullable로 저장해 상세 조회에 사용한다.
-- 5·18 연관 의미는 별도 컬럼 없이 검수된 `description`에 포함한다.
+- TourAPI `overview`는 비어 있는 일반 설명만 보강한다. 5·18 연관 의미는 별도 컬럼이나
+  생성 문구 없이 사람이 검수해 기존 `description`에 저장한 내용만 유지한다.
+- 인증 `GET /api/v1/places/{placeId}`는 활성 장소 카탈로그만 반환한다. 방문 상태와 버튼
+  활성 여부는 탐험·방문 API와 클라이언트 GPS가 소유한다. 없거나 비활성인 장소는
+  `PLACE404`, TourAPI 보강 오류는 `PLACE503`, DB·내부 오류는 `COMMON500`이다.
 - 외부 제공자명, 추천 점수와 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
 - 방문 인증 반경 100m를 검증하려면 위도·경도에 소수점 이하 최소 6자리 정밀도가
@@ -336,7 +345,7 @@ Exploration 완료 → COMPLETED
 |---|---|
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
-| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충과 추천 응답 장소 상세정보 사후 보강 입력. 런타임 정본이 아님(ADR-0014, ADR-0016) |
+| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강 입력. 런타임 정본이 아님(ADR-0014, ADR-0016, ADR-0019) |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |

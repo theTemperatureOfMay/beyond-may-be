@@ -398,6 +398,137 @@
       "description": "여행 일정, 장소 추천·검색, 코스 생성·확정 API 템플릿입니다.",
       "item": [
         {
+          "name": "장소 상세 조회",
+          "description": "인증 사용자가 활성 장소의 카탈로그 상세를 조회합니다. 저장된 설명·운영시간을 우선 사용하고 비어 있는 필드만 TourAPI로 동기 보강해 저장한 뒤 같은 응답에 포함합니다. 정상 응답에 값이 없거나 조회 식별자가 없으면 `상세 설명 정보 없음`·`운영시간 정보 없음`을 저장해 재호출을 막습니다. TourAPI 통신·응답 오류는 빈 값을 유지하고 503 PLACE503으로 반환해 다음 요청에서 재시도합니다. 방문 여부와 버튼 활성 상태는 이 응답에 포함하지 않습니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/places/101"
+          },
+          "response": [
+            {
+              "name": "200 - 장소 상세",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/places/101"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"placeId\": 101,\n    \"name\": \"국립아시아문화전당\",\n    \"category\": \"전시\",\n    \"travelMbtiType\": \"ARTIST\",\n    \"tags\": [\"전시\", \"문화\"],\n    \"address\": \"광주광역시 동구 문화전당로 38\",\n    \"latitude\": 35.146600,\n    \"longitude\": 126.919900,\n    \"businessHours\": \"평일 10:00-18:00\",\n    \"description\": \"검수된 상세 설명\",\n    \"thumbnailUrl\": \"https://example.com/places/101.webp\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 - 인증 정보 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/places/101"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "404 - 장소 없음 또는 비활성",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/places/404"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"장소를 찾을 수 없습니다.\",\n  \"code\": \"PLACE404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "503 - 장소 상세 보강 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/places/101"
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"장소 상세정보를 일시적으로 불러오지 못했습니다.\",\n  \"code\": \"PLACE503\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 장소 조회 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/places/101"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "추천 세트 생성",
           "description": "인증 사용자의 저장된 성향 점수와 여행 기간으로 현재 추천 세트를 생성하거나 같은 일정의 저장 결과를 반환합니다. 최초 유형별 할당량보다 활성 DB 장소가 부족하면 TourAPI 광주 변경분을 최대 한 번 조회해 유효한 신규 장소를 먼저 저장하며, 외부 실패 시 기존 DB 후보로 계속합니다. 새 추천 응답에 포함된 장소의 빈 설명·운영시간은 응답과 분리된 내부 작업으로 최선 노력 보강하며 현재 응답은 변경하지 않습니다. Authorization Bearer 토큰이 필요하며 사용자 ID와 성향 점수는 요청에 넣지 않습니다.",
           "request": {

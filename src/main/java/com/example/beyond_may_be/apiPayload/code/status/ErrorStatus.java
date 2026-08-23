@@ -35,6 +35,10 @@ public enum ErrorStatus implements BaseErrorCode {
   PARTICIPANT_NOT_ACTIVE(HttpStatus.FORBIDDEN, "EXPLORATION403", "활성 참여자만 수행할 수 있습니다."),
   EXPLORATION_ALREADY_STARTED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 시작된 탐험입니다."),
 
+  PLACE_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404", "장소를 찾을 수 없습니다."),
+  PLACE_DETAIL_UNAVAILABLE(
+      HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
+
   // Visit
   PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "장소를 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),

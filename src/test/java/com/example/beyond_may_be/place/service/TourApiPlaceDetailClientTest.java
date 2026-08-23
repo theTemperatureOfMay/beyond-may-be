@@ -1,6 +1,7 @@
 package com.example.beyond_may_be.place.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -67,7 +68,8 @@ class TourApiPlaceDetailClientTest {
             requestTo(org.hamcrest.Matchers.containsString("serviceKey=abc%2Bdef%2Fghi%3D")))
         .andRespond(withRawStatus(500));
 
-    assertThat(encodedClient.fetchDescription(126128L)).isNull();
+    assertThatThrownBy(() -> encodedClient.fetchDescription(126128L))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
     encodedServer.verify();
   }
 
@@ -120,12 +122,13 @@ class TourApiPlaceDetailClientTest {
             requestTo(org.hamcrest.Matchers.containsString("serviceKey=abc%2Bdef%2Fghi%3D")))
         .andRespond(withRawStatus(500));
 
-    assertThat(encodedClient.fetchBusinessHours(126128L, 12)).isNull();
+    assertThatThrownBy(() -> encodedClient.fetchBusinessHours(126128L, 12))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
     encodedServer.verify();
   }
 
   @Test
-  void convertsTourApiErrorToNullWithoutRetrying() {
+  void throwsWhenTourApiReturnsError() {
     server
         .expect(once(), requestTo(org.hamcrest.Matchers.any(String.class)))
         .andRespond(
@@ -135,22 +138,24 @@ class TourApiPlaceDetailClientTest {
                 """,
                 MediaType.APPLICATION_JSON));
 
-    assertThat(client.fetchDescription(126128L)).isNull();
+    assertThatThrownBy(() -> client.fetchDescription(126128L))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
     server.verify();
   }
 
   @Test
-  void convertsMalformedJsonToNull() {
+  void throwsWhenTourApiReturnsMalformedJson() {
     server
         .expect(once(), requestTo(org.hamcrest.Matchers.any(String.class)))
         .andRespond(withSuccess("{broken", MediaType.APPLICATION_JSON));
 
-    assertThat(client.fetchDescription(126128L)).isNull();
+    assertThatThrownBy(() -> client.fetchDescription(126128L))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
     server.verify();
   }
 
   @Test
-  void convertsTimeoutToNullWithoutRetrying() {
+  void throwsWhenTourApiTimesOut() {
     server
         .expect(once(), requestTo(org.hamcrest.Matchers.any(String.class)))
         .andRespond(
@@ -158,7 +163,38 @@ class TourApiPlaceDetailClientTest {
               throw new ResourceAccessException("timeout");
             });
 
-    assertThat(client.fetchBusinessHours(126128L, 12)).isNull();
+    assertThatThrownBy(() -> client.fetchBusinessHours(126128L, 12))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
     server.verify();
+  }
+
+  @Test
+  void returnsNullWhenSuccessfulResponseHasNoDescription() {
+    server
+        .expect(once(), requestTo(org.hamcrest.Matchers.any(String.class)))
+        .andRespond(
+            withSuccess(
+                """
+                {
+                  "response": {
+                    "header": {"resultCode": "0000"},
+                    "body": {"items": {"item": [{"overview": " "}]}}
+                  }
+                }
+                """,
+                MediaType.APPLICATION_JSON));
+
+    assertThat(client.fetchDescription(126128L)).isNull();
+    server.verify();
+  }
+
+  @Test
+  void throwsWhenServiceKeyIsMissing() {
+    TourApiPlaceDetailClient clientWithoutKey =
+        new TourApiPlaceDetailClient(
+            RestClient.builder().baseUrl("https://example.test").build(), "");
+
+    assertThatThrownBy(() -> clientWithoutKey.fetchDescription(126128L))
+        .isInstanceOf(TourApiPlaceDetailClient.TourApiPlaceDetailException.class);
   }
 }

@@ -14,13 +14,14 @@ import org.springframework.stereotype.Service;
 public class PlaceDetailEnrichmentService {
 
   private static final Logger log = LoggerFactory.getLogger(PlaceDetailEnrichmentService.class);
+  private static final String DESCRIPTION_NOT_AVAILABLE = "상세 설명 정보 없음";
+  private static final String BUSINESS_HOURS_NOT_AVAILABLE = "운영시간 정보 없음";
 
   private final PlaceRepository placeRepository;
   private final TourApiPlaceDetailClient detailClient;
 
   @Async
   public void enrichAsync(List<Long> placeIds) {
-    // 7-1. 추천 응답에 실제 포함된 장소만 별도 스레드에서 불러와 HTTP 응답을 기다리게 하지 않는다.
     List<Place> places;
     try {
       places = placeRepository.findAllById(placeIds);
@@ -28,42 +29,67 @@ public class PlaceDetailEnrichmentService {
       log.warn("추천 장소 상세정보 보강 대상을 불러오지 못했습니다.");
       return;
     }
-    // 7-2. 설명과 운영시간을 서로 독립적으로 처리해 한 필드의 실패가 다른 보강을 막지 않는다.
+
     for (Place place : places) {
-      enrichDescription(place);
-      enrichBusinessHours(place);
+      try {
+        enrich(place);
+      } catch (RuntimeException ignored) {
+        log.warn("추천 장소 상세정보 보강에 실패했습니다. placeId={}", place.getId());
+      }
     }
   }
 
-  private void enrichDescription(Place place) {
-    if (place.getTourContentId() == null || !isBlank(place.getDescription())) {
-      return;
+  public boolean enrich(Place place) {
+    boolean descriptionUpdated = false;
+    boolean businessHoursUpdated = false;
+    TourApiPlaceDetailClient.TourApiPlaceDetailException firstFailure = null;
+    try {
+      descriptionUpdated = enrichDescription(place);
+    } catch (TourApiPlaceDetailClient.TourApiPlaceDetailException exception) {
+      firstFailure = exception;
     }
     try {
-      String description = detailClient.fetchDescription(place.getTourContentId());
-      if (!isBlank(description)) {
-        placeRepository.updateDescriptionIfMissing(place.getId(), description);
+      businessHoursUpdated = enrichBusinessHours(place);
+    } catch (TourApiPlaceDetailClient.TourApiPlaceDetailException exception) {
+      if (firstFailure == null) {
+        firstFailure = exception;
       }
-    } catch (RuntimeException ignored) {
-      log.warn("추천 장소 설명 보강에 실패했습니다. placeId={}", place.getId());
     }
+    if (firstFailure != null) {
+      throw firstFailure;
+    }
+    return descriptionUpdated || businessHoursUpdated;
   }
 
-  private void enrichBusinessHours(Place place) {
-    if (place.getTourContentId() == null
-        || place.getTourContentTypeId() == null
-        || !isBlank(place.getBusinessHours())) {
-      return;
+  private boolean enrichDescription(Place place) {
+    if (!isBlank(place.getDescription())) {
+      return false;
     }
-    try {
-      String businessHours =
-          detailClient.fetchBusinessHours(place.getTourContentId(), place.getTourContentTypeId());
-      if (!isBlank(businessHours)) {
-        placeRepository.updateBusinessHoursIfMissing(place.getId(), businessHours);
-      }
-    } catch (RuntimeException ignored) {
-      log.warn("추천 장소 운영시간 보강에 실패했습니다. placeId={}", place.getId());
+    String description =
+        place.getTourContentId() == null
+            ? null
+            : detailClient.fetchDescription(place.getTourContentId());
+    if (isBlank(description)) {
+      description = DESCRIPTION_NOT_AVAILABLE;
     }
+    placeRepository.updateDescriptionIfMissing(place.getId(), description);
+    return true;
+  }
+
+  private boolean enrichBusinessHours(Place place) {
+    if (!isBlank(place.getBusinessHours())) {
+      return false;
+    }
+    String businessHours =
+        place.getTourContentId() == null || place.getTourContentTypeId() == null
+            ? null
+            : detailClient.fetchBusinessHours(
+                place.getTourContentId(), place.getTourContentTypeId());
+    if (isBlank(businessHours)) {
+      businessHours = BUSINESS_HOURS_NOT_AVAILABLE;
+    }
+    placeRepository.updateBusinessHoursIfMissing(place.getId(), businessHours);
+    return true;
   }
 
   private boolean isBlank(String value) {

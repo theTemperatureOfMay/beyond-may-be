@@ -1,7 +1,5 @@
 package com.example.beyond_may_be.place.service;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -47,10 +45,13 @@ class PlaceDetailEnrichmentServiceTest {
     verifyNoMoreInteractions(detailClient);
     verify(placeRepository).updateDescriptionIfMissing(1L, "새 설명");
     verify(placeRepository).updateBusinessHoursIfMissing(2L, "10:00~20:00");
+    verify(placeRepository).updateDescriptionIfMissing(3L, "상세 설명 정보 없음");
+    verify(placeRepository).updateBusinessHoursIfMissing(3L, "운영시간 정보 없음");
+    verify(placeRepository).updateBusinessHoursIfMissing(4L, "운영시간 정보 없음");
   }
 
   @Test
-  void keepsMissingFieldsNullWhenTourApiDoesNotProvideValues() {
+  void storesFallbacksWhenTourApiDoesNotProvideValues() {
     Place place = place(1L, 1001L, 12, null, null);
     given(placeRepository.findAllById(List.of(1L))).willReturn(List.of(place));
     given(detailClient.fetchDescription(1001L)).willReturn(" ");
@@ -58,8 +59,8 @@ class PlaceDetailEnrichmentServiceTest {
 
     service.enrichAsync(List.of(1L));
 
-    verify(placeRepository, never()).updateDescriptionIfMissing(eq(1L), anyString());
-    verify(placeRepository, never()).updateBusinessHoursIfMissing(eq(1L), anyString());
+    verify(placeRepository).updateDescriptionIfMissing(1L, "상세 설명 정보 없음");
+    verify(placeRepository).updateBusinessHoursIfMissing(1L, "운영시간 정보 없음");
   }
 
   @Test
