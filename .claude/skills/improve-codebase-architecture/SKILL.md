@@ -1,6 +1,7 @@
 ---
 name: improve-codebase-architecture
-description: "Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick."
+description: "User-invoked, read-only architecture scan that writes one Markdown report under .dev/architecture-review and then stops."
+disable-model-invocation: true
 ---
 
 # Claude Code 연결 파일

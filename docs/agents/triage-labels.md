@@ -1,15 +1,14 @@
-# Triage Labels
+# Triage Status
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+`triage`는 GitHub label 대신 Local Markdown implementation ticket의 `Status:` 값을 쓴다.
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
-| -------------------------- | -------------------- | ---------------------------------------- |
-| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
-| `wontfix`                  | `wontfix`            | Will not be actioned                     |
+| Status | 의미 |
+|---|---|
+| `needs-triage` | maintainer 판단이 필요하다. |
+| `needs-info` | 요청자에게 추가 정보가 필요하다. |
+| `ready-for-agent` | 완전히 명세되어 agent가 구현할 수 있다. |
+| `ready-for-human` | 사람의 구현이나 직접 작업이 필요하다. |
+| `wontfix` | 이 initiative에서 진행하지 않는다. |
 
-When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
-
-Edit the right-hand column to match whatever vocabulary you actually use.
+완료 상태인 `resolved`는 `triage` 판정값이 아니다. 구현과 검증이 성공한 뒤 `implement`가
+설정한다.

@@ -92,7 +92,6 @@ recorded-date: 2026-08-12
 - [백엔드 아키텍처](../architecture/backend.md)
 - [ADR-0004](0004-course-exploration-lifecycle.md)
 - [ADR-0006](0006-no-distributed-state-or-auto-retry.md)
-- [260812-01 팀 탐험 실시간 백엔드 계획](../../.dev/plan/260812-01-exploration-realtime-plan.md)
 
 ### 영향 대상
 

@@ -1,37 +1,47 @@
 # Deepening
 
-How to deepen a cluster of shallow modules safely, given its dependencies. Assumes the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**.
+Use this guide when several shallow responsibilities may be combined behind an existing project
+surface. It applies the design criteria in [SKILL.md](SKILL.md) without renaming Spring or domain
+concepts.
 
-## Dependency categories
+## Read the real path first
 
-When assessing a candidate for deepening, classify its dependencies. The category determines how the deepened module is tested across its seam.
+Trace the Controller, Service, Converter, repository/client, DTO, tests, and relevant canonical
+documentation before proposing a merge. Identify which public methods, HTTP contracts, transactions,
+errors, and persistence rules callers already depend on.
 
-### 1. In-process
+## Dependency cases
 
-Pure computation, in-memory state, no I/O. Always deepenable — merge the modules and test through the new interface directly. No adapter needed.
+### In-process behavior
 
-### 2. Local-substitutable
+For calculation or state transitions without I/O, keep the observable public method and move scattered
+rules behind it. Verify known examples with JUnit and AssertJ.
 
-Dependencies that have local test stand-ins (PGLite for Postgres, in-memory filesystem). Deepenable if the stand-in exists. The deepened module is tested with the stand-in running in the test suite. The seam is internal; no port at the module's external interface.
+### PostgreSQL and repositories
 
-### 3. Remote but owned (Ports & Adapters)
+Do not replace production persistence semantics with an in-memory substitute merely for convenience.
+Use the existing repository injection seam for Service tests and Testcontainers when SQL, mappings,
+constraints, or transactions are part of the behavior.
 
-Your own services across a network boundary (microservices, internal APIs). Define a **port** (interface) at the seam. The deep module owns the logic; the transport is injected as an **adapter**. Tests use an in-memory adapter. Production uses an HTTP/gRPC/queue adapter.
+### HTTP and external clients
 
-Recommendation shape: *"Define a port at the seam, implement an HTTP adapter for production and an in-memory adapter for testing, so the logic sits in one deep module even though it's deployed across a network."*
+Preserve the existing client or API contract. Mockito can isolate an established injected client in a
+focused Service test; an integration test should use the repository's existing HTTP test pattern when
+serialization, security, or status codes matter. Do not add a new port solely for a test double.
 
-### 4. True external (Mock)
+### Framework extension points
 
-Third-party services (Stripe, Twilio, etc.) you don't control. The deepened module takes the external dependency as an injected port; tests provide a mock adapter.
+Spring configuration, servlet filters, Logback layouts, converters, and similar extension points are
+already seams when callers invoke their public framework contract. Test that contract rather than a
+private helper.
 
-## Seam discipline
+## Safe deepening
 
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a port unless at least two adapters are justified (typically production + test). A single-adapter seam is just indirection.
-- **Internal seams vs external seams.** A deep module can have internal seams (private to its implementation, used by its own tests) as well as the external seam at its interface. Don't expose internal seams through the interface just because tests use them.
-
-## Testing strategy: replace, don't layer
-
-- Old unit tests on shallow modules become waste once tests at the deepened module's interface exist — delete them.
-- Write new tests at the deepened module's interface. The **interface is the test surface**.
-- Tests assert on observable outcomes through the interface, not internal state.
-- Tests should survive internal refactors — they describe behaviour, not implementation. If a test has to change when the implementation changes, it's testing past the interface.
+1. Name the caller-visible behavior that must remain unchanged.
+2. Choose an existing public seam whenever it can observe that behavior.
+3. Compare the current and proposed responsibility placement, caller migration, transaction/error
+   behavior, and validation cost.
+4. Keep old tests until equivalent behavior is demonstrably covered at the new seam; delete only true
+   duplication.
+5. If the change creates a new public interface or restructures a load-bearing boundary, stop at the
+   design recommendation and route the work through the repository's approval flow.

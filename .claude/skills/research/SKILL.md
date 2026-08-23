@@ -1,6 +1,6 @@
 ---
 name: research
-description: "Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent."
+description: "Research a bounded question against repository canon and high-trust primary sources, then save a cited Markdown evidence record. Use when the user needs official documentation, specifications, source code, first-party API facts, or other reading legwork delegated to a background agent for a later decision."
 ---
 
 # Claude Code 연결 파일

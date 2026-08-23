@@ -1,5 +1,6 @@
 interface:
   display_name: "Wayfinder"
-  short_description: "큰 작업을 결정 티켓 지도로 구성"
+  short_description: "모호한 여러 세션 작업의 decision map 운영"
+  default_prompt: "Use $wayfinder to chart this foggy multi-session effort in a local Markdown decision map."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

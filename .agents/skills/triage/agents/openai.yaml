@@ -1,5 +1,6 @@
 interface:
   display_name: "Triage"
-  short_description: "이슈를 분류 역할에 따라 이동"
+  short_description: "로컬 ticket 상태·blocker·frontier를 판정"
+  default_prompt: "Use $triage to assess this local Markdown ticket, its blockers, and the current frontier."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
