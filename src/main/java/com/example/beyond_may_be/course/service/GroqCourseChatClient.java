@@ -26,9 +26,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
- * Groq(OpenAI 호환) chat completions API로 코스 챗봇(AI 코스 수정 요청)을 처리한다. API 키가 없거나
- * 호출·응답 파싱이 실패하면 빈 값을 반환한다. 이 기능에는 방문 순서 최적화(GroqCourseOrderClient)와
- * 달리 대체할 알고리즘이 없으므로, 호출부가 빈 값을 오류로 취급한다.
+ * Groq(OpenAI 호환) chat completions API로 코스 챗봇(AI 코스 수정 요청)을 처리한다. API 키가 없거나 호출·응답 파싱이 실패하면 빈 값을
+ * 반환한다. 이 기능에는 방문 순서 최적화(GroqCourseOrderClient)와 달리 대체할 알고리즘이 없으므로, 호출부가 빈 값을 오류로 취급한다.
  */
 @Slf4j
 @Component
@@ -94,7 +93,8 @@ public class GroqCourseChatClient {
     this(buildRestClient(timeoutSeconds), new ObjectMapper(), apiKey, model);
   }
 
-  GroqCourseChatClient(RestClient restClient, ObjectMapper objectMapper, String apiKey, String model) {
+  GroqCourseChatClient(
+      RestClient restClient, ObjectMapper objectMapper, String apiKey, String model) {
     this.restClient = restClient;
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
@@ -130,7 +130,8 @@ public class GroqCourseChatClient {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(
-                    buildRequestBody(course, currentPlaces, placesById, candidatePlaces, userMessage))
+                    buildRequestBody(
+                        course, currentPlaces, placesById, candidatePlaces, userMessage))
                 .retrieve()
                 .body(String.class);
 
@@ -306,10 +307,9 @@ public class GroqCourseChatClient {
   }
 
   /**
-   * 하루치 place id 목록을 파싱한다. 모델이 지시대로 콤마로 구분된 문자열("103,101,2")을 주면
-   * 그것을 분리해서 파싱하고, 혹시 숫자 JSON 배열([103, 101, 2])로 응답해도 그대로 지원한다. 콤마
-   * 구분 없이 숫자를 이어 붙인 경우(예: "1031012")는 여기서 걸러지지 않고 그대로 하나의 큰 숫자로
-   * 파싱되며, 이후 집합 검증(isValidRevision/isValidPlacement) 단계에서 개수 불일치로 걸러진다.
+   * 하루치 place id 목록을 파싱한다. 모델이 지시대로 콤마로 구분된 문자열("103,101,2")을 주면 그것을 분리해서 파싱하고, 혹시 숫자 JSON 배열([103,
+   * 101, 2])로 응답해도 그대로 지원한다. 콤마 구분 없이 숫자를 이어 붙인 경우(예: "1031012")는 여기서 걸러지지 않고 그대로 하나의 큰 숫자로 파싱되며,
+   * 이후 집합 검증(isValidRevision/isValidPlacement) 단계에서 개수 불일치로 걸러진다.
    */
   private List<Long> parseDayIds(JsonNode dayNode) {
     List<Long> ids = new ArrayList<>();
@@ -392,7 +392,9 @@ public class GroqCourseChatClient {
                         "longitude", place.getLongitude()))
             .toList();
     List<Place> currentPlaceEntities =
-        currentPlaces.stream().map(coursePlace -> placesById.get(coursePlace.getPlaceId())).toList();
+        currentPlaces.stream()
+            .map(coursePlace -> placesById.get(coursePlace.getPlaceId()))
+            .toList();
     Map<String, Object> payload =
         Map.of(
             "travelSchedule", course.getTravelSchedule().name(),

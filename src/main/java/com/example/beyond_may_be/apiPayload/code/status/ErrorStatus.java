@@ -27,22 +27,15 @@ public enum ErrorStatus implements BaseErrorCode {
   COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE404", "코스를 찾을 수 없습니다."),
   COURSE_FORBIDDEN(HttpStatus.FORBIDDEN, "COURSE403", "코스 소유자만 수행할 수 있습니다."),
   COURSE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "COURSE409", "이미 확정된 코스입니다."),
-  COURSE_INVALID_PLACE_COUNT(
-      HttpStatus.BAD_REQUEST, "COURSE400", "여행 기간에 필요한 최소 장소 수를 충족하지 않습니다."),
+  COURSE_INVALID_PLACE_COUNT(HttpStatus.BAD_REQUEST, "COURSE400", "여행 기간에 필요한 최소 장소 수를 충족하지 않습니다."),
   COURSE_DUPLICATE_PLACE(HttpStatus.BAD_REQUEST, "COURSE400_2", "중복된 장소가 포함되어 있습니다."),
   COURSE_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE404_2", "선택한 장소를 찾을 수 없습니다."),
-  COURSE_DAY_OUT_OF_RANGE(
-      HttpStatus.BAD_REQUEST, "COURSE400_4", "요청한 일자가 코스 여행 기간을 벗어났습니다."),
-  COURSE_CHAT_MESSAGE_TOO_LONG(
-      HttpStatus.BAD_REQUEST, "COURSE400_5", "요청 메시지는 150자를 초과할 수 없습니다."),
+  COURSE_DAY_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "COURSE400_4", "요청한 일자가 코스 여행 기간을 벗어났습니다."),
+  COURSE_CHAT_MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "COURSE400_5", "요청 메시지는 150자를 초과할 수 없습니다."),
   COURSE_AI_REVISION_LIMIT_EXCEEDED(
-      HttpStatus.CONFLICT,
-      "COURSE409_2",
-      "AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요."),
+      HttpStatus.CONFLICT, "COURSE409_2", "AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요."),
   COURSE_AI_REQUEST_FAILED(
-      HttpStatus.SERVICE_UNAVAILABLE,
-      "COURSE503",
-      "AI 코스 수정 요청이 실패했습니다. 잠시 후 다시 시도해주세요."),
+      HttpStatus.SERVICE_UNAVAILABLE, "COURSE503", "AI 코스 수정 요청이 실패했습니다. 잠시 후 다시 시도해주세요."),
 
   // Exploration
   EXPLORATION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404", "탐험을 찾을 수 없습니다."),

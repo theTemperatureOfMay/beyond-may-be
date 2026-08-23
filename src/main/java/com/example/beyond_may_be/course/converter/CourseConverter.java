@@ -53,7 +53,8 @@ public final class CourseConverter {
             .filter(coursePlace -> placesById.containsKey(coursePlace.getPlaceId()))
             .map(coursePlace -> toCoursePlaceSummary(coursePlace, placesById))
             .toList();
-    return new CourseDtos.ChatResponse(type, message, proposedPlaces, recommendations, remainingRevisions);
+    return new CourseDtos.ChatResponse(
+        type, message, proposedPlaces, recommendations, remainingRevisions);
   }
 
   private static CourseDtos.CoursePlaceSummary toCoursePlaceSummary(

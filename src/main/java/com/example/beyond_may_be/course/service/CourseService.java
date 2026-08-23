@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -123,7 +122,8 @@ public class CourseService {
       throw new CourseHandler(ErrorStatus.COURSE_PLACE_NOT_FOUND);
     }
 
-    int totalDays = dayCount(course.getTravelSchedule(), course.getStartDate(), course.getEndDate());
+    int totalDays =
+        dayCount(course.getTravelSchedule(), course.getStartDate(), course.getEndDate());
     Set<String> daySlotsSeen = new HashSet<>();
     for (CourseDtos.PlaceOrderItem item : items) {
       if (item.dayNumber() < 1 || item.dayNumber() > totalDays) {

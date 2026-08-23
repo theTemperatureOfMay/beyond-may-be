@@ -578,7 +578,8 @@ class CourseServiceTest {
         courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("야경 명소 앞에 넣어줘"));
 
     assertThat(response.type()).isEqualTo("COURSE_REVISION");
-    assertThat(response.proposedPlaces().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+    assertThat(
+            response.proposedPlaces().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
         .containsExactly(3L, 1L, 2L);
     assertThat(response.remainingRevisions()).isEqualTo(1);
     assertThat(course.getAiRevisionCount()).isEqualTo(1);
@@ -593,7 +594,8 @@ class CourseServiceTest {
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
     given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
         .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
-    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(List.of(placeAt(1L, 35.00, "A")));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(1L, 35.00, "A")));
     given(placeRepository.findByActiveTrue()).willReturn(List.of(placeAt(5L, 35.00, "양림동 카페")));
     given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
         .willReturn(
@@ -646,7 +648,8 @@ class CourseServiceTest {
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
     given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
         .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
-    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(List.of(placeAt(1L, 35.00, "A")));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(1L, 35.00, "A")));
     given(placeRepository.findByActiveTrue()).willReturn(List.of());
     given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
         .willReturn(Optional.empty());
