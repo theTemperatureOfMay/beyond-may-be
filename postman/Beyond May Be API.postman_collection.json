@@ -831,6 +831,541 @@
               "body": "{\n  \"message\": \"코스를 찾을 수 없습니다.\",\n  \"code\": \"COURSE404\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
+        },
+        {
+          "name": "DRAFT 코스 조회",
+          "description": "미확정(DRAFT) 코스를 소유자 본인만 조회합니다(3.2 코스 수정 화면 진입용). 공개 미리보기용 '코스(확정) 조회'와 달리 인증이 필요하고 CONFIRMED 코스는 대상이 아닙니다(ADR-0013). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/draft"
+          },
+          "response": [
+            {
+              "name": "200 - DRAFT 코스 상세",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/draft"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"DRAFT\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 1,\n        \"name\": \"테스트 장소\",\n        \"category\": \"카페\",\n        \"address\": \"광주 동구 테스트로 1\",\n        \"latitude\": 35.1595,\n        \"longitude\": 126.8526,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": null\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "403 - 소유자가 아님",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/draft"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"코스 소유자만 수행할 수 있습니다.\",\n  \"code\": \"COURSE403\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "코스 수정 (직접)",
+          "description": "DRAFT 코스의 장소 순서를 직접 변경·삭제·추가합니다(3.2.2). 요청 places 배열이 그 코스의 최종 상태 전체를 대체합니다 — 제외된 장소는 삭제로 취급됩니다. 코스에 없던 새 placeId도 실제 `places` 테이블에 존재하면 추가할 수 있습니다(신규 추가 장소의 estimatedStayMinutes는 기본값 60분, 존재하지 않으면 404). 여행 기간별 최소 장소 수 미만이면 거부됩니다. 되돌리기(↺) 이력은 프런트엔드가 로컬로 관리합니다(ADR-0013). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/places",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"places\": [\n    { \"placeId\": 3, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 - 수정 성공",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"places\": [\n    { \"placeId\": 3, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"DRAFT\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 3,\n        \"name\": \"장소3\",\n        \"category\": \"카페\",\n        \"address\": \"광주\",\n        \"latitude\": 35.15,\n        \"longitude\": 126.85,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": null\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 최소 장소 수 미달",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"places\": [\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 1 }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"여행 기간에 필요한 최소 장소 수를 충족하지 않습니다.\",\n  \"code\": \"COURSE400\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "200 - 코스에 없던 장소 추가",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"places\": [\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 5, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"DRAFT\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 5,\n        \"name\": \"양림동 카페\",\n        \"category\": \"카페\",\n        \"address\": \"광주 남구\",\n        \"latitude\": 35.14,\n        \"longitude\": 126.91,\n        \"dayNumber\": 1,\n        \"visitOrder\": 3,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": \"WALK\"\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "404 - 존재하지 않는 장소",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"places\": [\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 999999, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"선택한 장소를 찾을 수 없습니다.\",\n  \"code\": \"COURSE404_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "코스 챗봇 - 수정 요청",
+          "description": "자유 텍스트로 AI에게 코스 수정을 요청합니다(3.2.1). Groq 응답에 따라 수정된 코스 미리보기(`COURSE_REVISION`) 또는 장소 추천(`ADD_RECOMMENDATION`)을 돌려주며, 이 시점에는 코스가 저장되지 않습니다 — 미리보기를 반영하려면 '코스 챗봇 - 적용'을, 추천 장소를 코스에 넣으려면 '코스 수정 (직접)'을 호출해야 합니다. `ADD_RECOMMENDATION`은 활성 상태인 실제 `places` 레코드 중에서만 추천하도록 강제되며 응답에 실제 `placeId`가 포함됩니다. Course별 최대 2회까지만 요청할 수 있습니다. 메시지는 최대 150자입니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/chat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"야경 명소 넣어줘\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 - 코스 재배치 미리보기",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/chat",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"야경 명소 넣어줘\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"type\": \"COURSE_REVISION\",\n    \"message\": \"야경 명소를 마지막 순서로 옮겼어요\",\n    \"proposedPlaces\": [\n      {\n        \"placeId\": 3,\n        \"name\": \"장소3\",\n        \"category\": \"야경 명소\",\n        \"address\": \"광주\",\n        \"latitude\": 35.15,\n        \"longitude\": 126.85,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": null\n      }\n    ],\n    \"recommendations\": [],\n    \"remainingRevisions\": 1\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "200 - 장소 추천",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/chat",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"카페 한 곳 추가\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"type\": \"ADD_RECOMMENDATION\",\n    \"message\": \"조용한 로컬 카페를 추천해요\",\n    \"proposedPlaces\": [],\n    \"recommendations\": [\n      {\n        \"placeId\": 5,\n        \"name\": \"양림동 카페\",\n        \"category\": \"카페\",\n        \"address\": \"광주 남구\",\n        \"latitude\": 35.14,\n        \"longitude\": 126.91,\n        \"reason\": \"조용한 로컬 카페입니다\"\n      }\n    ],\n    \"remainingRevisions\": 1\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "409 - AI 수정 요청 횟수 초과",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/chat",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"한 번 더 바꿔줘\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요.\",\n  \"code\": \"COURSE409_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "코스 챗봇 - 적용",
+          "description": "'코스 챗봇 - 수정 요청' 응답의 `proposedPlaces`를 그대로 다시 보내 코스에 실제로 반영합니다(3.2.1 '이 코스로 변경'). 검증 규칙은 '코스 수정 (직접)'과 동일합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/chat/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"places\": [\n    { \"placeId\": 3, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 - 적용 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/chat/apply",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"places\": [\n    { \"placeId\": 3, \"dayNumber\": 1, \"visitOrder\": 1 },\n    { \"placeId\": 1, \"dayNumber\": 1, \"visitOrder\": 2 },\n    { \"placeId\": 2, \"dayNumber\": 1, \"visitOrder\": 3 }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"DRAFT\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 3,\n        \"name\": \"장소3\",\n        \"category\": \"야경 명소\",\n        \"address\": \"광주\",\n        \"latitude\": 35.15,\n        \"longitude\": 126.85,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": null\n      }\n    ]\n  },\n  \"success\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "코스 챗봇 - 추천 장소 추가",
+          "description": "코스 챗봇이 추천한 장소를 코스에 추가하면서 Groq에게 기존 코스 전체 + 새 장소를 다시 보내 거리·동선을 고려해 전체 순서를 재배치합니다. 미리보기 단계 없이 즉시 저장됩니다. `Course.aiRevisionCount`(3.2.1 텍스트 요청용 2회 제한)와는 무관하며 소비하지 않습니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`, `placeId`. 요청 본문은 없습니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/1/places/5"
+          },
+          "response": [
+            {
+              "name": "200 - 추가 및 재배치 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places/5"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"title\": \"광주 여행\",\n    \"status\": \"DRAFT\",\n    \"travelSchedule\": \"DAY_TRIP\",\n    \"startDate\": \"2026-08-20\",\n    \"endDate\": \"2026-08-20\",\n    \"startTime\": \"09:00:00\",\n    \"places\": [\n      {\n        \"placeId\": 1,\n        \"name\": \"장소1\",\n        \"category\": \"카페\",\n        \"travelMbtiType\": \"THINKER\",\n        \"address\": \"광주\",\n        \"latitude\": 35.15,\n        \"longitude\": 126.85,\n        \"dayNumber\": 1,\n        \"visitOrder\": 1,\n        \"estimatedStayMinutes\": 30,\n        \"travelModeFromPrevious\": null\n      },\n      {\n        \"placeId\": 5,\n        \"name\": \"양림동 카페\",\n        \"category\": \"카페\",\n        \"travelMbtiType\": \"FOODIE\",\n        \"address\": \"광주 남구\",\n        \"latitude\": 35.14,\n        \"longitude\": 126.91,\n        \"dayNumber\": 1,\n        \"visitOrder\": 2,\n        \"estimatedStayMinutes\": 60,\n        \"travelModeFromPrevious\": \"WALK\"\n      },\n      {\n        \"placeId\": 2,\n        \"name\": \"장소2\",\n        \"category\": \"카페\",\n        \"travelMbtiType\": \"THINKER\",\n        \"address\": \"광주\",\n        \"latitude\": 35.15,\n        \"longitude\": 126.85,\n        \"dayNumber\": 1,\n        \"visitOrder\": 3,\n        \"estimatedStayMinutes\": 45,\n        \"travelModeFromPrevious\": \"WALK\"\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "409 - 이미 코스에 있는 장소",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places/1"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"중복된 장소가 포함되어 있습니다.\",\n  \"code\": \"COURSE400_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 존재하지 않는 장소",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/places/999999"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"선택한 장소를 찾을 수 없습니다.\",\n  \"code\": \"COURSE404_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
         }
       ]
     },

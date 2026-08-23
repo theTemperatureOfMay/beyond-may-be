@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,5 +29,43 @@ public class CourseController {
   @GetMapping("/{courseId}")
   public ApiResponse<CourseDtos.CourseDetailResponse> getCourseDetail(@PathVariable Long courseId) {
     return ApiResponse.onSuccess(courseService.getCourseDetail(courseId));
+  }
+
+  @GetMapping("/{courseId}/draft")
+  public ApiResponse<CourseDtos.CourseDetailResponse> getDraftDetail(
+      @PathVariable Long courseId, @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(courseService.getDraftDetail(courseId, userId));
+  }
+
+  @PutMapping("/{courseId}/places")
+  public ApiResponse<CourseDtos.CourseDetailResponse> editPlaces(
+      @PathVariable Long courseId,
+      @AuthenticationPrincipal Long userId,
+      @RequestBody CourseDtos.UpdatePlacesRequest request) {
+    return ApiResponse.onSuccess(courseService.editPlaces(courseId, userId, request));
+  }
+
+  @PostMapping("/{courseId}/chat")
+  public ApiResponse<CourseDtos.ChatResponse> requestChatRevision(
+      @PathVariable Long courseId,
+      @AuthenticationPrincipal Long userId,
+      @RequestBody CourseDtos.ChatRequest request) {
+    return ApiResponse.onSuccess(courseService.requestChatRevision(courseId, userId, request));
+  }
+
+  @PostMapping("/{courseId}/chat/apply")
+  public ApiResponse<CourseDtos.CourseDetailResponse> applyChatRevision(
+      @PathVariable Long courseId,
+      @AuthenticationPrincipal Long userId,
+      @RequestBody CourseDtos.ApplyChatRevisionRequest request) {
+    return ApiResponse.onSuccess(courseService.applyChatRevision(courseId, userId, request));
+  }
+
+  @PostMapping("/{courseId}/places/{placeId}")
+  public ApiResponse<CourseDtos.CourseDetailResponse> addRecommendedPlace(
+      @PathVariable Long courseId,
+      @PathVariable Long placeId,
+      @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(courseService.addRecommendedPlace(courseId, userId, placeId));
   }
 }
