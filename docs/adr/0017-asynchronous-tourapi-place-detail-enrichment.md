@@ -5,10 +5,10 @@ recorded-date: 2026-08-21
 last-updated: 2026-08-23
 ---
 
-# ADR-0016 추천 응답과 TourAPI 장소 상세정보 보강을 분리한다
+# ADR-0017 추천 응답과 TourAPI 장소 상세정보 보강을 분리한다
 
 > 공개 장소 상세 조회의 동기 보강과 정상 정보 부재 시 안내 문구를 저장하는 정책은
-> [ADR-0019](0019-on-demand-place-detail-enrichment.md)이 이 결정의 해당 경계를 부분
+> [ADR-0020](0020-on-demand-place-detail-enrichment.md)이 이 결정의 해당 경계를 부분
 > 대체한다. 추천 응답과 비동기 보강을 분리하는 이 결정은 계속 유효하다.
 
 초기 장소와 런타임에 추가된 장소는 설명이나 운영시간이 없을 수 있지만, 추천 요청에서
@@ -69,7 +69,7 @@ PostgreSQL `places`를 계속 런타임 정본으로 사용한다.
 - 검사 스킬: `change-impact-review`
 - 검사 일자: 2026-08-21
 - 검사 결과: `통과`
-- 검사 근거: ADR-0003·ADR-0014의 부분 대체 관계, 제품 기능·사용자 흐름·MVP·백엔드
+- 검사 근거: ADR-0003·ADR-0015의 부분 대체 관계, 제품 기능·사용자 흐름·MVP·백엔드
   아키텍처·OpenAPI 설명·Postman과 실제 클라이언트·Service·Repository·migration·테스트를
   대조했다. 전체 119개 테스트, Spotless, build, 제품 지식 베이스·하네스 semantic 검사,
   Postman JSON 파싱과 `git diff --check`가 통과했고 Standards·Spec 코드 리뷰의 남은

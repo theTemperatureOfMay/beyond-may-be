@@ -91,4 +91,8 @@ public class Course extends BaseEntity {
     this.confirmedAt = confirmedAt;
     this.shareExpiresAt = shareExpiresAt;
   }
+
+  public void incrementAiRevisionCount() {
+    this.aiRevisionCount++;
+  }
 }

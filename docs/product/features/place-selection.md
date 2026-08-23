@@ -156,7 +156,7 @@ TourAPI 신분류체계 대분류는 `NA→THINKER(자연 관광)`, `FD→FOODIE
 중심관광지 보조 순위는 `LocgoHubTarService1/areaBasedList1`로 수집한다.
 신규 응답은 콘텐츠 ID·장소명·지원 대분류·주소·좌표가 모두 유효할 때만 저장하며,
 빈 설명·운영시간·썸네일은 `null`로 둔다. 기존 콘텐츠 ID는 수정하지 않는다. 이 제한된
-런타임 보충 경계는 [ADR-0014](../../adr/0014-tourapi-shortage-refill.md)를 따른다.
+런타임 보충 경계는 [ADR-0015](../../adr/0015-tourapi-shortage-refill.md)를 따른다.
 신규 장소의 여행 성향은 신분류 L1로 결정하고, 화면용 `category`는 로컬 매핑에서 확인되는
 가장 구체적인 명칭(L3→L2→L1), `tags`는 사용 가능한 L1·L2·L3 명칭을 순서대로 저장한다.
 추천 요청 중 `lclsSystmCode2`를 다시 호출하지 않는다.
@@ -164,8 +164,8 @@ TourAPI 신분류체계 대분류는 `NA→THINKER(자연 관광)`, `FD→FOODIE
 상세정보 사후 보강은 현재 추천 응답에 포함된 장소만 대상으로 한다. 최초 응답의 소개는
 `null`일 수 있으며, 보강된 값은 이후 DB 조회부터 사용할 수 있다. 2.2.4 상세 조회 시에도
 값이 비어 있으면 필요한 TourAPI만 동기 호출해 저장한 뒤 같은 응답에 포함한다. 추천 응답
-분리는 [ADR-0016](../../adr/0016-asynchronous-tourapi-place-detail-enrichment.md), 상세 조회
-경계는 [ADR-0019](../../adr/0019-on-demand-place-detail-enrichment.md)을 따른다.
+분리는 [ADR-0017](../../adr/0017-asynchronous-tourapi-place-detail-enrichment.md), 상세 조회
+경계는 [ADR-0020](../../adr/0020-on-demand-place-detail-enrichment.md)을 따른다.
 
 AI 실패 시 규칙 기반 폴백 → 적용
 
@@ -246,7 +246,7 @@ AI 실패 시 규칙 기반 폴백 → 적용
 
 좋아요·싫어요는 확정 반응으로 저장한다. 다음 회차는 기존 성향·기간 추천 규칙을
 재사용하며 반응 기반 별도 재랭킹은 하지 않는다. 회차 간 장소 중복 금지와 최종 부분 회차는
-[ADR-0018](../../adr/0018-recommendation-batch-recovery.md)을 따른다.
+[ADR-0019](../../adr/0019-recommendation-batch-recovery.md)을 따른다.
 
 서버 전송 시점 → 추천 회차별 전체 스와이프 종료 후 한 번 일괄 전송
 

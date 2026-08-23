@@ -247,4 +247,4 @@ GPS 정확도 기준값은 50m다. 좌표 payload와 채널 계약은 별도 API
 우선 반환하고 설명·운영시간이 비어 있으면 2.2.4와 같은 동기 TourAPI 보강·정보 없음
 저장·`PLACE503` 재시도 경계를 적용한다. 방문 완료 배지와 지도 밝히기 버튼 상태는 이
 카탈로그 응답에 포함하지 않고 탐험·방문 API 결과와 클라이언트 GPS 상태를 조합한다
-([ADR-0019](../../adr/0019-on-demand-place-detail-enrichment.md)).
+([ADR-0020](../../adr/0020-on-demand-place-detail-enrichment.md)).

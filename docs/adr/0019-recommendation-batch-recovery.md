@@ -4,7 +4,7 @@ decision-date: 2026-08-23
 recorded-date: 2026-08-23
 ---
 
-# ADR-0018 추천 회차는 장소를 중복하지 않고 마지막 부분 회차를 허용한다
+# ADR-0019 추천 회차는 장소를 중복하지 않고 마지막 부분 회차를 허용한다
 
 현재 추천 조회는 재진입한 사용자가 서버에 확정된 회차별 장소와 반응을 정확히 복구할 수
 있어야 한다. 현재 추천 세트는 순서가 있는 장소 ID 배열과 전체 좋아요·싫어요 ID 배열만
@@ -28,7 +28,7 @@ recorded-date: 2026-08-23
   이력은 계속 프런트엔드 로컬 상태로 둔다.
 
 이 결정은 싫어요 장소를 다음 회차에 한 번 재추천하던
-[ADR-0017](0017-recommendation-batch-shortage-fallback.md)을 대체한다. 현재 추천 세트와
+[ADR-0018](0018-recommendation-batch-shortage-fallback.md)을 대체한다. 현재 추천 세트와
 확정 반응을 서버가 보존하고 회차별로 반응을 받는 상태 소유권 결정은 유지한다.
 
 ### 검토한 대안
@@ -48,15 +48,15 @@ recorded-date: 2026-08-23
 - 변경한 대상: 장소 선택 기능 명세, 기능 명세의 TourAPI 사용표, 사용자 흐름, 제품 논의
   필요, MVP 상태, 백엔드 아키텍처, Postman 안내·컬렉션과 추천
   Controller·DTO·Converter·Service 및 Service·MockMvc 테스트. 현재 추천 조회의
-  `places[].summary`는 ADR-0016과 실제 저장 상태에 맞춰 OpenAPI에서도 `string | null`로
+  `places[].summary`는 ADR-0017과 실제 저장 상태에 맞춰 OpenAPI에서도 `string | null`로
   명시했고, 기존 계약의 nullable `thumbnailUrl`도 함께 검증했다.
 - 확인했지만 변경하지 않은 대상: 인증과 공통 `ApiResponse` 계약,
   `recommendation_sets` Entity·Repository·Flyway schema, TourAPI·Groq 클라이언트와
   비밀값 설정, 하네스·스킬 규칙과 프런트엔드 로컬 상태의 내부 복구 방식
-- 확인하지 못함: 실제 프런트엔드 재진입 E2E, 운영 데이터의 ADR-0017 추천 세트 존재 여부,
+- 확인하지 못함: 실제 프런트엔드 재진입 E2E, 운영 데이터의 ADR-0018 추천 세트 존재 여부,
   실제 TourAPI·Groq 응답. Docker 데몬이 응답하지 않아 전체 테스트와 테스트를 포함한 전체
   빌드는 실행 단계에서 완료하지 못했다.
-- 배포 조건: ADR-0017 방식으로 저장된 현재 추천 세트가 없는 환경에만 배포한다. 회차 간
+- 배포 조건: ADR-0018 방식으로 저장된 현재 추천 세트가 없는 환경에만 배포한다. 회차 간
   중복 ID가 있거나 첫 부분 회차 뒤에 전체 회차가 이어진 기존 세트가 있으면 배포를 멈추고
   초기화 또는 migration을 별도 결정·승인한다. 이번 변경은 운영 데이터를 수정하지 않는다.
 - 미해결: 저장소의 공개 계약·코드·문서·테스트 사이에 남은 불일치는 없다. 위 배포 조건에

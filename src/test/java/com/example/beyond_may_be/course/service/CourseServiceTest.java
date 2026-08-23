@@ -30,6 +30,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class CourseServiceTest {
@@ -51,6 +53,7 @@ class CourseServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private CoursePlaceRepository coursePlaceRepository;
   @Mock private PlaceRepository placeRepository;
+  @Mock private GroqCourseChatClient groqCourseChatClient;
 
   private Course draftCourse() {
     return Course.builder()
@@ -63,6 +66,23 @@ class CourseServiceTest {
         .startTime(LocalTime.of(9, 0))
         .aiRevisionCount(0)
         .build();
+  }
+
+  private Place placeAt(long id, double lat, String name) {
+    Place place =
+        Place.builder()
+            .name(name)
+            .category("카페")
+            .travelMbtiType(TravelPreferenceType.THINKER)
+            .address("광주")
+            .latitude(BigDecimal.valueOf(lat))
+            .longitude(BigDecimal.valueOf(126.85))
+            .businessHours("09:00-18:00")
+            .description("설명")
+            .active(true)
+            .build();
+    ReflectionTestUtils.setField(place, "id", id);
+    return place;
   }
 
   @DisplayName("소유자가 DRAFT 코스를 확정하면 Exploration과 OWNER Participant가 생성된다.")
@@ -209,5 +229,535 @@ class CourseServiceTest {
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
 
     assertThrows(ExplorationHandler.class, () -> courseService.getCourseDetail(10L));
+  }
+
+  private CoursePlace existingCoursePlace(long placeId, int day, int order, int stayMinutes) {
+    return CoursePlace.builder()
+        .courseId(10L)
+        .placeId(placeId)
+        .dayNumber(day)
+        .visitOrder(order)
+        .estimatedStayMinutes(stayMinutes)
+        .travelModeFromPrevious(order == 1 ? null : "WALK")
+        .build();
+  }
+
+  private void stubThreePlaceCourse() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    given(coursePlaceRepository.saveAll(Mockito.<List<CoursePlace>>any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willAnswer(
+            invocation -> {
+              Iterable<Long> ids = invocation.getArgument(0);
+              List<Place> places = new java.util.ArrayList<>();
+              for (Long id : ids) {
+                places.add(placeAt(id, 35.00, "장소" + id));
+              }
+              return places;
+            });
+  }
+
+  @DisplayName("순서만 바꾸면 저장된 CoursePlace가 새 순서로 바뀌고 travelModeFromPrevious가 재계산된다.")
+  @Test
+  void editPlaces_reorderOnly_updatesOrderAndTravelMode() {
+    stubThreePlaceCourse();
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(3L, 1, 1),
+                new CourseDtos.PlaceOrderItem(1L, 1, 2),
+                new CourseDtos.PlaceOrderItem(2L, 1, 3)));
+
+    CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
+
+    assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(3L, 1L, 2L);
+    assertThat(response.places().get(0).travelModeFromPrevious()).isNull();
+    assertThat(response.places().get(1).travelModeFromPrevious()).isEqualTo("WALK");
+    assertThat(response.places().get(2).travelModeFromPrevious()).isEqualTo("WALK");
+  }
+
+  @DisplayName(
+      "삭제를 먼저 flush한 뒤에 새 순서를 저장한다(IDENTITY 전략의 즉시 INSERT가"
+          + " 아직 삭제되지 않은 (day,order) 슬롯과 충돌하지 않도록).")
+  @Test
+  void editPlaces_flushesDeleteBeforeSavingNewRows() {
+    stubThreePlaceCourse();
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(3L, 1, 1),
+                new CourseDtos.PlaceOrderItem(1L, 1, 2),
+                new CourseDtos.PlaceOrderItem(2L, 1, 3)));
+
+    courseService.editPlaces(10L, 1L, request);
+
+    org.mockito.InOrder inOrder = Mockito.inOrder(coursePlaceRepository);
+    inOrder.verify(coursePlaceRepository).deleteByCourseId(10L);
+    inOrder.verify(coursePlaceRepository).flush();
+    inOrder.verify(coursePlaceRepository).saveAll(Mockito.<List<CoursePlace>>any());
+  }
+
+  @DisplayName("장소를 일부 제외해도 최소 장소 수 이상이면 통과한다.")
+  @Test
+  void editPlaces_removeSomePlaces_succeedsAboveMinimum() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60),
+                existingCoursePlace(4L, 1, 4, 20)));
+    given(coursePlaceRepository.saveAll(Mockito.<List<CoursePlace>>any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willAnswer(
+            invocation -> {
+              Iterable<Long> ids = invocation.getArgument(0);
+              List<Place> places = new java.util.ArrayList<>();
+              for (Long id : ids) {
+                places.add(placeAt(id, 35.00, "장소" + id));
+              }
+              return places;
+            });
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(2L, 1, 2),
+                new CourseDtos.PlaceOrderItem(3L, 1, 3)));
+
+    CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
+
+    assertThat(response.places()).hasSize(3);
+  }
+
+  @DisplayName("최소 장소 수 미달이면 예외가 발생한다.")
+  @Test
+  void editPlaces_belowMinimumPlaceCount_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(List.of(new CourseDtos.PlaceOrderItem(1L, 1, 1)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("요청에 중복 placeId가 있으면 예외가 발생한다.")
+  @Test
+  void editPlaces_duplicatePlaceIds_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(1L, 1, 2),
+                new CourseDtos.PlaceOrderItem(2L, 1, 3)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("존재하지 않는 placeId가 포함되면 예외가 발생한다.")
+  @Test
+  void editPlaces_placeDoesNotExist_throwsNotFound() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(List.of());
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(2L, 1, 2),
+                new CourseDtos.PlaceOrderItem(999L, 1, 3)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("코스에 없던 placeId도 실제로 존재하면 추가되고 기본 체류시간이 채워진다.")
+  @Test
+  void editPlaces_addsNewExistingPlace_withDefaultStayMinutes() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(4L, 35.00, "새 장소")));
+    given(coursePlaceRepository.saveAll(Mockito.<List<CoursePlace>>any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(placeRepository.findAllById(List.of(1L, 2L, 3L, 4L)))
+        .willReturn(
+            List.of(
+                placeAt(1L, 35.00, "장소1"),
+                placeAt(2L, 35.00, "장소2"),
+                placeAt(3L, 35.00, "장소3"),
+                placeAt(4L, 35.00, "새 장소")));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(2L, 1, 2),
+                new CourseDtos.PlaceOrderItem(3L, 1, 3),
+                new CourseDtos.PlaceOrderItem(4L, 1, 4)));
+
+    CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
+
+    assertThat(response.places()).hasSize(4);
+    CourseDtos.CoursePlaceSummary added =
+        response.places().stream().filter(p -> p.placeId().equals(4L)).findFirst().orElseThrow();
+    assertThat(added.estimatedStayMinutes()).isEqualTo(60);
+  }
+
+  @DisplayName("dayNumber가 여행 기간 범위를 벗어나면 예외가 발생한다.")
+  @Test
+  void editPlaces_dayOutOfRange_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(2L, 2, 1), // DAY_TRIP은 1일뿐
+                new CourseDtos.PlaceOrderItem(3L, 1, 2)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("같은 일자·순서 조합이 중복되면 예외가 발생한다.")
+  @Test
+  void editPlaces_duplicateDayOrderSlot_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(1L, 1, 1),
+                new CourseDtos.PlaceOrderItem(2L, 1, 1),
+                new CourseDtos.PlaceOrderItem(3L, 1, 2)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("소유자가 아니면 수정할 수 없다.")
+  @Test
+  void editPlaces_notOwner_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(List.of(new CourseDtos.PlaceOrderItem(1L, 1, 1)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 2L, request));
+  }
+
+  @DisplayName("이미 확정된 코스는 수정할 수 없다.")
+  @Test
+  void editPlaces_alreadyConfirmed_throws() {
+    Course course = draftCourse();
+    course.confirm(LocalDateTime.now(), LocalDateTime.now().plusDays(3));
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(List.of(new CourseDtos.PlaceOrderItem(1L, 1, 1)));
+
+    assertThrows(CourseHandler.class, () -> courseService.editPlaces(10L, 1L, request));
+  }
+
+  @DisplayName("estimatedStayMinutes는 기존 값을 그대로 보존한다.")
+  @Test
+  void editPlaces_preservesEstimatedStayMinutes() {
+    stubThreePlaceCourse();
+    CourseDtos.UpdatePlacesRequest request =
+        new CourseDtos.UpdatePlacesRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(3L, 1, 1),
+                new CourseDtos.PlaceOrderItem(1L, 1, 2),
+                new CourseDtos.PlaceOrderItem(2L, 1, 3)));
+
+    CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
+
+    Map<Long, Integer> stayByPlaceId =
+        response.places().stream()
+            .collect(
+                java.util.stream.Collectors.toMap(
+                    CourseDtos.CoursePlaceSummary::placeId,
+                    CourseDtos.CoursePlaceSummary::estimatedStayMinutes));
+    assertThat(stayByPlaceId).containsEntry(1L, 30).containsEntry(2L, 45).containsEntry(3L, 60);
+  }
+
+  @DisplayName("소유자가 DRAFT 코스를 조회하면 장소가 반환된다.")
+  @Test
+  void getDraftDetail_ownerDraftCourse_returnsPlaces() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findAllById(List.of(1L))).willReturn(List.of(placeAt(1L, 35.00, "A")));
+
+    CourseDtos.CourseDetailResponse response = courseService.getDraftDetail(10L, 1L);
+
+    assertThat(response.status()).isEqualTo("DRAFT");
+    assertThat(response.places()).hasSize(1);
+  }
+
+  @DisplayName("소유자가 아니면 DRAFT 코스를 조회할 수 없다.")
+  @Test
+  void getDraftDetail_notOwner_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+
+    assertThrows(CourseHandler.class, () -> courseService.getDraftDetail(10L, 2L));
+  }
+
+  @DisplayName("이미 확정된 코스는 DRAFT 조회 대상이 아니다.")
+  @Test
+  void getDraftDetail_alreadyConfirmed_throws() {
+    Course course = draftCourse();
+    course.confirm(LocalDateTime.now(), LocalDateTime.now().plusDays(3));
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+
+    assertThrows(CourseHandler.class, () -> courseService.getDraftDetail(10L, 1L));
+  }
+
+  @DisplayName("존재하지 않는 코스를 DRAFT 조회하면 예외가 발생한다.")
+  @Test
+  void getDraftDetail_notFound_throws() {
+    given(courseRepository.findById(99L)).willReturn(Optional.empty());
+
+    assertThrows(CourseHandler.class, () -> courseService.getDraftDetail(99L, 1L));
+  }
+
+  @DisplayName("COURSE_REVISION 응답이면 미리보기를 반환하고 aiRevisionCount만 증가한다(저장 없음).")
+  @Test
+  void requestChatRevision_courseRevision_returnsPreviewWithoutPersisting() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willAnswer(
+            invocation -> {
+              Iterable<Long> ids = invocation.getArgument(0);
+              List<Place> places = new java.util.ArrayList<>();
+              for (Long id : ids) {
+                places.add(placeAt(id, 35.00, "장소" + id));
+              }
+              return places;
+            });
+    given(placeRepository.findByActiveTrue()).willReturn(List.of());
+    given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
+        .willReturn(
+            Optional.of(
+                new GroqCourseChatClient.ChatSuggestion(
+                    "COURSE_REVISION", "순서를 바꿨어요", List.of(List.of(3L, 1L, 2L)), List.of())));
+
+    CourseDtos.ChatResponse response =
+        courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("야경 명소 앞에 넣어줘"));
+
+    assertThat(response.type()).isEqualTo("COURSE_REVISION");
+    assertThat(
+            response.proposedPlaces().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(3L, 1L, 2L);
+    assertThat(response.remainingRevisions()).isEqualTo(1);
+    assertThat(course.getAiRevisionCount()).isEqualTo(1);
+    Mockito.verify(coursePlaceRepository, Mockito.never()).saveAll(Mockito.anyList());
+    Mockito.verify(coursePlaceRepository, Mockito.never()).deleteByCourseId(Mockito.anyLong());
+  }
+
+  @DisplayName("ADD_RECOMMENDATION 응답이면 추천 목록을 반환하고 aiRevisionCount가 증가한다.")
+  @Test
+  void requestChatRevision_addRecommendation_returnsRecommendations() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(1L, 35.00, "A")));
+    given(placeRepository.findByActiveTrue()).willReturn(List.of(placeAt(5L, 35.00, "양림동 카페")));
+    given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
+        .willReturn(
+            Optional.of(
+                new GroqCourseChatClient.ChatSuggestion(
+                    "ADD_RECOMMENDATION",
+                    "카페를 추천해요",
+                    List.of(),
+                    List.of(new GroqCourseChatClient.Recommendation(5L, "조용해요")))));
+
+    CourseDtos.ChatResponse response =
+        courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("카페 추가"));
+
+    assertThat(response.type()).isEqualTo("ADD_RECOMMENDATION");
+    assertThat(response.recommendations()).hasSize(1);
+    assertThat(response.recommendations().get(0).placeId()).isEqualTo(5L);
+    assertThat(response.recommendations().get(0).name()).isEqualTo("양림동 카페");
+    assertThat(course.getAiRevisionCount()).isEqualTo(1);
+  }
+
+  @DisplayName("메시지가 150자를 초과하면 예외가 발생하고 Groq를 호출하지 않는다.")
+  @Test
+  void requestChatRevision_messageTooLong_throwsWithoutCallingGroq() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    String longMessage = "가".repeat(151);
+
+    assertThrows(
+        CourseHandler.class,
+        () -> courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest(longMessage)));
+    Mockito.verifyNoInteractions(groqCourseChatClient);
+  }
+
+  @DisplayName("AI 수정 요청 횟수를 모두 사용하면 예외가 발생하고 Groq를 호출하지 않는다.")
+  @Test
+  void requestChatRevision_revisionLimitExceeded_throwsWithoutCallingGroq() {
+    Course course = draftCourse();
+    ReflectionTestUtils.setField(course, "aiRevisionCount", 2);
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+
+    assertThrows(
+        CourseHandler.class,
+        () -> courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("아무거나")));
+    Mockito.verifyNoInteractions(groqCourseChatClient);
+  }
+
+  @DisplayName("Groq 호출이 실패하면 예외가 발생하고 aiRevisionCount는 증가하지 않는다.")
+  @Test
+  void requestChatRevision_groqFails_throwsWithoutIncrementingCount() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(1L, 35.00, "A")));
+    given(placeRepository.findByActiveTrue()).willReturn(List.of());
+    given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
+        .willReturn(Optional.empty());
+
+    assertThrows(
+        CourseHandler.class,
+        () -> courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("아무거나")));
+    assertThat(course.getAiRevisionCount()).isEqualTo(0);
+  }
+
+  @DisplayName("챗봇 제안을 적용하면 직접 수정과 동일한 검증을 거쳐 저장된다.")
+  @Test
+  void applyChatRevision_appliesWithSameValidationAsEditPlaces() {
+    stubThreePlaceCourse();
+    CourseDtos.ApplyChatRevisionRequest request =
+        new CourseDtos.ApplyChatRevisionRequest(
+            List.of(
+                new CourseDtos.PlaceOrderItem(3L, 1, 1),
+                new CourseDtos.PlaceOrderItem(1L, 1, 2),
+                new CourseDtos.PlaceOrderItem(2L, 1, 3)));
+
+    CourseDtos.CourseDetailResponse response = courseService.applyChatRevision(10L, 1L, request);
+
+    assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(3L, 1L, 2L);
+  }
+
+  @DisplayName("챗봇 제안 적용도 최소 장소 수 미달이면 거부된다.")
+  @Test
+  void applyChatRevision_belowMinimumPlaceCount_throws() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    CourseDtos.ApplyChatRevisionRequest request =
+        new CourseDtos.ApplyChatRevisionRequest(List.of(new CourseDtos.PlaceOrderItem(1L, 1, 1)));
+
+    assertThrows(CourseHandler.class, () -> courseService.applyChatRevision(10L, 1L, request));
+  }
+
+  @DisplayName("추천 장소를 추가하면 Groq가 재배치한 순서로 저장되고 aiRevisionCount는 변하지 않는다.")
+  @Test
+  void addRecommendedPlace_addsAndReplacesWithGroqOrder() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(
+            List.of(
+                existingCoursePlace(1L, 1, 1, 30),
+                existingCoursePlace(2L, 1, 2, 45),
+                existingCoursePlace(3L, 1, 3, 60)));
+    given(placeRepository.findById(4L)).willReturn(Optional.of(placeAt(4L, 35.00, "새 장소")));
+    given(groqCourseChatClient.requestPlacementRevision(any(), any(), any(), any()))
+        .willReturn(Optional.of(List.of(List.of(1L, 4L, 2L, 3L))));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(4L, 35.00, "새 장소")));
+    given(coursePlaceRepository.saveAll(Mockito.<List<CoursePlace>>any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(placeRepository.findAllById(List.of(1L, 4L, 2L, 3L)))
+        .willReturn(
+            List.of(
+                placeAt(1L, 35.00, "장소1"),
+                placeAt(4L, 35.00, "새 장소"),
+                placeAt(2L, 35.00, "장소2"),
+                placeAt(3L, 35.00, "장소3")));
+
+    CourseDtos.CourseDetailResponse response = courseService.addRecommendedPlace(10L, 1L, 4L);
+
+    assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(1L, 4L, 2L, 3L);
+    CourseDtos.CoursePlaceSummary added =
+        response.places().stream().filter(p -> p.placeId().equals(4L)).findFirst().orElseThrow();
+    assertThat(added.estimatedStayMinutes()).isEqualTo(60);
+    assertThat(course.getAiRevisionCount()).isEqualTo(0);
+  }
+
+  @DisplayName("이미 코스에 있는 장소를 추가하려 하면 예외가 발생하고 Groq를 호출하지 않는다.")
+  @Test
+  void addRecommendedPlace_alreadyInCourse_throwsWithoutCallingGroq() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+
+    assertThrows(CourseHandler.class, () -> courseService.addRecommendedPlace(10L, 1L, 1L));
+    Mockito.verifyNoInteractions(groqCourseChatClient);
+  }
+
+  @DisplayName("존재하지 않는 장소를 추가하려 하면 예외가 발생하고 Groq를 호출하지 않는다.")
+  @Test
+  void addRecommendedPlace_placeNotFound_throwsWithoutCallingGroq() {
+    given(courseRepository.findById(10L)).willReturn(Optional.of(draftCourse()));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findById(999L)).willReturn(Optional.empty());
+
+    assertThrows(CourseHandler.class, () -> courseService.addRecommendedPlace(10L, 1L, 999L));
+    Mockito.verifyNoInteractions(groqCourseChatClient);
+  }
+
+  @DisplayName("Groq 삽입 재배치가 실패하면 예외가 발생하고 aiRevisionCount는 변하지 않는다.")
+  @Test
+  void addRecommendedPlace_groqFails_throwsWithoutChangingCount() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findById(4L)).willReturn(Optional.of(placeAt(4L, 35.00, "새 장소")));
+    given(groqCourseChatClient.requestPlacementRevision(any(), any(), any(), any()))
+        .willReturn(Optional.empty());
+
+    assertThrows(CourseHandler.class, () -> courseService.addRecommendedPlace(10L, 1L, 4L));
+    assertThat(course.getAiRevisionCount()).isEqualTo(0);
   }
 }

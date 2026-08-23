@@ -18,8 +18,8 @@ Kakao Maps의 지도·경로 제공자 책임만
 [ADR-0009](0009-kakao-map-tmap-walking-route.md)가 대체한다. 현재 지도·경로
 제공자 경계는 ADR-0009를 따른다. 아래 `결정`의 “한국관광공사 OpenAPI는 초기 광주
 장소 수집에만 사용한다”는 제한은 부족 유형 변경분 보충 범위에서
-[ADR-0014](0014-tourapi-shortage-refill.md)가, 추천 응답 장소의 사후 상세정보 보강
-범위에서 [ADR-0016](0016-asynchronous-tourapi-place-detail-enrichment.md)이 대체한다.
+[ADR-0015](0015-tourapi-shortage-refill.md)가, 추천 응답 장소의 사후 상세정보 보강
+범위에서 [ADR-0017](0017-asynchronous-tourapi-place-detail-enrichment.md)이 대체한다.
 `places`가 런타임 정본이라는 나머지 결정은 계속 유효하다.
 
 ### 배경
@@ -62,7 +62,7 @@ AI 장소 추천, 장소 상세, 코스 생성과 탐험 중 주변 추천은 �
 당시 지도·경로 제공자 결정은 역사로 보존한다.
 
 2026-08-21에는 원래 결정을 고쳐 쓰지 않고, 제한된 TourAPI 런타임 경계를 기록한
-ADR-0014와 ADR-0016의 부분 대체 관계만 `현재 상태`에 추가했다.
+ADR-0015와 ADR-0017의 부분 대체 관계만 `현재 상태`에 추가했다.
 
 - 변경 유형: `architecture`
 - 변경한 문서: ADR-0003의 현재 상태와 ADR-0009의 부분 대체 관계
@@ -81,6 +81,6 @@ ADR-0014와 ADR-0016의 부분 대체 관계만 `현재 상태`에 추가했다.
 - 검사 결과: `통과`
 - 검사 근거: ADR-0003·ADR-0009, 관련 제품·아키텍처 문서와 코드 대조,
   제품 지식 베이스·하네스 semantic 검증과 `git diff --check` 통과
-- 2026-08-21 추가 검사: `통과` — ADR-0014·ADR-0016, 장소 선택·OpenAPI 적용·백엔드
+- 2026-08-21 추가 검사: `통과` — ADR-0015·ADR-0017, 장소 선택·OpenAPI 적용·백엔드
   아키텍처와 실제 TourAPI 저장·상세정보 보강 경계를 대조했고 전체 119개 테스트,
   Spotless, build, 하네스 semantic 검사와 `git diff --check`가 통과했다.

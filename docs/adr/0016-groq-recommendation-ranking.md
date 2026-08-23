@@ -5,7 +5,7 @@ recorded-date: 2026-08-21
 last-updated: 2026-08-21
 ---
 
-# ADR-0015 Groq 후보 선별과 서버 전체 검증
+# ADR-0016 Groq 후보 선별과 서버 전체 검증
 
 추천 장소 생성은 서버가 활성 DB 장소의 유형별 최종 할당량과 최대 60곳의 허용 후보를
 확정한 뒤, Groq `openai/gpt-oss-20b`가 그 후보 ID만 순서화하도록 한다. AI는 추천에
@@ -22,7 +22,7 @@ last-updated: 2026-08-21
 - TourAPI 응답의 신규 장소 적재와 AI 후보 준비는 첫 번째 짧은 트랜잭션에서 처리한다.
   Groq는 DB 트랜잭션과 사용자 행 잠금 밖에서 최대 20초 동안 한 번만 호출한다. 두 번째
   짧은 트랜잭션에서 현재 활성 상태를 다시 확인하고 AI 결과 또는 재계산한 규칙 결과를
-  추천 세트에 저장한다. 이 경계가 ADR-0014의 기존 단일 저장 트랜잭션 설명을 대체한다.
+  추천 세트에 저장한다. 이 경계가 ADR-0015의 기존 단일 저장 트랜잭션 설명을 대체한다.
 - Groq 키는 로컬 `.env` 또는 운영 SSM SecureString에서만 주입하고 키, 인증 헤더, 전체
   프롬프트와 사용자 인증 정보를 로그에 남기지 않는다.
 
@@ -37,7 +37,7 @@ last-updated: 2026-08-21
 ## 영향 대상과 검사 근거
 
 - 정본: `docs/product/features/place-selection.md`, `docs/product/mvp.md`,
-  `docs/architecture/backend.md`, ADR-0014와 운영 배포 문서
+  `docs/architecture/backend.md`, ADR-0015와 운영 배포 문서
 - 코드·설정: `RecommendationService`, `GroqRecommendationClient`, `GroqConfig`,
   `application.yml`, Terraform SSM·ECS 비밀값 주입
 - 테스트: Groq HTTP 계약과 추천 Service의 후보 상한, 정상 순서, 계약 위반, 외부 실패,
@@ -54,7 +54,7 @@ last-updated: 2026-08-21
 
 - 검사 유형: 제품, 아키텍처, 보안
 - 최종 판정: 통과
-- 변경한 대상: 장소 선택·MVP·사용자 흐름·백엔드 아키텍처·ADR-0014·운영 문서,
+- 변경한 대상: 장소 선택·MVP·사용자 흐름·백엔드 아키텍처·ADR-0015·운영 문서,
   추천 Service와 Groq HTTP 클라이언트·설정·테스트, 로컬 환경 예시와 Terraform
   SSM·IAM·ECS 비밀값 주입
 - 확인했지만 변경하지 않은 대상: 추천 Controller·DTO·Converter의 HTTP 경로, 요청·응답,

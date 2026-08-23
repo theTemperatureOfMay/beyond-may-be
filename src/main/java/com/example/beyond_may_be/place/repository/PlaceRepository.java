@@ -76,4 +76,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
       nativeQuery = true)
   int updateBusinessHoursIfMissing(
       @Param("placeId") Long placeId, @Param("businessHours") String businessHours);
+
+  List<Place> findByActiveTrue();
 }

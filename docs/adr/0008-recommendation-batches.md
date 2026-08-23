@@ -1,5 +1,5 @@
 ---
-status: superseded by ADR-0017
+status: superseded by ADR-0018
 decision-date: 2026-08-07
 recorded-date: 2026-08-07
 ---

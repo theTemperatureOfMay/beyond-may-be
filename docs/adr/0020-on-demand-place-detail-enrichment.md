@@ -4,7 +4,7 @@ decision-date: 2026-08-23
 recorded-date: 2026-08-23
 ---
 
-# ADR-0019 장소 상세 조회는 비어 있는 정보를 동기 보강해 같은 응답에 포함한다
+# ADR-0020 장소 상세 조회는 비어 있는 정보를 동기 보강해 같은 응답에 포함한다
 
 추천 응답 뒤 비동기 보강만 사용하면 아직 작업이 끝나지 않았거나 작업이 유실된 장소의
 상세 화면이 실제 외부 정보가 있어도 빈 값으로 보일 수 있다. 공개 장소 상세 조회는
@@ -40,7 +40,7 @@ PostgreSQL `places`를 먼저 읽되 설명이나 운영시간이 비어 있을 
 
 이 결정은 공개 상세 조회가 TourAPI를 직접 호출하지 않던 경계와 비동기·동기 공통 보강이
 정상 정보 부재 또는 조회 식별자 부재를 안내 문구로 저장하는 정책에서
-[ADR-0016](0016-asynchronous-tourapi-place-detail-enrichment.md)을 부분 대체한다. 추천 응답과
+[ADR-0017](0017-asynchronous-tourapi-place-detail-enrichment.md)을 부분 대체한다. 추천 응답과
 비동기 보강을 분리하고 `places`를 런타임 정본으로 유지하는 결정은 계속 적용한다.
 
 ### 검토한 대안
@@ -73,7 +73,7 @@ PostgreSQL `places`를 먼저 읽되 설명이나 운영시간이 비어 있을 
 - 검사 일자: 2026-08-23
 - 검사 결과: `통과`
 - 검사 근거: Controller·DTO·Service·Converter·Repository·TourAPI 클라이언트와
-  SecurityConfig, V5·V6 schema, ADR-0016, 제품 기능·사용자 흐름·MVP·백엔드 아키텍처,
+  SecurityConfig, V5·V6 schema, ADR-0017, 제품 기능·사용자 흐름·MVP·백엔드 아키텍처,
   Postman·ClueDoc·테스트를 대조했다. 장소 패키지 전체 테스트, Spotless, 테스트 제외 전체
   빌드, 하네스 semantic 검사, Postman JSON, 문서 링크와 `git diff --check`가 통과했다.
   전체 테스트는 Docker 데몬 무응답으로 완료하지 못했으며 실제 TourAPI·운영 ECS·RDS와
@@ -86,4 +86,4 @@ PostgreSQL `places`를 먼저 읽되 설명이나 운영시간이 비어 있을 
 - [전체 기능 명세](../product/feature-spec.md)
 - [백엔드 MVP 상태](../product/mvp.md)
 - [백엔드 아키텍처](../architecture/backend.md)
-- [ADR-0016](0016-asynchronous-tourapi-place-detail-enrichment.md)
+- [ADR-0017](0017-asynchronous-tourapi-place-detail-enrichment.md)

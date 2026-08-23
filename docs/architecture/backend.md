@@ -166,7 +166,7 @@ erDiagram
   `description`과 `business_hours`만 조건부 갱신한다. 공개 장소 상세 GET도 값이 여전히
   비어 있으면 필요한 TourAPI를 동기 호출해 저장한 뒤 같은 응답에 포함한다. 정상 빈값은
   정보 없음 문구로 확정하고, 외부 오류는 null을 유지한 채 `PLACE503`으로 반환하며 기존
-  값은 덮어쓰지 않는다(ADR-0016, ADR-0019).
+  값은 덮어쓰지 않는다(ADR-0017, ADR-0020).
 - `tour_content_id`는 TourAPI `contentid`를 nullable·unique로 저장해 외부 중복 제거에
   사용하고, `tour_content_type_id`는 nullable로 저장해 상세 조회에 사용한다.
 - TourAPI `overview`는 비어 있는 일반 설명만 보강한다. 5·18 연관 의미는 별도 컬럼이나
@@ -226,11 +226,11 @@ erDiagram
   신규 장소의 성향은 신분류 L1로 연결하고, 로컬 분류 매핑의 가장 구체적인 명칭을
   `category`로, 사용 가능한 L1·L2·L3 명칭을 `tags`로 저장한다.
   외부 실패나 유효한 신규 장소가 없으면 저장된 후보와 기존 재배분 규칙으로 계속한다
-  ([ADR-0014](../adr/0014-tourapi-shortage-refill.md)).
+  ([ADR-0015](../adr/0015-tourapi-shortage-refill.md)).
 - TourAPI와 Groq 조회는 DB 트랜잭션 밖에서 수행한다. TourAPI 응답 뒤 사용자 행 잠금을
   획득해 신규 장소 저장·후보 준비를 첫 번째 짧은 트랜잭션에서 처리하고, Groq 호출 뒤
   잠금과 현재 활성 장소를 다시 확인해 추천 세트 저장을 두 번째 짧은 트랜잭션에서 처리한다
-  ([ADR-0015](../adr/0015-groq-recommendation-ranking.md)).
+  ([ADR-0016](../adr/0016-groq-recommendation-ranking.md)).
 - 추천 생성은 Spring MVC 비동기 요청으로 최대 30초를 기다린다. 초과하면 실행 작업을
   취소하고 `503 Service Unavailable`·`RECOMMENDATION503`을 반환하며, 추천 세트 저장
   직전에도 취소 상태를 확인한다. 자동 재시도는 하지 않는다.
@@ -249,10 +249,10 @@ erDiagram
   조회·조건부 갱신은 내부 비동기 최선 노력 경계이며 현재 응답을 기다리게 하거나
   추천 세트를 변경하지 않는다. 같은 일정 재진입은 작업을 시작하지 않고, 자동 재시도와
   별도 작업 상태 저장은 하지 않는다
-  ([ADR-0016](../adr/0016-asynchronous-tourapi-place-detail-enrichment.md)).
+  ([ADR-0017](../adr/0017-asynchronous-tourapi-place-detail-enrichment.md)).
 
 상태 소유권과 중복 없는 최종 부분 회차 복구 규칙은
-[ADR-0018](../adr/0018-recommendation-batch-recovery.md)을 따른다.
+[ADR-0019](../adr/0019-recommendation-batch-recovery.md)을 따른다.
 
 ### `courses`, `course_places`
 
@@ -354,7 +354,7 @@ Exploration 완료 → COMPLETED
 |---|---|
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
-| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강 입력. 런타임 정본이 아님(ADR-0014, ADR-0016, ADR-0019) |
+| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강 입력. 런타임 정본이 아님(ADR-0015, ADR-0017, ADR-0020) |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
