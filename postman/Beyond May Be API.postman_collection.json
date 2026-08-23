@@ -605,6 +605,112 @@
           ]
         },
         {
+          "name": "추천 회차 반응 교체",
+          "description": "인증 사용자가 추천 회차의 좋아요·싫어요 전체를 교체합니다. 두 배열은 현재 보이는 회차 장소를 중복·교집합·누락 없이 정확히 분할해야 합니다. 전체 좋아요가 기간별 최소 수보다 적으면 기존 다음 회차 또는 정확히 20곳의 새 회차를 반환합니다. 새 후보가 부족하면 TourAPI 변경분을 한 번 보충하고, 그래도 부족한 마지막 경우에는 기존 싫어요 장소를 한 번만 재추천합니다. 20곳을 채우지 못하거나 최초 회차가 빈 목록이면 nextBatch는 null입니다. 현재 추천·회차 없음은 404, AI 선별 중 추천 구성 변경은 409, 저장·생성 실패는 500이며 자동 재시도와 영속 멱등성 키는 사용하지 않습니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/recommendations/1/reactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"likedPlaceIds\": [101, 103, 107],\n  \"dislikedPlaceIds\": [102, 104, 105]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 - 다음 추천 회차",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/recommendations/1/reactions",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"likedPlaceIds\": [101, 103, 107],\n  \"dislikedPlaceIds\": [102, 104, 105]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"recommendationId\": 12,\n    \"batchNumber\": 1,\n    \"selectedPlaceCount\": 3,\n    \"minimumSelectionCount\": 5,\n    \"selectionReady\": false,\n    \"hasNextBatch\": true,\n    \"nextBatch\": {\n      \"batchNumber\": 2,\n      \"places\": [\n        {\n          \"placeId\": 121,\n          \"name\": \"양림동 펭귄마을\",\n          \"category\": \"관광지\",\n          \"tags\": [\"골목\", \"역사\"],\n          \"summary\": \"검수된 장소 소개 문구\",\n          \"thumbnailUrl\": null\n        }\n      ]\n    }\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 회차 반응 오류",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/recommendations/1/reactions",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"likedPlaceIds\": [101, 101],\n  \"dislikedPlaceIds\": [102, 103, 104, 105, 107]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"추천 회차 반응이 올바르지 않습니다.\",\n  \"code\": \"RECOMMENDATION400_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "AI 코스 생성 요청",
           "description": "AI 코스 생성 요청 API 템플릿입니다. 인증 정책은 아직 정해지지 않았고 입력·응답 DTO는 빈 골격입니다. 내부 비즈니스 로직은 구현되지 않았습니다.",
           "request": {

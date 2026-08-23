@@ -19,8 +19,31 @@ public final class RecommendationConverter {
         recommendationSet.getStartDate(),
         recommendationSet.getEndDate(),
         minimumSelectionCount,
-        new RecommendationDtos.BatchResponse(
-            batchNumber, places.stream().map(RecommendationConverter::toPlaceResponse).toList()));
+        toBatchResponse(batchNumber, places));
+  }
+
+  public static RecommendationDtos.BatchResponse toBatchResponse(
+      int batchNumber, List<Place> places) {
+    return new RecommendationDtos.BatchResponse(
+        batchNumber, places.stream().map(RecommendationConverter::toPlaceResponse).toList());
+  }
+
+  public static RecommendationDtos.ReactionResponse toReactionResponse(
+      Long recommendationId,
+      int batchNumber,
+      int selectedPlaceCount,
+      int minimumSelectionCount,
+      boolean selectionReady,
+      boolean hasNextBatch,
+      RecommendationDtos.BatchResponse nextBatch) {
+    return new RecommendationDtos.ReactionResponse(
+        recommendationId,
+        batchNumber,
+        selectedPlaceCount,
+        minimumSelectionCount,
+        selectionReady,
+        hasNextBatch,
+        nextBatch);
   }
 
   private static RecommendationDtos.PlaceResponse toPlaceResponse(Place place) {

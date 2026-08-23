@@ -81,6 +81,517 @@ class RecommendationServiceTest {
   }
 
   @Test
+  void replacesAllReactionsForTheRequestedBatch() {
+    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
+    RecommendationSet stored =
+        recommendationSet(
+            12L, TravelSchedule.DAY_TRIP, List.of(1L, 2L, 3L), List.of(1L), List.of(2L, 3L));
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L, 2L, 3L), List.of()));
+
+    assertThat(stored.getLikedPlaceIds()).containsExactly(1L, 2L, 3L);
+    assertThat(stored.getDislikedPlaceIds()).isEmpty();
+    assertThat(response.recommendationId()).isEqualTo(12L);
+    assertThat(response.batchNumber()).isEqualTo(1);
+    assertThat(response.selectedPlaceCount()).isEqualTo(3);
+    assertThat(response.minimumSelectionCount()).isEqualTo(3);
+    assertThat(response.selectionReady()).isTrue();
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidReactionRequests")
+  void rejectsReactionsThatDoNotPartitionTheBatch(RecommendationDtos.ReactionRequest request) {
+    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, List.of(1L, 2L, 3L), List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+
+    assertThatThrownBy(() -> recommendationService.replaceBatchReactions(1L, 1, request))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_INVALID_REACTIONS);
+  }
+
+  @Test
+  void acceptsReactionsForOnlyTheActivePlacesStillVisibleInTheBatch() {
+    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
+    List<Long> storedBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    List<Place> visiblePlaces =
+        List.of(
+            place(1L, TravelPreferenceType.THINKER, true),
+            place(2L, TravelPreferenceType.THINKER, true),
+            place(3L, TravelPreferenceType.THINKER, true));
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, storedBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllById(storedBatch)).willReturn(visiblePlaces);
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L, 2L, 3L), List.of()));
+
+    assertThat(response.selectionReady()).isTrue();
+    assertThat(stored.getLikedPlaceIds()).containsExactly(1L, 2L, 3L);
+    assertThat(stored.getDislikedPlaceIds()).isEmpty();
+  }
+
+  @Test
+  void reportsMissingCurrentRecommendation() {
+    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                recommendationService.replaceBatchReactions(
+                    1L, 1, new RecommendationDtos.ReactionRequest(List.of(), List.of())))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_NOT_FOUND);
+  }
+
+  @Test
+  void reportsMissingRecommendationBeforePreferenceState() {
+    User user = user(null, 0, 0, 0, 0);
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                recommendationService.replaceBatchReactions(
+                    1L, 1, new RecommendationDtos.ReactionRequest(List.of(), List.of())))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_NOT_FOUND);
+  }
+
+  @Test
+  void reportsMissingRecommendationBatch() {
+    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, List.of(1L), List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+
+    assertThatThrownBy(
+            () ->
+                recommendationService.replaceBatchReactions(
+                    1L, 2, new RecommendationDtos.ReactionRequest(List.of(), List.of())))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_BATCH_NOT_FOUND);
+  }
+
+  @Test
+  void rejectsNonPositiveBatchNumber() {
+    assertThatThrownBy(
+            () ->
+                recommendationService.replaceBatchReactions(
+                    1L, 0, new RecommendationDtos.ReactionRequest(List.of(), List.of())))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_INVALID_REACTIONS);
+  }
+
+  @Test
+  void appendsNextBatchWithoutPreviouslyRecommendedPlaces() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> places = places(10);
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L,
+            1,
+            new RecommendationDtos.ReactionRequest(
+                List.of(1L), java.util.stream.LongStream.rangeClosed(2, 20).boxed().toList()));
+
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isTrue();
+    assertThat(response.nextBatch().batchNumber()).isEqualTo(2);
+    assertThat(response.nextBatch().places()).hasSize(20);
+    assertThat(response.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .doesNotContainAnyElementsOf(firstBatch);
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+    assertThat(stored.getLikedPlaceIds()).containsExactly(1L);
+    verify(groqRecommendationClient).rank(any());
+  }
+
+  @Test
+  void refillsPlacesFromTourApiBeforeCreatingTheNextBatch() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> before =
+        places(
+            Map.of(
+                TravelPreferenceType.THINKER,
+                10,
+                TravelPreferenceType.FOODIE,
+                10,
+                TravelPreferenceType.ARTIST,
+                10,
+                TravelPreferenceType.REMEMBERER,
+                9));
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    Place added = place(999L, TravelPreferenceType.THINKER, true);
+    List<Place> after = new ArrayList<>(before);
+    after.add(added);
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(before, after, after);
+    given(tourApiSyncClient.fetchChangedPlaces())
+        .willReturn(
+            List.of(
+                syncItem(
+                    "광주광역시 북구 무등로 1",
+                    "(금곡동)",
+                    "999001",
+                    "12",
+                    "",
+                    "126.900001",
+                    "35.200001",
+                    "1",
+                    "새 자연 장소",
+                    "NA")));
+    given(placeRepository.findExistingTourContentIds(List.of(999001L))).willReturn(Set.of());
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L,
+            1,
+            new RecommendationDtos.ReactionRequest(
+                List.of(1L), firstBatch.subList(1, firstBatch.size())));
+
+    assertThat(response.nextBatch().places()).hasSize(20);
+    assertThat(response.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .contains(999L)
+        .doesNotContainAnyElementsOf(firstBatch);
+    verify(tourApiSyncClient).fetchChangedPlaces();
+  }
+
+  @Test
+  void fillsTheFinalNextBatchWithPreviouslyDislikedPlaces() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> activePlaces =
+        places(
+            Map.of(
+                TravelPreferenceType.THINKER,
+                10,
+                TravelPreferenceType.FOODIE,
+                10,
+                TravelPreferenceType.ARTIST,
+                5,
+                TravelPreferenceType.REMEMBERER,
+                5));
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    List<Long> dislikedPlaceIds = firstBatch.subList(1, firstBatch.size());
+    List<Long> newPlaceIds = java.util.stream.LongStream.rangeClosed(21, 30).boxed().toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
+    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L), dislikedPlaceIds));
+
+    List<Long> nextPlaceIds =
+        response.nextBatch().places().stream()
+            .map(RecommendationDtos.PlaceResponse::placeId)
+            .toList();
+    assertThat(nextPlaceIds).hasSize(20).containsAll(newPlaceIds).doesNotContain(1L);
+    assertThat(nextPlaceIds.stream().filter(dislikedPlaceIds::contains).toList()).hasSize(10);
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+  }
+
+  @Test
+  void reusesOnlyDislikedPlacesOnceWhenNoNewPlacesRemain() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> activePlaces = places(5);
+    List<Long> firstBatch = activePlaces.stream().map(Place::getId).toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
+    given(placeRepository.findAllById(any())).willReturn(activePlaces);
+    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
+    RecommendationDtos.ReactionRequest request =
+        new RecommendationDtos.ReactionRequest(List.of(), firstBatch);
+
+    RecommendationDtos.ReactionResponse firstResponse =
+        recommendationService.replaceBatchReactions(1L, 1, request);
+    RecommendationDtos.ReactionResponse retriedResponse =
+        recommendationService.replaceBatchReactions(1L, 1, request);
+
+    assertThat(firstResponse.nextBatch().places()).hasSize(20);
+    assertThat(firstResponse.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .containsExactlyInAnyOrderElementsOf(firstBatch);
+    assertThat(retriedResponse.nextBatch().batchNumber()).isEqualTo(2);
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+  }
+
+  @Test
+  void doesNotAppendAPartialNextBatchWhenAllFallbacksCannotReachTwenty() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> activePlaces =
+        places(
+            Map.of(
+                TravelPreferenceType.THINKER,
+                6,
+                TravelPreferenceType.FOODIE,
+                5,
+                TravelPreferenceType.ARTIST,
+                5,
+                TravelPreferenceType.REMEMBERER,
+                5));
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
+    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L,
+            1,
+            new RecommendationDtos.ReactionRequest(
+                List.of(1L, 2L), firstBatch.subList(2, firstBatch.size())));
+
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(20);
+  }
+
+  @Test
+  void preservesAPartialFirstBatchWhenAppendingAFullNextBatch() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> activePlaces = places(7);
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 8).boxed().toList();
+    List<Long> secondBatch = java.util.stream.LongStream.rangeClosed(9, 28).boxed().toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(activePlaces);
+    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
+
+    RecommendationDtos.ReactionResponse firstResponse =
+        recommendationService.replaceBatchReactions(
+            1L,
+            1,
+            new RecommendationDtos.ReactionRequest(
+                List.of(1L), firstBatch.subList(1, firstBatch.size())));
+    RecommendationDtos.ReactionResponse secondResponse =
+        recommendationService.replaceBatchReactions(
+            1L,
+            2,
+            new RecommendationDtos.ReactionRequest(
+                List.of(9L), secondBatch.subList(1, secondBatch.size())));
+
+    assertThat(firstResponse.nextBatch().batchNumber()).isEqualTo(2);
+    assertThat(firstResponse.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .containsExactlyInAnyOrderElementsOf(secondBatch);
+    assertThat(secondResponse.batchNumber()).isEqualTo(2);
+    assertThat(stored.getLikedPlaceIds()).containsExactlyInAnyOrder(1L, 9L);
+  }
+
+  @Test
+  void returnsAnExistingIncompleteBatchWhenReactionsAreResubmitted() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> places = places(10);
+    List<Long> recommendedPlaceIds =
+        java.util.stream.LongStream.rangeClosed(1, 40).boxed().toList();
+    List<Long> firstBatch = recommendedPlaceIds.subList(0, 20);
+    List<Long> secondBatch = recommendedPlaceIds.subList(20, 40);
+    RecommendationSet stored =
+        recommendationSet(
+            12L,
+            TravelSchedule.DAY_TRIP,
+            recommendedPlaceIds,
+            List.of(1L),
+            firstBatch.subList(1, 20));
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllById(secondBatch)).willReturn(places.subList(20, 40));
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L), firstBatch.subList(1, 20)));
+
+    assertThat(response.nextBatch().batchNumber()).isEqualTo(2);
+    assertThat(response.nextBatch().places())
+        .extracting(RecommendationDtos.PlaceResponse::placeId)
+        .containsExactlyElementsOf(secondBatch);
+    assertThat(stored.getRecommendedPlaceIds()).hasSize(40);
+    verify(groqRecommendationClient, never()).rank(any());
+  }
+
+  @Test
+  void skipsAStoredPendingBatchWhenNoneOfItsPlacesRemainVisible() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Long> recommendedPlaceIds =
+        java.util.stream.LongStream.rangeClosed(1, 40).boxed().toList();
+    List<Long> firstBatch = recommendedPlaceIds.subList(0, 20);
+    List<Long> secondBatch = recommendedPlaceIds.subList(20, 40);
+    RecommendationSet stored =
+        recommendationSet(
+            12L,
+            TravelSchedule.DAY_TRIP,
+            recommendedPlaceIds,
+            List.of(1L),
+            firstBatch.subList(1, firstBatch.size()));
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllById(secondBatch)).willReturn(List.of());
+    given(placeRepository.findAllByActiveTrue()).willReturn(List.of());
+    given(tourApiSyncClient.fetchChangedPlaces()).willReturn(List.of());
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L,
+            1,
+            new RecommendationDtos.ReactionRequest(
+                List.of(1L), firstBatch.subList(1, firstBatch.size())));
+
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+  }
+
+  @Test
+  void resubmittingAnEarlierBatchRemovesItsPreviousLikes() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Long> recommendedPlaceIds =
+        java.util.stream.LongStream.rangeClosed(1, 40).boxed().toList();
+    List<Long> firstBatch = recommendedPlaceIds.subList(0, 20);
+    RecommendationSet stored =
+        recommendationSet(
+            12L,
+            TravelSchedule.DAY_TRIP,
+            recommendedPlaceIds,
+            List.of(1L, 2L, 3L, 21L),
+            java.util.stream.Stream.concat(
+                    firstBatch.subList(3, 20).stream(),
+                    recommendedPlaceIds.subList(21, 40).stream())
+                .toList());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(List.of());
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L), firstBatch.subList(1, 20)));
+
+    assertThat(stored.getLikedPlaceIds()).containsExactlyInAnyOrder(1L, 21L);
+    assertThat(stored.getLikedPlaceIds()).doesNotContain(2L, 3L);
+    assertThat(response.selectedPlaceCount()).isEqualTo(2);
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isFalse();
+  }
+
+  @Test
+  void returnsEmptyStateWhenNoAdditionalPlacesRemain() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> places = places(5);
+    List<Long> firstBatch = places.stream().map(Place::getId).toList();
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(1L), firstBatch.subList(1, 20)));
+
+    assertThat(response.selectedPlaceCount()).isEqualTo(1);
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+    assertThat(stored.getLikedPlaceIds()).containsExactly(1L);
+    assertThat(stored.getDislikedPlaceIds()).containsExactlyElementsOf(firstBatch.subList(1, 20));
+    verify(groqRecommendationClient, never()).rank(any());
+  }
+
+  @Test
+  void keepsAnEmptyInitialRecommendationAsTheTerminalEmptyState() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    RecommendationSet stored =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, List.of(), List.of(), List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
+
+    RecommendationDtos.ReactionResponse response =
+        recommendationService.replaceBatchReactions(
+            1L, 1, new RecommendationDtos.ReactionRequest(List.of(), List.of()));
+
+    assertThat(response.batchNumber()).isEqualTo(1);
+    assertThat(response.selectedPlaceCount()).isZero();
+    assertThat(response.selectionReady()).isFalse();
+    assertThat(response.hasNextBatch()).isFalse();
+    assertThat(response.nextBatch()).isNull();
+    assertThat(stored.getRecommendedPlaceIds()).isEmpty();
+    verify(placeRepository, never()).findAllByActiveTrue();
+    verify(tourApiSyncClient, never()).fetchChangedPlaces();
+    verify(groqRecommendationClient, never()).rank(any());
+  }
+
+  @Test
+  void reportsConflictWhenRecommendationCompositionChangesDuringRanking() {
+    User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
+    List<Place> places = places(10);
+    List<Long> firstBatch = java.util.stream.LongStream.rangeClosed(1, 20).boxed().toList();
+    RecommendationSet before =
+        recommendationSet(12L, TravelSchedule.DAY_TRIP, firstBatch, List.of(), List.of());
+    RecommendationSet changed =
+        recommendationSet(
+            12L,
+            TravelSchedule.DAY_TRIP,
+            java.util.stream.LongStream.rangeClosed(21, 40).boxed().toList(),
+            List.of(),
+            List.of());
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L))
+        .willReturn(Optional.of(before), Optional.of(changed));
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+
+    assertThatThrownBy(
+            () ->
+                recommendationService.replaceBatchReactions(
+                    1L,
+                    1,
+                    new RecommendationDtos.ReactionRequest(List.of(1L), firstBatch.subList(1, 20))))
+        .isInstanceOf(RecommendationHandler.class)
+        .extracting("code")
+        .isEqualTo(ErrorStatus.RECOMMENDATION_BATCH_CONFLICT);
+
+    assertThat(before.getLikedPlaceIds()).isEmpty();
+  }
+
+  @Test
   void createsTwentyPlacesInFourThreeTwoOneRatio() {
     User user =
         User.builder()
@@ -661,7 +1172,7 @@ class RecommendationServiceTest {
   void skipsMissingAndInactivePlacesInTheStoredLastBatch() {
     User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
     List<Long> ids = new ArrayList<>();
-    for (long id = 1; id <= 22; id++) {
+    for (long id = 1; id <= 40; id++) {
       ids.add(id);
     }
     RecommendationSet stored =
@@ -670,7 +1181,7 @@ class RecommendationServiceTest {
     Place inactive = place(22L, TravelPreferenceType.THINKER, false);
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
     given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
-    given(placeRepository.findAllById(List.of(21L, 22L))).willReturn(List.of(active, inactive));
+    given(placeRepository.findAllById(ids.subList(20, 40))).willReturn(List.of(active, inactive));
 
     RecommendationDtos.RecommendationResponse response =
         recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
@@ -831,6 +1342,18 @@ class RecommendationServiceTest {
         Arguments.of(
             "외부 실패",
             (Function<GroqRecommendationClient.RankRequest, List<Long>>) request -> List.of()));
+  }
+
+  private static java.util.stream.Stream<Arguments> invalidReactionRequests() {
+    return java.util.stream.Stream.of(
+        Arguments.of(new RecommendationDtos.ReactionRequest(List.of(1L), List.of(2L))),
+        Arguments.of(new RecommendationDtos.ReactionRequest(List.of(1L, 1L), List.of(2L, 3L))),
+        Arguments.of(new RecommendationDtos.ReactionRequest(List.of(1L), List.of(2L, 2L, 3L))),
+        Arguments.of(new RecommendationDtos.ReactionRequest(List.of(1L, 2L), List.of(2L, 3L))),
+        Arguments.of(new RecommendationDtos.ReactionRequest(List.of(1L, 4L), List.of(2L, 3L))),
+        Arguments.of(
+            new RecommendationDtos.ReactionRequest(
+                java.util.Arrays.asList(1L, null), List.of(2L, 3L))));
   }
 
   private static List<Long> validSelection(GroqRecommendationClient.RankRequest request) {

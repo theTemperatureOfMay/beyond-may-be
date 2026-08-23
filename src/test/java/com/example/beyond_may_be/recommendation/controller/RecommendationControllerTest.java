@@ -84,6 +84,89 @@ class RecommendationControllerTest {
   }
 
   @Test
+  void replacesBatchReactionsAndReturnsNextBatch() throws Exception {
+    given(recommendationService.replaceBatchReactions(eq(1L), eq(1), any()))
+        .willReturn(
+            new RecommendationDtos.ReactionResponse(
+                12L,
+                1,
+                1,
+                3,
+                false,
+                true,
+                new RecommendationDtos.BatchResponse(
+                    2,
+                    List.of(
+                        new RecommendationDtos.PlaceResponse(
+                            121L, "양림동 펭귄마을", "관광지", List.of("골목", "역사"), "검수된 소개", null)))));
+
+    mockMvc
+        .perform(
+            post("/api/v1/recommendations/1/reactions")
+                .header("Authorization", "Bearer valid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "likedPlaceIds": [101],
+                      "dislikedPlaceIds": [102]
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.data.recommendationId").value(12))
+        .andExpect(jsonPath("$.data.batchNumber").value(1))
+        .andExpect(jsonPath("$.data.selectedPlaceCount").value(1))
+        .andExpect(jsonPath("$.data.minimumSelectionCount").value(3))
+        .andExpect(jsonPath("$.data.selectionReady").value(false))
+        .andExpect(jsonPath("$.data.hasNextBatch").value(true))
+        .andExpect(jsonPath("$.data.nextBatch.batchNumber").value(2))
+        .andExpect(jsonPath("$.data.nextBatch.places[0].placeId").value(121));
+  }
+
+  @Test
+  void rejectsMissingReactionArrays() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/recommendations/1/reactions")
+                .header("Authorization", "Bearer valid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"likedPlaceIds\": []}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON400"));
+  }
+
+  @Test
+  void reportsMissingRecommendationForReactions() throws Exception {
+    given(recommendationService.replaceBatchReactions(eq(1L), eq(1), any()))
+        .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_NOT_FOUND));
+
+    mockMvc
+        .perform(
+            post("/api/v1/recommendations/1/reactions")
+                .header("Authorization", "Bearer valid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"likedPlaceIds\": [], \"dislikedPlaceIds\": []}"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECOMMENDATION404"));
+  }
+
+  @Test
+  void reportsChangedRecommendationCompositionAsConflict() throws Exception {
+    given(recommendationService.replaceBatchReactions(eq(1L), eq(1), any()))
+        .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_BATCH_CONFLICT));
+
+    mockMvc
+        .perform(
+            post("/api/v1/recommendations/1/reactions")
+                .header("Authorization", "Bearer valid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"likedPlaceIds\": [], \"dislikedPlaceIds\": []}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("RECOMMENDATION409_2"));
+  }
+
+  @Test
   void rejectsUnauthenticatedRequest() throws Exception {
     mockMvc
         .perform(

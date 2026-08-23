@@ -42,8 +42,14 @@ public enum ErrorStatus implements BaseErrorCode {
 
   // Recommendation
   RECOMMENDATION_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "RECOMMENDATION400", "여행 기간이 올바르지 않습니다."),
+  RECOMMENDATION_INVALID_REACTIONS(
+      HttpStatus.BAD_REQUEST, "RECOMMENDATION400_2", "추천 회차 반응이 올바르지 않습니다."),
+  RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RECOMMENDATION404", "현재 추천을 찾을 수 없습니다."),
+  RECOMMENDATION_BATCH_NOT_FOUND(HttpStatus.NOT_FOUND, "RECOMMENDATION404_2", "추천 회차를 찾을 수 없습니다."),
   RECOMMENDATION_PREFERENCE_REQUIRED(
-      HttpStatus.CONFLICT, "RECOMMENDATION409", "완료된 여행 성향 검사가 필요합니다.");
+      HttpStatus.CONFLICT, "RECOMMENDATION409", "완료된 여행 성향 검사가 필요합니다."),
+  RECOMMENDATION_BATCH_CONFLICT(
+      HttpStatus.CONFLICT, "RECOMMENDATION409_2", "요청한 추천 회차 구성이 변경되었습니다.");
 
   private final HttpStatus httpStatus;
   private final String code;

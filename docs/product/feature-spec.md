@@ -34,6 +34,7 @@
 | 관광 장소·분류 데이터 수집 | 장소 데이터 최초 수집 | `KorService2/ldongCode2`, `KorService2/lclsSystmCode2`, `KorService2/areaBasedList2`, `KorService2/detailCommon2`, `KorService2/detailIntro2` | 광주 장소와 TourAPI 신분류체계를 저장하고 여행 성향별 장소 풀 구성 |
 | 중심관광지 순위 수집 | 중심관광지 순위 갱신 | `LocgoHubTarService1/areaBasedList1` | 추천 후보의 보조 순위 데이터 구성 |
 | 2.1.2 AI 추천 장소 목록 조회 | 사용자 추천 요청 중 최초 유형별 할당량이 부족할 때 | `KorService2/areaBasedSyncList2` 최대 1회 | 유효한 광주 변경분을 DB에 먼저 저장하고 같은 요청 후보로 포함한 뒤 최대 20곳 구성 |
+| 2.2.2 장소 스와이프 — 싫어요 | 추가 회차의 미노출 활성 후보가 20곳보다 적을 때 | `KorService2/areaBasedSyncList2` 최대 1회 | 유효한 신규 장소를 DB에 저장하고 다시 계산한 뒤, 그래도 부족하면 기존 싫어요 장소를 한 번만 재추천해 20곳 구성 |
 | 2.1.2 AI 추천 장소 목록 조회 | 새 추천 저장 후 응답과 분리된 사후 보강 | `KorService2/detailCommon2`, `KorService2/detailIntro2` | 응답에 포함된 장소의 비어 있는 설명·운영시간만 DB에 최선 노력으로 보강 |
 | 2.2.4 장소 상세 보기 | 사용자가 추천 장소 상세 열기 | 관광 OpenAPI 직접 호출 없음 | 검수·저장된 장소 상세 사용 |
 | 4.4.1 주변 장소 추천 | 사용자가 주변 장소 더보기 클릭 | `KorService2/locationBasedList2` | 현재 GPS에서 1km 이내 관광 장소 후보 조회 |

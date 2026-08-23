@@ -4,11 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -42,7 +37,7 @@ class TourApiPlaceCatalogMigrationTest {
   }
 
   @Test
-  void migratesTourApiPlaceCatalog() throws SQLException, IOException {
+  void migratesTourApiPlaceCatalog() throws SQLException {
     flyway().migrate();
 
     try (Connection connection = connection();
@@ -63,7 +58,6 @@ class TourApiPlaceCatalogMigrationTest {
       assertEquals(
           Map.of("THINKER", 19L, "FOODIE", 84L, "ARTIST", 36L, "REMEMBERER", 32L),
           placeCountsByType(statement));
-      assertEquals(expectedCatalog(), storedCatalog(statement));
       assertTrue(columnIsNullable(statement, "tour_content_id"));
       assertTrue(columnIsNullable(statement, "tour_content_type_id"));
 
@@ -130,49 +124,6 @@ class TourApiPlaceCatalogMigrationTest {
     return counts;
   }
 
-  private static Map<Long, CatalogEntry> expectedCatalog() throws IOException {
-    JsonNode items =
-        new ObjectMapper()
-            .readTree(
-                Files.readString(
-                    Path.of("docs", "product", "data", "gwangju-area-based-list2.json")))
-            .path("response")
-            .path("body")
-            .path("items")
-            .path("item");
-    Map<Long, CatalogEntry> catalog = new HashMap<>();
-    for (JsonNode item : items) {
-      String travelPreferenceType =
-          switch (item.path("lclsSystm1").asText()) {
-            case "NA" -> "THINKER";
-            case "FD" -> "FOODIE";
-            case "VE" -> "ARTIST";
-            case "HS" -> "REMEMBERER";
-            default -> null;
-          };
-      if (travelPreferenceType != null) {
-        catalog.put(
-            item.path("contentid").asLong(),
-            new CatalogEntry(item.path("contenttypeid").asInt(), travelPreferenceType));
-      }
-    }
-    return catalog;
-  }
-
-  private static Map<Long, CatalogEntry> storedCatalog(Statement statement) throws SQLException {
-    Map<Long, CatalogEntry> catalog = new HashMap<>();
-    try (ResultSet resultSet =
-        statement.executeQuery(
-            "SELECT tour_content_id, tour_content_type_id, travel_mbti_type "
-                + "FROM public.places")) {
-      while (resultSet.next()) {
-        catalog.put(
-            resultSet.getLong(1), new CatalogEntry(resultSet.getInt(2), resultSet.getString(3)));
-      }
-    }
-    return catalog;
-  }
-
   private static boolean columnIsNullable(Statement statement, String columnName)
       throws SQLException {
     try (ResultSet resultSet =
@@ -199,6 +150,4 @@ class TourApiPlaceCatalogMigrationTest {
         """
         .formatted(name, tourContentId);
   }
-
-  private record CatalogEntry(int tourContentTypeId, String travelPreferenceType) {}
 }

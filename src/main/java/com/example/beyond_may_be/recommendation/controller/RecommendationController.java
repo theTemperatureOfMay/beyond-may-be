@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,5 +30,15 @@ public class RecommendationController {
       @Valid @RequestBody RecommendationDtos.CreateRequest request) {
     // API 시작점: 인증된 사용자와 여행 일정을 추천 생성 흐름에 전달한다.
     return ApiResponse.onSuccess(recommendationService.createOrGetCurrent(userId, request));
+  }
+
+  @Operation(summary = "추천 회차 반응 교체", description = "현재 회차의 좋아요·싫어요 전체를 교체하고 필요한 다음 추천 회차를 반환합니다.")
+  @PostMapping("/{batchNumber}/reactions")
+  public ApiResponse<RecommendationDtos.ReactionResponse> replaceBatchReactions(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable int batchNumber,
+      @Valid @RequestBody RecommendationDtos.ReactionRequest request) {
+    return ApiResponse.onSuccess(
+        recommendationService.replaceBatchReactions(userId, batchNumber, request));
   }
 }

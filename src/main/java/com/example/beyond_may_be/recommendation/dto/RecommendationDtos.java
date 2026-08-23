@@ -13,6 +13,9 @@ public final class RecommendationDtos {
       @NotNull LocalDate startDate,
       @NotNull LocalDate endDate) {}
 
+  public record ReactionRequest(
+      @NotNull List<@NotNull Long> likedPlaceIds, @NotNull List<@NotNull Long> dislikedPlaceIds) {}
+
   public record RecommendationResponse(
       Long recommendationId,
       TravelSchedule travelSchedule,
@@ -22,6 +25,15 @@ public final class RecommendationDtos {
       BatchResponse batch) {}
 
   public record BatchResponse(int batchNumber, List<PlaceResponse> places) {}
+
+  public record ReactionResponse(
+      Long recommendationId,
+      int batchNumber,
+      int selectedPlaceCount,
+      int minimumSelectionCount,
+      boolean selectionReady,
+      boolean hasNextBatch,
+      BatchResponse nextBatch) {}
 
   public record PlaceResponse(
       Long placeId,

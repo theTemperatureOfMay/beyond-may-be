@@ -93,4 +93,16 @@ public class RecommendationSet extends BaseEntity {
     this.likedPlaceIds.clear();
     this.dislikedPlaceIds.clear();
   }
+
+  public void replaceReactions(
+      List<Long> batchPlaceIds, List<Long> likedPlaceIds, List<Long> dislikedPlaceIds) {
+    this.likedPlaceIds.removeAll(batchPlaceIds);
+    this.dislikedPlaceIds.removeAll(batchPlaceIds);
+    this.likedPlaceIds.addAll(likedPlaceIds);
+    this.dislikedPlaceIds.addAll(dislikedPlaceIds);
+  }
+
+  public void appendRecommendedPlaces(List<Long> placeIds) {
+    this.recommendedPlaceIds.addAll(placeIds);
+  }
 }
