@@ -83,14 +83,26 @@ variable "db_master_username" {
   default = "beyond_may_be_admin"
 }
 
-variable "tour_api_service_key" {
-  description = "한국관광공사 TourAPI 운영 인증키"
+variable "groq_api_key" {
+  description = "Groq API 키 (코스 챗봇/AI 코스 수정 요청). terraform.tfvars 또는 TF_VAR_groq_api_key로 전달한다 — 커밋하지 않는다."
   type        = string
   sensitive   = true
 }
 
-variable "groq_api_key" {
-  description = "Groq 운영 API 키"
+variable "tourism_api_key" {
+  description = "한국관광공사 TourAPI 키. 아직 코드에서 쓰지 않으며 인프라만 미리 준비해둔다. terraform.tfvars 또는 TF_VAR_tourism_api_key로 전달한다 — 커밋하지 않는다."
   type        = string
   sensitive   = true
+}
+
+variable "tourism_api_base_url" {
+  description = "한국관광공사 TourAPI(KorService2) base URL"
+  type        = string
+  default     = "https://apis.data.go.kr/B551011/KorService2"
+}
+
+variable "tourism_popularity_api_base_url" {
+  description = "한국관광공사 인기순위 API(LocgoHubTarService1) base URL"
+  type        = string
+  default     = "https://apis.data.go.kr/B551011/LocgoHubTarService1"
 }

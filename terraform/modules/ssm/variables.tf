@@ -30,14 +30,14 @@ variable "db_name" {
   type        = string
 }
 
-variable "tour_api_service_key" {
-  description = "한국관광공사 TourAPI 운영 인증키"
+variable "groq_api_key" {
+  description = "Groq API 키 (코스 챗봇/AI 코스 수정 요청에 사용)"
   type        = string
   sensitive   = true
 }
 
-variable "groq_api_key" {
-  description = "Groq 운영 API 키"
+variable "tourism_api_key" {
+  description = "한국관광공사 TourAPI 키"
   type        = string
   sensitive   = true
 }

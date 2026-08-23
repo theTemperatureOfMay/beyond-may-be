@@ -77,10 +77,18 @@ variable "db_password_parameter_arn" {
   type = string
 }
 
-variable "tour_api_service_key_parameter_arn" {
+variable "groq_api_key_parameter_arn" {
   type = string
 }
 
-variable "groq_api_key_parameter_arn" {
+variable "tourism_api_key_parameter_arn" {
+  type = string
+}
+
+variable "tourism_api_base_url" {
+  type = string
+}
+
+variable "tourism_popularity_api_base_url" {
   type = string
 }

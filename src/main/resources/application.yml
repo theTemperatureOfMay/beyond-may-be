@@ -18,8 +18,8 @@ spring:
     locations: classpath:db/migration
 
 tour-api:
-  base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
-  service-key: ${TOUR_API_SERVICE_KEY:}
+  base-url: ${TOURISM_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
+  service-key: ${TOURISM_API_KEY:}
 
 groq:
   base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
