@@ -18,7 +18,8 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
   `장소 선택 / GET {{baseUrl}}/api/v1/places/{placeId}`,
   `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/sets`,
   `장소 선택 / GET {{baseUrl}}/api/v1/recommendations`,
-  `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/{batchNumber}/reactions`가 있다.
+  `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/{batchNumber}/reactions`,
+  `코스 / POST {{baseUrl}}/api/v1/courses/ai-generation`이 있다.
 - 새 API 요청은 해당 도메인 폴더에 추가한다.
 - 토큰, 비밀번호, 실제 환경별 비밀값, 실사용자 정보는 공용 Collection에 넣지 않는다.
 - Postman UI에서 설명·예시를 수정했다면 변경 내용이 Collection JSON에도 반영됐는지 확인한다.
