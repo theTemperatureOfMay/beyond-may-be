@@ -1,6 +1,8 @@
 package com.example.beyond_may_be.course.controller;
 
 import com.example.beyond_may_be.apiPayload.ApiResponse;
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
+import com.example.beyond_may_be.apiPayload.exception.handler.CourseHandler;
 import com.example.beyond_may_be.course.dto.CourseDtos;
 import com.example.beyond_may_be.course.service.CourseService;
 import lombok.RequiredArgsConstructor;
@@ -12,13 +14,30 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.WebAsyncTask;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/courses")
 public class CourseController {
 
+  private static final long COURSE_GENERATION_TIMEOUT_MILLIS = 60_000L;
+
   private final CourseService courseService;
+
+  @PostMapping("/ai-generation")
+  public WebAsyncTask<ApiResponse<CourseDtos.CourseDetailResponse>> generate(
+      @AuthenticationPrincipal Long userId) {
+    WebAsyncTask<ApiResponse<CourseDtos.CourseDetailResponse>> task =
+        new WebAsyncTask<>(
+            COURSE_GENERATION_TIMEOUT_MILLIS,
+            () -> ApiResponse.onSuccess(courseService.generate(userId)));
+    task.onTimeout(
+        () -> {
+          throw new CourseHandler(ErrorStatus.COURSE_GENERATION_TIMEOUT);
+        });
+    return task;
+  }
 
   @PostMapping("/{courseId}/confirm")
   public ApiResponse<CourseDtos.ConfirmResponse> confirm(

@@ -3,7 +3,9 @@ package com.example.beyond_may_be.course.service;
 import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.handler.CourseHandler;
 import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
+import com.example.beyond_may_be.apiPayload.exception.handler.RecommendationHandler;
 import com.example.beyond_may_be.apiPayload.exception.handler.UserHandler;
+import com.example.beyond_may_be.common.util.GeoDistanceCalculator;
 import com.example.beyond_may_be.course.converter.CourseConverter;
 import com.example.beyond_may_be.course.domain.Course;
 import com.example.beyond_may_be.course.domain.CoursePlace;
@@ -21,10 +23,14 @@ import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRe
 import com.example.beyond_may_be.exploration.repository.ExplorationRepository;
 import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.repository.PlaceRepository;
+import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
+import com.example.beyond_may_be.recommendation.domain.RecommendationSet;
+import com.example.beyond_may_be.recommendation.repository.RecommendationSetRepository;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,7 +44,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +58,8 @@ public class CourseService {
   private static final int CHAT_MESSAGE_MAX_LENGTH = 150;
   private static final int MAX_AI_REVISIONS = 2;
   private static final int DEFAULT_STAY_MINUTES = 60;
+  private static final LocalTime DEFAULT_START_TIME = LocalTime.of(7, 0);
+  private static final String DEFAULT_TITLE = "광주 여행";
 
   private static final Map<TravelSchedule, Integer> MIN_PLACE_COUNT =
       new EnumMap<>(TravelSchedule.class);
@@ -68,6 +78,9 @@ public class CourseService {
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
   private final GroqCourseChatClient groqCourseChatClient;
+  private final GroqCourseOrderClient groqCourseOrderClient;
+  private final RecommendationSetRepository recommendationSetRepository;
+  private final TransactionTemplate transactionTemplate;
 
   private int dayCount(TravelSchedule travelSchedule, LocalDate startDate, LocalDate endDate) {
     return switch (travelSchedule) {
@@ -76,6 +89,224 @@ public class CourseService {
       case TWO_NIGHTS_THREE_DAYS -> 3;
       case CUSTOM -> (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
     };
+  }
+
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  public CourseDtos.CourseDetailResponse generate(Long userId) {
+    RecommendationSet recommendationSet =
+        recommendationSetRepository
+            .findByUserId(userId)
+            .orElseThrow(() -> new RecommendationHandler(ErrorStatus.RECOMMENDATION_NOT_FOUND));
+    List<Long> likedPlaceIds = List.copyOf(recommendationSet.getLikedPlaceIds());
+    if (new LinkedHashSet<>(likedPlaceIds).size() != likedPlaceIds.size()) {
+      throw new CourseHandler(ErrorStatus.COURSE_DUPLICATE_PLACE);
+    }
+    if (likedPlaceIds.size() < MIN_PLACE_COUNT.get(recommendationSet.getTravelSchedule())) {
+      throw new CourseHandler(ErrorStatus.COURSE_INVALID_PLACE_COUNT);
+    }
+
+    Map<Long, Place> placesById =
+        placeRepository.findAllById(likedPlaceIds).stream()
+            .filter(Place::isActive)
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+    if (!placesById.keySet().containsAll(likedPlaceIds)) {
+      throw new CourseHandler(ErrorStatus.COURSE_PLACE_NOT_FOUND);
+    }
+    List<Place> places = likedPlaceIds.stream().map(placesById::get).toList();
+    int totalDays =
+        dayCount(
+            recommendationSet.getTravelSchedule(),
+            recommendationSet.getStartDate(),
+            recommendationSet.getEndDate());
+    List<List<Long>> aiOrderedDays =
+        groqCourseOrderClient.order(
+            new GroqCourseOrderClient.OrderRequest(
+                recommendationSet.getTravelSchedule(),
+                recommendationSet.getStartDate(),
+                recommendationSet.getEndDate(),
+                totalDays,
+                places));
+    List<List<Long>> orderedDays =
+        isValidGeneratedOrder(aiOrderedDays, totalDays, likedPlaceIds)
+            ? aiOrderedDays
+            : nearestNeighborOrder(places, totalDays);
+    ensureGenerationRequestActive();
+
+    return transactionTemplate.execute(
+        status ->
+            saveGeneratedCourse(
+                userId,
+                recommendationSet.getTravelSchedule(),
+                recommendationSet.getStartDate(),
+                recommendationSet.getEndDate(),
+                likedPlaceIds,
+                orderedDays));
+  }
+
+  private List<List<Long>> nearestNeighborOrder(List<Place> places, int totalDays) {
+    List<Place> remaining = new ArrayList<>(places);
+    List<Long> ordered = new ArrayList<>();
+    Place current = remaining.remove(0);
+    ordered.add(current.getId());
+    while (!remaining.isEmpty()) {
+      Place previous = current;
+      current =
+          remaining.stream()
+              .min(
+                  Comparator.comparingDouble((Place place) -> distance(previous, place))
+                      .thenComparing(Place::getId))
+              .orElseThrow();
+      remaining.remove(current);
+      ordered.add(current.getId());
+    }
+    ordered = arrangeMealSlots(ordered, places, totalDays);
+
+    List<List<Long>> days = new ArrayList<>();
+    int offset = 0;
+    for (int day = 0; day < totalDays; day++) {
+      int size = ordered.size() / totalDays + (day < ordered.size() % totalDays ? 1 : 0);
+      days.add(List.copyOf(ordered.subList(offset, offset + size)));
+      offset += size;
+    }
+    return days;
+  }
+
+  private List<Long> arrangeMealSlots(List<Long> nearestOrder, List<Place> places, int totalDays) {
+    Set<Long> foodieIds =
+        places.stream()
+            .filter(place -> place.getTravelMbtiType() == TravelPreferenceType.FOODIE)
+            .map(Place::getId)
+            .collect(Collectors.toSet());
+    List<Long> foodies = nearestOrder.stream().filter(foodieIds::contains).toList();
+    if (foodies.isEmpty()) {
+      return nearestOrder;
+    }
+
+    List<Integer> mealSlots = new ArrayList<>();
+    int offset = 0;
+    for (int day = 0; day < totalDays; day++) {
+      int size = nearestOrder.size() / totalDays + (day < nearestOrder.size() % totalDays ? 1 : 0);
+      if (size >= 2) {
+        mealSlots.add(offset + size / 2);
+      }
+      if (size >= 3) {
+        mealSlots.add(offset + size - 1);
+      }
+      offset += size;
+    }
+    Set<Integer> occupiedMealSlots =
+        mealSlots.stream()
+            .limit(foodies.size())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    List<Long> nonFoodies = nearestOrder.stream().filter(id -> !foodieIds.contains(id)).toList();
+    List<Long> arranged = new ArrayList<>();
+    int foodieIndex = 0;
+    int nonFoodieIndex = 0;
+    for (int index = 0; index < nearestOrder.size(); index++) {
+      if (occupiedMealSlots.contains(index) || nonFoodieIndex >= nonFoodies.size()) {
+        arranged.add(foodies.get(foodieIndex++));
+      } else {
+        arranged.add(nonFoodies.get(nonFoodieIndex++));
+      }
+    }
+    return arranged;
+  }
+
+  private double distance(Place from, Place to) {
+    return GeoDistanceCalculator.distanceMeters(
+        from.getLatitude().doubleValue(),
+        from.getLongitude().doubleValue(),
+        to.getLatitude().doubleValue(),
+        to.getLongitude().doubleValue());
+  }
+
+  private boolean isValidGeneratedOrder(
+      List<List<Long>> orderedDays, int totalDays, List<Long> expectedPlaceIds) {
+    if (orderedDays == null || orderedDays.size() != totalDays) {
+      return false;
+    }
+    List<Long> orderedPlaceIds = new ArrayList<>();
+    int minimumDaySize = Integer.MAX_VALUE;
+    int maximumDaySize = 0;
+    for (List<Long> day : orderedDays) {
+      if (day == null || day.isEmpty()) {
+        return false;
+      }
+      orderedPlaceIds.addAll(day);
+      minimumDaySize = Math.min(minimumDaySize, day.size());
+      maximumDaySize = Math.max(maximumDaySize, day.size());
+    }
+    return orderedPlaceIds.size() == expectedPlaceIds.size()
+        && maximumDaySize - minimumDaySize <= 1
+        && new HashSet<>(orderedPlaceIds).size() == orderedPlaceIds.size()
+        && new HashSet<>(orderedPlaceIds).equals(new HashSet<>(expectedPlaceIds));
+  }
+
+  private CourseDtos.CourseDetailResponse saveGeneratedCourse(
+      Long userId,
+      TravelSchedule travelSchedule,
+      LocalDate startDate,
+      LocalDate endDate,
+      List<Long> likedPlaceIds,
+      List<List<Long>> orderedDays) {
+    userRepository
+        .findByIdForUpdate(userId)
+        .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    RecommendationSet current =
+        recommendationSetRepository
+            .findByUserId(userId)
+            .orElseThrow(
+                () -> new RecommendationHandler(ErrorStatus.RECOMMENDATION_BATCH_CONFLICT));
+    if (current.getTravelSchedule() != travelSchedule
+        || !current.getStartDate().equals(startDate)
+        || !current.getEndDate().equals(endDate)
+        || !current.getLikedPlaceIds().equals(likedPlaceIds)) {
+      throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_BATCH_CONFLICT);
+    }
+    ensureGenerationRequestActive();
+
+    Map<Long, Place> placesById =
+        placeRepository.findAllById(likedPlaceIds).stream()
+            .filter(Place::isActive)
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+    if (!placesById.keySet().containsAll(likedPlaceIds)) {
+      throw new CourseHandler(ErrorStatus.COURSE_PLACE_NOT_FOUND);
+    }
+    ensureGenerationRequestActive();
+    Course course =
+        courseRepository.save(
+            Course.builder()
+                .ownerUserId(userId)
+                .title(DEFAULT_TITLE)
+                .status(CourseStatus.DRAFT)
+                .travelSchedule(travelSchedule)
+                .startDate(startDate)
+                .endDate(endDate)
+                .startTime(DEFAULT_START_TIME)
+                .aiRevisionCount(0)
+                .build());
+    List<CoursePlace> coursePlaces = new ArrayList<>();
+    for (int day = 0; day < orderedDays.size(); day++) {
+      for (int order = 0; order < orderedDays.get(day).size(); order++) {
+        coursePlaces.add(
+            CoursePlace.builder()
+                .courseId(course.getId())
+                .placeId(orderedDays.get(day).get(order))
+                .dayNumber(day + 1)
+                .visitOrder(order + 1)
+                .estimatedStayMinutes(DEFAULT_STAY_MINUTES)
+                .travelModeFromPrevious(order == 0 ? null : TRAVEL_MODE_WALK)
+                .build());
+      }
+    }
+    List<CoursePlace> saved = coursePlaceRepository.saveAll(coursePlaces);
+    return CourseConverter.toCourseDetailResponse(course, saved, placesById);
+  }
+
+  private void ensureGenerationRequestActive() {
+    if (Thread.currentThread().isInterrupted()) {
+      throw new CourseHandler(ErrorStatus.COURSE_GENERATION_TIMEOUT);
+    }
   }
 
   public CourseDtos.CourseDetailResponse editPlaces(

@@ -36,6 +36,7 @@ public enum ErrorStatus implements BaseErrorCode {
       HttpStatus.CONFLICT, "COURSE409_2", "AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요."),
   COURSE_AI_REQUEST_FAILED(
       HttpStatus.SERVICE_UNAVAILABLE, "COURSE503", "AI 코스 수정 요청이 실패했습니다. 잠시 후 다시 시도해주세요."),
+  COURSE_GENERATION_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE, "COURSE503_2", "AI 코스 생성 시간이 초과되었습니다."),
 
   // Exploration
   EXPLORATION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404", "탐험을 찾을 수 없습니다."),

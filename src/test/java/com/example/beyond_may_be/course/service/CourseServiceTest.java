@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.handler.CourseHandler;
 import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
+import com.example.beyond_may_be.apiPayload.exception.handler.RecommendationHandler;
 import com.example.beyond_may_be.course.domain.Course;
 import com.example.beyond_may_be.course.domain.CoursePlace;
 import com.example.beyond_may_be.course.domain.enums.CourseStatus;
@@ -23,6 +25,8 @@ import com.example.beyond_may_be.exploration.repository.ExplorationRepository;
 import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.repository.PlaceRepository;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
+import com.example.beyond_may_be.recommendation.domain.RecommendationSet;
+import com.example.beyond_may_be.recommendation.repository.RecommendationSetRepository;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.repository.UserRepository;
 import java.math.BigDecimal;
@@ -32,6 +36,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +46,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class CourseServiceTest {
@@ -54,6 +62,20 @@ class CourseServiceTest {
   @Mock private CoursePlaceRepository coursePlaceRepository;
   @Mock private PlaceRepository placeRepository;
   @Mock private GroqCourseChatClient groqCourseChatClient;
+  @Mock private GroqCourseOrderClient groqCourseOrderClient;
+  @Mock private RecommendationSetRepository recommendationSetRepository;
+  @Mock private TransactionTemplate transactionTemplate;
+
+  @BeforeEach
+  void setUpTransactions() {
+    Mockito.lenient()
+        .when(transactionTemplate.execute(any()))
+        .thenAnswer(
+            invocation -> {
+              TransactionCallback<?> callback = invocation.getArgument(0);
+              return callback.doInTransaction(Mockito.mock(TransactionStatus.class));
+            });
+  }
 
   private Course draftCourse() {
     return Course.builder()
@@ -69,11 +91,16 @@ class CourseServiceTest {
   }
 
   private Place placeAt(long id, double lat, String name) {
+    return placeAt(id, lat, name, TravelPreferenceType.THINKER);
+  }
+
+  private Place placeAt(
+      long id, double lat, String name, TravelPreferenceType travelPreferenceType) {
     Place place =
         Place.builder()
             .name(name)
             .category("카페")
-            .travelMbtiType(TravelPreferenceType.THINKER)
+            .travelMbtiType(travelPreferenceType)
             .address("광주")
             .latitude(BigDecimal.valueOf(lat))
             .longitude(BigDecimal.valueOf(126.85))
@@ -83,6 +110,219 @@ class CourseServiceTest {
             .build();
     ReflectionTestUtils.setField(place, "id", id);
     return place;
+  }
+
+  private void stubGeneration(
+      RecommendationSet recommendationSet, List<Place> places, List<List<Long>> aiOrder) {
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(recommendationSet));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(places);
+    given(groqCourseOrderClient.order(any())).willReturn(aiOrder);
+    given(userRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
+    given(courseRepository.save(any(Course.class)))
+        .willAnswer(
+            invocation -> {
+              Course course = invocation.getArgument(0);
+              ReflectionTestUtils.setField(course, "id", 10L);
+              return course;
+            });
+    given(coursePlaceRepository.saveAll(Mockito.<List<CoursePlace>>any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+  }
+
+  @DisplayName("저장된 좋아요 장소를 AI가 정한 날짜별 순서로 DRAFT 코스에 저장한다.")
+  @Test
+  void generate_savesAiOrderedDraftCourse() {
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.ONE_NIGHT_TWO_DAYS)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 21))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L, 4L, 5L))
+            .likedPlaceIds(List.of(1L, 2L, 3L, 4L, 5L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        List.of(
+            placeAt(1L, 35.10, "장소1"),
+            placeAt(2L, 35.11, "장소2"),
+            placeAt(3L, 35.12, "장소3"),
+            placeAt(4L, 35.13, "장소4"),
+            placeAt(5L, 35.14, "장소5"));
+    stubGeneration(recommendationSet, places, List.of(List.of(1L, 3L, 2L), List.of(5L, 4L)));
+
+    CourseDtos.CourseDetailResponse response = courseService.generate(1L);
+
+    assertThat(response.courseId()).isEqualTo(10L);
+    assertThat(response.status()).isEqualTo("DRAFT");
+    assertThat(response.startTime()).isEqualTo(LocalTime.of(7, 0));
+    assertThat(response.places())
+        .extracting(
+            CourseDtos.CoursePlaceSummary::placeId,
+            CourseDtos.CoursePlaceSummary::dayNumber,
+            CourseDtos.CoursePlaceSummary::visitOrder)
+        .containsExactly(
+            org.assertj.core.groups.Tuple.tuple(1L, 1, 1),
+            org.assertj.core.groups.Tuple.tuple(3L, 1, 2),
+            org.assertj.core.groups.Tuple.tuple(2L, 1, 3),
+            org.assertj.core.groups.Tuple.tuple(5L, 2, 1),
+            org.assertj.core.groups.Tuple.tuple(4L, 2, 2));
+  }
+
+  @DisplayName("AI 순서가 유효하지 않으면 현재 장소에서 가장 가까운 장소 순으로 코스를 만든다.")
+  @Test
+  void generate_invalidAiOrder_usesNearestNeighborFallback() {
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.DAY_TRIP)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 20))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L))
+            .likedPlaceIds(List.of(1L, 2L, 3L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        List.of(placeAt(1L, 35.00, "A"), placeAt(2L, 35.01, "B"), placeAt(3L, 35.20, "C"));
+    stubGeneration(recommendationSet, places, List.of(List.of(1L, 2L, 999L)));
+
+    CourseDtos.CourseDetailResponse response = courseService.generate(1L);
+
+    assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(1L, 2L, 3L);
+  }
+
+  @DisplayName("fallback은 FOODIE 장소를 점심 식사 순서에 먼저 배치한다.")
+  @Test
+  void generate_fallback_placesFoodieAtLunchSlot() {
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.DAY_TRIP)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 20))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L))
+            .likedPlaceIds(List.of(1L, 2L, 3L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        List.of(
+            placeAt(1L, 35.00, "A"),
+            placeAt(2L, 35.01, "B"),
+            placeAt(3L, 35.20, "식당", TravelPreferenceType.FOODIE));
+    stubGeneration(recommendationSet, places, List.of());
+
+    CourseDtos.CourseDetailResponse response = courseService.generate(1L);
+
+    assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
+        .containsExactly(1L, 3L, 2L);
+  }
+
+  @DisplayName("AI가 날짜별 장소를 불균형하게 나누면 fallback이 1박 2일을 3개와 2개로 나눈다.")
+  @Test
+  void generate_unbalancedAiDays_usesBalancedFallback() {
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.ONE_NIGHT_TWO_DAYS)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 21))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L, 4L, 5L))
+            .likedPlaceIds(List.of(1L, 2L, 3L, 4L, 5L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        List.of(
+            placeAt(1L, 35.10, "장소1"),
+            placeAt(2L, 35.11, "장소2"),
+            placeAt(3L, 35.12, "장소3"),
+            placeAt(4L, 35.13, "장소4"),
+            placeAt(5L, 35.14, "장소5"));
+    stubGeneration(recommendationSet, places, List.of(List.of(1L, 2L, 3L, 4L, 5L), List.of()));
+
+    CourseDtos.CourseDetailResponse response = courseService.generate(1L);
+
+    assertThat(response.places().stream().filter(place -> place.dayNumber() == 1)).hasSize(3);
+    assertThat(response.places().stream().filter(place -> place.dayNumber() == 2)).hasSize(2);
+  }
+
+  @DisplayName("AI 호출 중 저장된 좋아요가 바뀌면 코스를 저장하지 않는다.")
+  @Test
+  void generate_selectionChangedDuringAiCall_rejectsSave() {
+    RecommendationSet before =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.DAY_TRIP)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 20))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L))
+            .likedPlaceIds(List.of(1L, 2L, 3L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    RecommendationSet changed =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.DAY_TRIP)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 20))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L))
+            .likedPlaceIds(List.of(1L, 2L))
+            .dislikedPlaceIds(List.of(3L))
+            .build();
+    List<Place> places =
+        List.of(placeAt(1L, 35.00, "A"), placeAt(2L, 35.01, "B"), placeAt(3L, 35.02, "C"));
+    given(recommendationSetRepository.findByUserId(1L))
+        .willReturn(Optional.of(before), Optional.of(changed));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(places);
+    given(groqCourseOrderClient.order(any())).willReturn(List.of(List.of(1L, 2L, 3L)));
+    given(userRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
+
+    RecommendationHandler exception =
+        assertThrows(RecommendationHandler.class, () -> courseService.generate(1L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.RECOMMENDATION_BATCH_CONFLICT);
+    Mockito.verify(courseRepository, Mockito.never()).save(any());
+  }
+
+  @DisplayName("요청 thread가 저장 트랜잭션 진입 시 중단됐으면 DRAFT를 저장하지 않는다.")
+  @Test
+  void generate_interruptedBeforeSave_rejectsSave() {
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.DAY_TRIP)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 20))
+            .recommendedPlaceIds(List.of(1L, 2L, 3L))
+            .likedPlaceIds(List.of(1L, 2L, 3L))
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        List.of(placeAt(1L, 35.00, "A"), placeAt(2L, 35.01, "B"), placeAt(3L, 35.02, "C"));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(recommendationSet));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any())).willReturn(places);
+    given(groqCourseOrderClient.order(any())).willReturn(List.of(List.of(1L, 2L, 3L)));
+    given(userRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
+    Mockito.doAnswer(
+            invocation -> {
+              Thread.currentThread().interrupt();
+              TransactionCallback<?> callback = invocation.getArgument(0);
+              return callback.doInTransaction(Mockito.mock(TransactionStatus.class));
+            })
+        .when(transactionTemplate)
+        .execute(any());
+
+    try {
+      CourseHandler exception = assertThrows(CourseHandler.class, () -> courseService.generate(1L));
+
+      assertThat(exception.getCode()).isEqualTo(ErrorStatus.COURSE_GENERATION_TIMEOUT);
+      Mockito.verify(courseRepository, Mockito.never()).save(any());
+    } finally {
+      Thread.interrupted();
+    }
   }
 
   @DisplayName("소유자가 DRAFT 코스를 확정하면 Exploration과 OWNER Participant가 생성된다.")

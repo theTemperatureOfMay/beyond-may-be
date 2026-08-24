@@ -257,10 +257,20 @@ erDiagram
 ### `courses`, `course_places`
 
 - AI 생성 성공 시 `Course(DRAFT)`와 `CoursePlace`를 저장하고 `course_id`를 발급한다.
+- 인증 `POST /api/v1/courses/ai-generation`은 요청 body 없이 현재 사용자의
+  `recommendation_sets.liked_place_ids`와 저장된 여행 기간만 사용한다. Groq 호출 전후에
+  현재 선택 상태를 다시 확인하고, 달라졌으면 `RECOMMENDATION409_2`로 저장을 거부한다.
+- Groq `openai/gpt-oss-20b`에는 선택 장소 메타데이터와 Haversine 거리 행렬만 전달하고
+  strict JSON Schema로 날짜별 Place ID 배열만 받는다. 서버는 모든 선택 ID가 정확히 한 번씩
+  사용됐는지, 일수와 날짜별 장소 수 차이가 유효한지 검증한다.
+- AI 호출·파싱·계약 검증이 실패하면 첫 선택 장소부터 최근접 이웃을 반복해 배열하고,
+  FOODIE 장소를 가능한 점심·저녁 슬롯에 두는 결정적 fallback을 사용한다.
+- 외부 AI 호출은 DB 트랜잭션 밖에서 수행한다. 저장 직전 사용자 행 잠금과 추천 상태 재검증 뒤
+  `Course(DRAFT)`와 모든 `CoursePlace`를 한 트랜잭션에 저장한다.
 - 여행 기간은 `DAY_TRIP`, `ONE_NIGHT_TWO_DAYS`, `TWO_NIGHTS_THREE_DAYS`,
   `CUSTOM`으로 구분한다.
-- 모든 코스는 `start_date`, `end_date`, `start_time`을 저장한다. `CUSTOM`은 3박 4일
-  이상 직접 선택 기간이다.
+- 모든 코스는 `start_date`, `end_date`, `start_time`을 저장한다. AI 생성 코스의 기본
+  시작 시각은 07:00, 기본 체류시간은 60분이며 `CUSTOM`은 3박 4일 이상 직접 선택 기간이다.
 - Course는 제목, 소유자, 상태, 공유 만료 시각과 서버 관리 AI 수정 횟수를 가진다.
 - AI 수정은 최대 2회이며 조건부 갱신으로 동시 초과를 막는다.
 - CoursePlace는 Place 참조, 일자, 일자 내 순서, 예상 체류시간과 이전 장소에서의
@@ -355,6 +365,7 @@ Exploration 완료 → COMPLETED
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
 | 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강 입력. 런타임 정본이 아님(ADR-0015, ADR-0017, ADR-0020) |
+| Groq API | 추천 후보 순위와 선택 장소의 날짜별 방문 순서를 strict JSON Schema로 제안. 서버 검증 실패 시 규칙 기반 결과로 전체 대체 |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
