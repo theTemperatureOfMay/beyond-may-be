@@ -119,4 +119,8 @@ public class UserService {
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
     return UserConverter.toPreferenceResponse(user);
   }
+
+  public void logout(String token) {
+    authTokenService.revoke(token);
+  }
 }
