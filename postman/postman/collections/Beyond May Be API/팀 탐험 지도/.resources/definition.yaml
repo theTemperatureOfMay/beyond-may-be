@@ -1,0 +1,3 @@
+$kind: collection
+description: 성향 조회, 방문 인증, 주변 추천, 코스 완료 API 템플릿입니다.
+order: 6000

@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/places/search"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+examples: ./.resources/장소 검색 (직접 코스 수정).resources/examples
+order: 4000

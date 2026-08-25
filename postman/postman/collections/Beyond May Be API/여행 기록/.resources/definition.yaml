@@ -1,0 +1,3 @@
+$kind: collection
+description: 방문 로그 조회·등록 API 템플릿입니다.
+order: 7000

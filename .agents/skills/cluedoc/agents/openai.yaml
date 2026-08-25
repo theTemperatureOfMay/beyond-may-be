@@ -1,0 +1,6 @@
+interface:
+  display_name: "ClueDoc"
+  short_description: "기능 문서와 실제 코드 구현 지도를 함께 유지합니다"
+  default_prompt: "$cluedoc를 사용해 이 저장소의 기능 문서와 구현 지도를 현재 코드에 맞게 동기화해 주세요."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/users/sign-up"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nickname": "여행자",
+      "thinkerScore": 3,
+      "foodieScore": 5,
+      "artistScore": 9,
+      "remembererScore": 2
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        const body = pm.response.json();
+        if (body.data && body.data.token) {
+          pm.collectionVariables.set('accessToken', body.data.token);
+        }
+      }
+    language: text/javascript
+examples: ./.resources/회원가입.resources/examples
+order: 1000

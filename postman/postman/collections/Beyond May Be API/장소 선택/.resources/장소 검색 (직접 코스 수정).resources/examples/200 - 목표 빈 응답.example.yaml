@@ -1,0 +1,24 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/places/search"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: "{}"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {},
+        "success": true
+      }
+order: 1000

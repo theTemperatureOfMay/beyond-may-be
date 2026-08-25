@@ -36,6 +36,7 @@ public enum ErrorStatus implements BaseErrorCode {
       HttpStatus.CONFLICT, "COURSE409_2", "AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요."),
   COURSE_AI_REQUEST_FAILED(
       HttpStatus.SERVICE_UNAVAILABLE, "COURSE503", "AI 코스 수정 요청이 실패했습니다. 잠시 후 다시 시도해주세요."),
+  COURSE_GENERATION_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE, "COURSE503_2", "AI 코스 생성 시간이 초과되었습니다."),
 
   // Exploration
   EXPLORATION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404", "탐험을 찾을 수 없습니다."),
@@ -44,10 +45,26 @@ public enum ErrorStatus implements BaseErrorCode {
   PARTICIPANT_NOT_ACTIVE(HttpStatus.FORBIDDEN, "EXPLORATION403", "활성 참여자만 수행할 수 있습니다."),
   EXPLORATION_ALREADY_STARTED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 시작된 탐험입니다."),
 
+  PLACE_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404", "장소를 찾을 수 없습니다."),
+  PLACE_DETAIL_UNAVAILABLE(
+      HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
+
   // Visit
   PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "장소를 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),
-  VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다.");
+  VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다."),
+
+  // Recommendation
+  RECOMMENDATION_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "RECOMMENDATION400", "여행 기간이 올바르지 않습니다."),
+  RECOMMENDATION_INVALID_REACTIONS(
+      HttpStatus.BAD_REQUEST, "RECOMMENDATION400_2", "추천 회차 반응이 올바르지 않습니다."),
+  RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RECOMMENDATION404", "현재 추천을 찾을 수 없습니다."),
+  RECOMMENDATION_BATCH_NOT_FOUND(HttpStatus.NOT_FOUND, "RECOMMENDATION404_2", "추천 회차를 찾을 수 없습니다."),
+  RECOMMENDATION_PREFERENCE_REQUIRED(
+      HttpStatus.CONFLICT, "RECOMMENDATION409", "완료된 여행 성향 검사가 필요합니다."),
+  RECOMMENDATION_BATCH_CONFLICT(
+      HttpStatus.CONFLICT, "RECOMMENDATION409_2", "요청한 추천 회차 구성이 변경되었습니다."),
+  RECOMMENDATION_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE, "RECOMMENDATION503", "추천 생성 시간이 초과되었습니다.");
 
   private final HttpStatus httpStatus;
   private final String code;

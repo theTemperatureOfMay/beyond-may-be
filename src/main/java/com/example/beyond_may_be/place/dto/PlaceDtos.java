@@ -7,9 +7,7 @@ import java.util.List;
 public final class PlaceDtos {
   private PlaceDtos() {}
 
-  public record PlaceRecommendationResponse(List<PlaceResponse> places) {}
-
-  public record PlaceResponse(
+  public record DetailResponse(
       Long placeId,
       String name,
       String category,
@@ -21,4 +19,6 @@ public final class PlaceDtos {
       String businessHours,
       String description,
       String thumbnailUrl) {}
+
+  public record PlaceRecommendationResponse(List<DetailResponse> places) {}
 }

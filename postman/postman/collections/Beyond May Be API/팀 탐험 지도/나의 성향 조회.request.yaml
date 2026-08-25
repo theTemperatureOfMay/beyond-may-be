@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/users/me/preference"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/나의 성향 조회.resources/examples
+order: 1000
