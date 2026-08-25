@@ -178,4 +178,14 @@ class UserServiceTest {
 
     assertThrows(UserHandler.class, () -> userService.getMyPreference(1L));
   }
+
+  @DisplayName("로그아웃하면 인증 토큰을 폐기한다.")
+  @Test
+  void logout_revokesToken() {
+    // when
+    userService.logout("issued-token");
+
+    // then
+    org.mockito.Mockito.verify(authTokenService).revoke("issued-token");
+  }
 }

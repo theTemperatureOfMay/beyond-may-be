@@ -1,6 +1,7 @@
 package com.example.beyond_may_be.place.repository;
 
 import com.example.beyond_may_be.place.domain.Place;
+import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
@@ -78,4 +79,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
       @Param("placeId") Long placeId, @Param("businessHours") String businessHours);
 
   List<Place> findByActiveTrue();
+
+  List<Place> findByTravelMbtiTypeAndActiveTrue(TravelPreferenceType travelMbtiType);
 }

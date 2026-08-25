@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
 public class UserController {
+
+  private static final String BEARER_PREFIX = "Bearer ";
+
   private final UserService userService;
 
   @PostMapping("/sign-up")
@@ -35,5 +39,11 @@ public class UserController {
   public ApiResponse<UserPreferenceResponseDto> getMyPreference(
       @AuthenticationPrincipal Long userId) {
     return ApiResponse.onSuccess(userService.getMyPreference(userId));
+  }
+
+  @PostMapping("/logout")
+  public ApiResponse<Void> logout(@RequestHeader("Authorization") String authorizationHeader) {
+    userService.logout(authorizationHeader.substring(BEARER_PREFIX.length()));
+    return ApiResponse.onSuccess(null);
   }
 }

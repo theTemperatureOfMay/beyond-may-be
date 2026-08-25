@@ -19,4 +19,6 @@ public final class PlaceDtos {
       String businessHours,
       String description,
       String thumbnailUrl) {}
+
+  public record PlaceRecommendationResponse(List<DetailResponse> places) {}
 }

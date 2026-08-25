@@ -293,6 +293,46 @@
               "body": "{\n  \"message\": \"닉네임 또는 식별 코드가 올바르지 않습니다.\",\n  \"code\": \"USER401\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
+        },
+        {
+          "name": "로그아웃",
+          "description": "현재 인증 토큰을 폐기합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. 요청 본문은 없습니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/logout"
+          },
+          "response": [
+            {
+              "name": "200 - 로그아웃 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/users/logout"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": null,\n  \"success\": true\n}"
+            }
+          ]
         }
       ]
     },
@@ -428,6 +468,46 @@
               ],
               "cookie": [],
               "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "MBTI 유형별 장소 추천",
+          "description": "여행 성향 유형(THINKER/FOODIE/ARTIST/REMEMBERER)에 해당하는 활성 장소 중 최대 6곳을 무작위로 반환합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Query parameter `type`.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/places/recommendations?type=THINKER"
+          },
+          "response": [
+            {
+              "name": "200 - 추천 장소 목록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/places/recommendations?type=THINKER"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"places\": [\n      {\n        \"placeId\": 1,\n        \"name\": \"장소1\",\n        \"category\": \"카페\",\n        \"travelMbtiType\": \"THINKER\",\n        \"tags\": [\"조용함\", \"역사\"],\n        \"address\": \"광주 동구 테스트로 1\",\n        \"latitude\": 35.1595,\n        \"longitude\": 126.8526,\n        \"businessHours\": \"09:00-18:00\",\n        \"description\": \"설명\",\n        \"thumbnailUrl\": null\n      }\n    ]\n  },\n  \"success\": true\n}"
             }
           ]
         },

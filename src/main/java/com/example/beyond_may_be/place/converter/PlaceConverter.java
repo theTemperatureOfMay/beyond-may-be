@@ -2,6 +2,7 @@ package com.example.beyond_may_be.place.converter;
 
 import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.dto.PlaceDtos;
+import com.example.beyond_may_be.place.dto.PlaceDtos.PlaceRecommendationResponse;
 import java.util.List;
 
 public final class PlaceConverter {
@@ -20,5 +21,10 @@ public final class PlaceConverter {
         place.getBusinessHours(),
         place.getDescription(),
         place.getThumbnailUrl());
+  }
+
+  public static PlaceRecommendationResponse toRecommendationResponse(List<Place> places) {
+    return new PlaceRecommendationResponse(
+        places.stream().map(PlaceConverter::toDetailResponse).toList());
   }
 }
