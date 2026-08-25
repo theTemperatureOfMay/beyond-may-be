@@ -1,0 +1,19 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1"
+  method: GET
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "코스를 찾을 수 없습니다.",
+        "code": "COURSE404",
+        "data": null,
+        "success": false
+      }
+order: 2000

@@ -1,0 +1,19 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/exploration/1/nearby-places"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {},
+        "success": true
+      }
+order: 1000

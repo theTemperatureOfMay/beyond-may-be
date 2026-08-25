@@ -1,0 +1,24 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/ai-generation"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: "{}"
+response:
+  statusCode: 500
+  statusText: Internal Server Error
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "서버 에러, 관리자에게 문의 바랍니다.",
+        "code": "COMMON500",
+        "data": "서버 에러, 관리자에게 문의 바랍니다.",
+        "success": false
+      }
+order: 2000

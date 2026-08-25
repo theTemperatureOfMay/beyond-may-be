@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations/1/places/1/visits"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "latitude": 35.1595,
+      "longitude": 126.8526
+    }
+examples: ./.resources/방문 인증 (지도 밝히기).resources/examples
+order: 5000

@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,9 @@ import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
-@Table(name = "places")
+@Table(
+    name = "places",
+    uniqueConstraints = {@UniqueConstraint(columnNames = "tour_content_id")})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Place extends BaseEntity {
 
@@ -54,14 +57,20 @@ public class Place extends BaseEntity {
   @Column(nullable = false)
   private BigDecimal longitude;
 
-  @Column(name = "business_hours", nullable = false)
+  @Column(name = "business_hours", columnDefinition = "text")
   private String businessHours;
 
-  @Column(nullable = false, columnDefinition = "text")
+  @Column(columnDefinition = "text")
   private String description;
 
   @Column(name = "thumbnail_url")
   private String thumbnailUrl;
+
+  @Column(name = "tour_content_id")
+  private Long tourContentId;
+
+  @Column(name = "tour_content_type_id")
+  private Integer tourContentTypeId;
 
   @Column(nullable = false)
   private boolean active;
@@ -78,6 +87,8 @@ public class Place extends BaseEntity {
       String businessHours,
       String description,
       String thumbnailUrl,
+      Long tourContentId,
+      Integer tourContentTypeId,
       boolean active) {
     this.name = name;
     this.category = category;
@@ -89,6 +100,8 @@ public class Place extends BaseEntity {
     this.businessHours = businessHours;
     this.description = description;
     this.thumbnailUrl = thumbnailUrl;
+    this.tourContentId = tourContentId;
+    this.tourContentTypeId = tourContentTypeId;
     this.active = active;
   }
 }
