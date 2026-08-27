@@ -45,7 +45,8 @@
 | 기간·추천·반응·장소 선택 | 인증된 사용자 |
 | `DRAFT` 코스 수정·확정 | 해당 `Course` 소유자 |
 | 공유 코스 합류 | 인증된 사용자, 활성 참여 없음, 유효한 공유 만료 시각 |
-| 탐험 시작·팀원 조회·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 탐험 시작·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 팀원 조회 | 해당 `Exploration`의 `LEFT`가 아닌 `Participant` |
 | 방문 인증·사진 첨부 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
 | 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
@@ -60,8 +61,10 @@
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
 WebSocket의 `/ws` HTTP upgrade는 허용하고 STOMP `CONNECT` native
 `Authorization: Bearer <token>` 헤더를 같은 `AuthTokenService`로 검증해 userId
-principal을 설정한다. 기능별 인가가 구현되기 전까지 `SEND`와 `SUBSCRIBE`는 모두
-거부한다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md)). 토큰
+principal을 설정한다. `/topic/explorations/{explorationId}/events` 구독은 해당 탐험의
+`ACTIVE Participant`만 허용하고, 다른 `SUBSCRIBE`와 모든 `SEND`는 계속 거부한다
+([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md),
+[ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md)). 토큰
 재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
 
 ## 현재 코드의 영속 구조
@@ -292,6 +295,8 @@ erDiagram
   생성한다.
 - 별도 `Team` 테이블 없이 Participant가 역할, 상태, 표시 이름과 위치 공유 동의를
   소유한다.
+- 위치 공유 동의 기본값은 `false`이며 Participant 설정만 PostgreSQL에 저장한다. 실시간
+  위치 좌표는 저장하지 않는다.
 - 사용자는 `BEFORE`와 `ONGOING`을 합쳐 활성 Participant를 최대 하나만 가진다.
 - 같은 Exploration의 활성 Participant는 탐험을 시작할 수 있으며 최초 요청만
   `BEFORE → ONGOING` 전환에 성공한다.
@@ -373,7 +378,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
-| 실시간 채널(기반만 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker, `/app` application prefix와 `CONNECT` bearer 인증만 설정했다. 기능별 destination·payload·참여자 인가와 이벤트 전파는 미구현이며, 그 전까지 `SEND`·`SUBSCRIBE`를 거부한다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md)) |
+| 실시간 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker, `/app` application prefix와 `CONNECT` bearer 인증을 설정했다. 탐험 상태 변경 커밋 후 `/topic/explorations/{explorationId}/events`로 `EXPLORATION_STARTED`와 `LOCATION_SHARING_CHANGED`를 최선 노력으로 발행하며 같은 탐험의 `ACTIVE Participant`만 구독할 수 있다. 다른 `SUBSCRIBE`와 모든 `SEND`는 계속 거부한다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md)). |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.
@@ -382,8 +387,8 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 
 - 식별코드 배정은 `(nickname, identification_code)` 유일 제약 충돌 시 재시도한다.
 - 추천 세트에 저장하는 Place ID는 모두 `places` 존재 여부를 검증한다.
-- Course 확정·취소와 AI 수정 카운트는 현재 상태를 조건으로 갱신한다. Exploration
-  시작 전환은 현재 미구현이다.
+- Course 확정·취소와 AI 수정 카운트는 현재 상태를 조건으로 갱신한다. Exploration 시작도
+  `BEFORE` 상태를 조건으로 갱신해 최초 요청 하나만 성공시킨다.
 - 공유 링크 만료는 `share_expires_at`으로 판정하며 만료된 신규 합류 요청은 410으로
   거부한다.
 - 향후 방문 인증 API는 Participant가 활성 상태이고 Place가 유효한지 검사해야 한다.

@@ -16,13 +16,12 @@
 | 4.4.1 | TourAPI 주변 장소 수집·주기적 전체 갱신과 실패 대체 | `추천 생성의 변경분 1회 보충은 ADR-0015로 확정, 주변·주기 갱신 정책 [결정 필요]` |
 | 4.4.1 | `locationBasedList2` 런타임 호출과 기존 장소 정본 ADR의 충돌 정리 | `런타임 호출은 기능 명세에 반영, 백엔드 아키텍처·ADR 갱신 [문서화 필요]` |
 | 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
-| 4.1.1·4.2.2 | 팀원 목록 조회 계약 | `POST /api/v1/courses/{courseId}/join은 유지, 팀원 목록 API 상세 [백엔드 확인]. 기존 members API는 제거(ADR-0021)` |
 | 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | `정확도 50m와 places numeric(9,6)은 유지, 실시간 좌표 payload 상세 [백엔드 확인]` |
-| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | `WebSocket(STOMP) /ws·/topic·/app와 CONNECT bearer 인증 기반 확정·구현. 기능별 destination·payload·ACTIVE Participant 인가와 REST 연계 [백엔드 확인] (ADR-0022)` |
+| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | 위치 공유 동의 PATCH, 커밋 후 `LOCATION_SHARING_CHANGED`, `/topic/explorations/{explorationId}/events`의 `ACTIVE Participant` 구독 인가는 확정·구현했다(ADR-0023). 실시간 위치 좌표 `SEND`·구독 payload, 방문 이벤트와 재연결 상태 복구 `[백엔드 확인]` |
 | 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `100m·GPS 필수 정책은 유지, 방문 인증 REST API 상세 [백엔드 확인]. 기존 visits API는 제거(ADR-0021)` |
 | 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | `참여자별 1회·팀 전체 표시·주변 장소 기록 포함 정책과 Visit 스키마는 유지, 저장 API 상세 [백엔드 확인]` |
 | 4.4.1 | 주변 추천 노출과 REST API 계약 | `수동 노출 확정, API 상세 [백엔드 확인]` |
-| 5.1.2 | 전체 코스 완료 전환 | `전체 장소 자동 완료·OWNER 조기 완료 확정, API 상세 [백엔드 확인]` |
+| 5.1.2 | 전체 코스 완료 전환 | `GET /api/v1/explorations/{explorationId}`의 읽기 전용 상태·진행률·권한 조회 계약은 구현. 전체 장소 자동 완료를 수행할 방문 저장 흐름과 OWNER 조기 완료 API 상세 [백엔드 확인]` |
 | 5.2.1 | 방문 사진 업로드 계약 | `장수 제한 없음·장당 10MB·JPEG/PNG/WebP 확정, 저장 API [백엔드 확인]` |
 | 2.1.2·2.2.4·4.4.2 | 외부 장소 이미지의 저작권·이용 조건과 저장·프록시·직접 링크 방식 | `[결정 필요]` |
 | 3.1.0·3.3.1 | `DRAFT` 코스 만료·정리 주기 | `[MVP 이후 운영 정책]` |

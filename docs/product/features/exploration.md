@@ -24,7 +24,7 @@
 
 ##### 백엔드·기획 참고
 
-합류한 팀원 목록 조회 가능 여부 → [백엔드 확인] (4.2 선행)
+합류 직후 팀원 목록은 4.2.2의 탐험 참여자 목록 API로 조회한다.
 
 ### 4.2 탐험 전 코스 보기
 
@@ -47,7 +47,9 @@
 
 코스가 한눈에 들어오도록 지도 우선
 
-탐험 전에도 코스 조회 API 사용 가능 여부 → [백엔드 확인]
+코스 장소와 일정은 공개 `GET /api/v1/courses/{courseId}`로 조회한다. 인증된 현재 또는
+과거 참여자는 `GET /api/v1/explorations/{explorationId}`에서 탐험 상태, 팀 인원·방문 수,
+코스 진행률과 현재 참여자의 실행 권한을 함께 조회한다.
 
 #### 4.2.2 팀원 확인
 
@@ -61,7 +63,9 @@
 
 ##### 백엔드·기획 참고
 
-팀원 목록 API → [백엔드 확인] (4.3.2와 동일 API 여부)
+탐험 전·진행 중 모두
+`GET /api/v1/explorations/{explorationId}/participants`를 사용한다. 탐험 전에도
+`visitedPlaceCount`는 같은 값으로 반환하며 프런트엔드만 표시하지 않는다.
 
 #### 4.2.3 성향 검사 진입
 
@@ -94,8 +98,10 @@
 
 탐험 시작 전 `BEFORE` 상태부터 팀 합류를 허용한다.
 
-Course와 Exploration ID는 탐험 시작 전에 이미 발급됨. 탐험 시작 API와 소켓
-payload는 후속 API 설계에서 확정
+Course와 Exploration ID는 탐험 시작 전에 이미 발급된다. 요청 본문 없이
+`POST /api/v1/explorations/{explorationId}/start`를 호출하며, 성공 커밋 후
+`/topic/explorations/{explorationId}/events`로 `EXPLORATION_STARTED` 상태 이벤트를
+전파한다.
 
 탐험 시작은 `BEFORE → ONGOING`의 1회성 전환이며 되돌릴 수 없음
 
@@ -142,8 +148,19 @@ bearer 인증으로 설정했다([ADR-0022](../../adr/0022-authenticated-stomp-t
 
 ##### 백엔드·기획 참고
 
-위치 공유 옵트인 상태는 서버가 참여자별로 저장. 팀원 목록 API와 기능별 실시간
-destination·payload·`ACTIVE Participant` 인가는 별도 API 명세를 따르며 현재 미구현
+초기 팀원 목록과 방문 수는
+`GET /api/v1/explorations/{explorationId}/participants`로 조회한다. `LEFT` 참여자는
+제외하고 OWNER 우선·합류 시각 순으로 반환하며 사용자 ID와 위치 좌표는 노출하지 않는다.
+현재 `ACTIVE Participant`는
+`PATCH /api/v1/explorations/{explorationId}/participants/me/location-sharing`에
+boolean `enabled`를 보내 기본값 `false`인 자신의 동의 설정만 바꾼다. 같은 값은 저장
+시각과 이벤트를 바꾸지 않는다. 실제 변경 커밋 후
+`/topic/explorations/{explorationId}/events`에 좌표 없이
+`LOCATION_SHARING_CHANGED` envelope(`eventId`, `explorationId`, `occurredAt`,
+`data: { participantId, enabled }`)를 최선 노력으로 전파하며 해당 탐험의
+`ACTIVE Participant`만 이 채널을 구독할 수 있다.
+실시간 좌표 `SEND`와 방문 이벤트는 아직 구현하지 않았고 PostgreSQL에는 위치 좌표를
+저장하지 않는다([ADR-0023](../../adr/0023-location-sharing-opt-in-and-state-event.md)).
 
 #### 4.3.3 지도 밝히기 (방문 인증)
 
@@ -189,7 +206,9 @@ destination·payload·`ACTIVE Participant` 인가는 별도 API 명세를 따르
 ##### 백엔드·기획 참고
 
 3.1.2 타임라인 컴포넌트 재사용
-방문 완료 상태 코스 조회 응답 포함 여부 → [백엔드 확인]
+
+`GET /api/v1/explorations/{explorationId}`는 팀 완료 코스 장소 수와 전체 장소 수를
+요약해 반환한다. 장소별 완료 상태는 아직 코스 조회 응답에 포함하지 않는다.
 
 ### 4.4 주변 탐색
 

@@ -1693,7 +1693,7 @@
     },
     {
       "name": "팀 탐험 지도",
-      "description": "성향 조회와 공유 링크 팀 합류 API입니다.",
+      "description": "성향 조회, 공유 링크 팀 합류, 탐험 시작, 현재 팀원 목록과 탐험 상태 조회 API입니다.",
       "item": [
         {
           "name": "나의 성향 조회",
@@ -1737,7 +1737,7 @@
         },
         {
           "name": "팀 합류 (공유 링크)",
-          "description": "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
+          "description": "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 최초 합류는 201, 같은 탐험 재진입은 새 행을 만들지 않고 200과 `alreadyJoined: true`를 반환합니다. 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이거나 탐험이 완료됐으면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -1750,7 +1750,31 @@
           },
           "response": [
             {
-              "name": "200 - 팀 합류 성공",
+              "name": "201 - 최초 팀 합류 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/join"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"생성에 성공했습니다.\",\n  \"code\": \"COMMON201\",\n  \"data\": {\n    \"explorationId\": 1,\n    \"participantId\": 2,\n    \"role\": \"MEMBER\",\n    \"status\": \"ACTIVE\",\n    \"displayName\": \"여행자 (2)\",\n    \"locationSharingEnabled\": false,\n    \"joinedAt\": \"2026-08-15T21:15:00+09:00\",\n    \"alreadyJoined\": false\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "200 - 기존 팀원 재진입",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -1771,22 +1795,46 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 1,\n    \"participantId\": 2,\n    \"displayName\": \"여행자 (2)\",\n    \"role\": \"MEMBER\"\n  },\n  \"success\": true\n}"
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 1,\n    \"participantId\": 2,\n    \"role\": \"MEMBER\",\n    \"status\": \"ACTIVE\",\n    \"displayName\": \"여행자 (2)\",\n    \"locationSharingEnabled\": false,\n    \"joinedAt\": \"2026-08-15T21:15:00+09:00\",\n    \"alreadyJoined\": true\n  },\n  \"success\": true\n}"
             },
             {
-              "name": "401/403 - 인증 토큰 없음 또는 잘못됨",
+              "name": "401 - 인증 토큰 없음 또는 잘못됨",
               "description": "이 오류는 우리 ApiResponse 형식이 아니라 Spring Security 기본 응답입니다 — `Authorization` 헤더를 빼거나 잘못된 토큰을 넣으면 재현됩니다. 다른 모든 인증 필요 API도 동일합니다.",
               "originalRequest": {
                 "method": "POST",
                 "header": [],
                 "url": "{{baseUrl}}/api/v1/courses/1/join"
               },
-              "status": "Forbidden",
-              "code": 403,
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "text",
               "header": [],
               "cookie": [],
               "body": ""
+            },
+            {
+              "name": "409 - 완료된 탐험",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/join"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 완료된 탐험입니다.\",\n  \"code\": \"EXPLORATION409_2\",\n  \"data\": null,\n  \"success\": false\n}"
             },
             {
               "name": "410 - 공유 링크 만료",
@@ -1811,6 +1859,724 @@
               ],
               "cookie": [],
               "body": "{\n  \"message\": \"공유 링크가 만료되었습니다.\",\n  \"code\": \"EXPLORATION410\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "탐험 시작",
+          "description": "같은 탐험의 ACTIVE 참여자가 역할과 관계없이 BEFORE 탐험을 한 번만 ONGOING으로 전환합니다(4.2.4). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. GPS 권한은 프런트엔드 책임이며 상태 전환 커밋 후 `EXPLORATION_STARTED` 이벤트를 발행합니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/44/start"
+          },
+          "response": [
+            {
+              "name": "200 - 탐험 시작 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"courseId\": 31,\n    \"status\": \"ONGOING\",\n    \"participantId\": 72,\n    \"startedAt\": \"2026-08-15T10:00:00+09:00\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 활성 참여자가 아님",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/999999/start"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 이미 시작 또는 완료",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 시작했거나 완료된 탐험입니다.\",\n  \"code\": \"EXPLORATION409_3\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 상태 전환 실패",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "팀원 목록 조회",
+          "description": "탐험 전·진행 중 현재 팀원과 참여자별 고유 방문 장소 수를 조회합니다(4.2.2, 4.3.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. `LEFT` 참여자는 제외하고 OWNER 우선·합류 시각 오름차순으로 반환하며 사용자 ID와 실시간 위치 좌표는 노출하지 않습니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/44/participants"
+          },
+          "response": [
+            {
+              "name": "200 - 팀원 목록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"participantCount\": 2,\n    \"participants\": [\n      {\n        \"participantId\": 70,\n        \"displayName\": \"여행자\",\n        \"role\": \"OWNER\",\n        \"status\": \"ACTIVE\",\n        \"visitedPlaceCount\": 3,\n        \"locationSharingEnabled\": true,\n        \"isMe\": false,\n        \"joinedAt\": \"2026-08-14T18:00:00+09:00\"\n      },\n      {\n        \"participantId\": 71,\n        \"displayName\": \"별밤지기\",\n        \"role\": \"MEMBER\",\n        \"status\": \"ACTIVE\",\n        \"visitedPlaceCount\": 2,\n        \"locationSharingEnabled\": false,\n        \"isMe\": true,\n        \"joinedAt\": \"2026-08-15T09:40:00+09:00\"\n      }\n    ]\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 현재 참여자가 아님",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/999999/participants"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 팀원 또는 방문 수 조회 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "내 위치 공유 설정 변경",
+          "description": "현재 사용자의 위치 공유 동의를 변경합니다(4.3.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; body는 boolean `enabled`만 허용합니다. BEFORE·ONGOING 탐험의 ACTIVE 참여자만 변경할 수 있고 같은 값은 저장 시각과 이벤트를 바꾸지 않습니다. 실제 변경 커밋 후 `/topic/explorations/{explorationId}/events`에 좌표 없는 `LOCATION_SHARING_CHANGED`를 발행합니다.",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+          },
+          "response": [
+            {
+              "name": "200 - 위치 공유 설정 변경",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"participantId\": 72,\n    \"locationSharingEnabled\": true,\n    \"updatedAt\": \"2026-08-15T21:20:00+09:00\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - enabled 형식 오류",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": \"true\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"잘못된 요청입니다.\",\n  \"code\": \"COMMON400\",\n  \"data\": {\n    \"request_body\": \"잘못된 요청입니다.\"\n  },\n  \"success\": false\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 활성 참여자가 아님",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"해당 탐험의 활성 참여자가 아닙니다.\",\n  \"code\": \"EXPLORATION403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/999999/participants/me/location-sharing"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 참여자 없음",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험 참여자를 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 완료된 탐험",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 완료된 탐험입니다.\",\n  \"code\": \"EXPLORATION409_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 위치 공유 설정 저장 실패",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "탐험 상태 조회",
+          "description": "현재 또는 과거 참여자가 탐험 상태, 팀 인원·고유 방문 장소 수, 코스 진행률과 현재 참여자의 실행 권한을 조회합니다(4.2, 4.3, 5.1). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. `LEFT`는 `participantCount`에서 제외하지만 기존 방문은 집계하며, 코스 진행률은 `coursePlaceId` 문맥이 있는 방문만 사용합니다. 이 GET은 완료 상태를 변경하지 않습니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/44"
+          },
+          "response": [
+            {
+              "name": "200 - 탐험 상태",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"courseId\": 31,\n    \"status\": \"ONGOING\",\n    \"startedByParticipantId\": 70,\n    \"startedAt\": \"2026-08-15T10:00:00+09:00\",\n    \"completedAt\": null,\n    \"participantCount\": 4,\n    \"teamVisitedPlaceCount\": 3,\n    \"courseProgress\": {\n      \"completedCoursePlaceCount\": 2,\n      \"totalCoursePlaceCount\": 5,\n      \"completionRate\": 40\n    },\n    \"currentParticipant\": {\n      \"participantId\": 72,\n      \"role\": \"MEMBER\",\n      \"status\": \"ACTIVE\",\n      \"locationSharingEnabled\": false\n    },\n    \"permissions\": {\n      \"canStart\": false,\n      \"canCompleteEarly\": false\n    }\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/explorations/44"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 탐험 참여자가 아님",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/999999"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 상태 또는 진행률 집계 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
             }
           ]
         }

@@ -81,4 +81,12 @@ public class ExplorationParticipant extends BaseEntity {
     this.status = ParticipantStatus.ACTIVE;
     this.leftAt = null;
   }
+
+  public boolean changeLocationSharing(boolean enabled) {
+    if (locationSharingEnabled == enabled) {
+      return false;
+    }
+    locationSharingEnabled = enabled;
+    return true;
+  }
 }

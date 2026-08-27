@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.security.StompAuthenticationInterceptor;
+import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -108,6 +109,11 @@ class WebSocketConfigIntegrationTest {
     @Bean
     AuthTokenService authTokenService() {
       return mock(AuthTokenService.class);
+    }
+
+    @Bean
+    ExplorationParticipantRepository explorationParticipantRepository() {
+      return mock(ExplorationParticipantRepository.class);
     }
   }
 }

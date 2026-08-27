@@ -40,8 +40,12 @@ public enum ErrorStatus implements BaseErrorCode {
 
   // Exploration
   EXPLORATION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404", "탐험을 찾을 수 없습니다."),
+  EXPLORATION_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404_2", "탐험 참여자를 찾을 수 없습니다."),
+  EXPLORATION_PARTICIPANT_FORBIDDEN(HttpStatus.FORBIDDEN, "EXPLORATION403", "해당 탐험의 활성 참여자가 아닙니다."),
   SHARE_LINK_EXPIRED(HttpStatus.GONE, "EXPLORATION410", "공유 링크가 만료되었습니다."),
   DUPLICATE_ACTIVE_PARTICIPATION(HttpStatus.CONFLICT, "EXPLORATION409", "이미 다른 탐험에 참여 중입니다."),
+  EXPLORATION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 완료된 탐험입니다."),
+  EXPLORATION_START_CONFLICT(HttpStatus.CONFLICT, "EXPLORATION409_3", "이미 시작했거나 완료된 탐험입니다."),
 
   PLACE_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404", "장소를 찾을 수 없습니다."),
   PLACE_DETAIL_UNAVAILABLE(
