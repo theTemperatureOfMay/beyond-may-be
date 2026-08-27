@@ -58,8 +58,11 @@
 `user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
 일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
-실시간 채널 인증 계약은 재설계가 필요하다(ADR-0021). 토큰 재발급·로그아웃·만료
-UX(6.1.5)는 아직 다루지 않았다.
+WebSocket의 `/ws` HTTP upgrade는 허용하고 STOMP `CONNECT` native
+`Authorization: Bearer <token>` 헤더를 같은 `AuthTokenService`로 검증해 userId
+principal을 설정한다. 기능별 인가가 구현되기 전까지 `SEND`와 `SUBSCRIBE`는 모두
+거부한다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md)). 토큰
+재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
 
 ## 현재 코드의 영속 구조
 
@@ -370,7 +373,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
-| 실시간 채널(미구현) | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. WebSocket(STOMP) 상세 계약은 재설계 후 확정한다([ADR-0021](../adr/0021-remove-premature-exploration-realtime-implementation.md)) |
+| 실시간 채널(기반만 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker, `/app` application prefix와 `CONNECT` bearer 인증만 설정했다. 기능별 destination·payload·참여자 인가와 이벤트 전파는 미구현이며, 그 전까지 `SEND`·`SUBSCRIBE`를 거부한다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md)) |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.

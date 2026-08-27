@@ -18,7 +18,7 @@
 | 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
 | 4.1.1·4.2.2 | 팀원 목록 조회 계약 | `POST /api/v1/courses/{courseId}/join은 유지, 팀원 목록 API 상세 [백엔드 확인]. 기존 members API는 제거(ADR-0021)` |
 | 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | `정확도 50m와 places numeric(9,6)은 유지, 실시간 좌표 payload 상세 [백엔드 확인]` |
-| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | `기존 Socket.IO 계약 제거. WebSocket(STOMP) endpoint·destination·payload·인증 상세 [결정 필요] (ADR-0021)` |
+| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | `WebSocket(STOMP) /ws·/topic·/app와 CONNECT bearer 인증 기반 확정·구현. 기능별 destination·payload·ACTIVE Participant 인가와 REST 연계 [백엔드 확인] (ADR-0022)` |
 | 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `100m·GPS 필수 정책은 유지, 방문 인증 REST API 상세 [백엔드 확인]. 기존 visits API는 제거(ADR-0021)` |
 | 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | `참여자별 1회·팀 전체 표시·주변 장소 기록 포함 정책과 Visit 스키마는 유지, 저장 API 상세 [백엔드 확인]` |
 | 4.4.1 | 주변 추천 노출과 REST API 계약 | `수동 노출 확정, API 상세 [백엔드 확인]` |

@@ -56,6 +56,12 @@ class SecurityPolicyIntegrationTest {
     mockMvc.perform(post("/actuator/health").with(csrf())).andExpect(status().isUnauthorized());
   }
 
+  @Test
+  void webSocketPermitOnlyCoversExactGetEndpoint() throws Exception {
+    mockMvc.perform(post("/ws").with(csrf())).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/ws/anything")).andExpect(status().isUnauthorized());
+  }
+
   @SpringBootConfiguration
   @EnableAutoConfiguration(
       excludeName = {

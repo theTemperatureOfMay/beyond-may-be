@@ -121,7 +121,10 @@ payload는 후속 API 설계에서 확정
 주변 추천과 단순 방문 인증 요청은 REST API로 처리한다.
 팀원 실시간 위치 공유와 방문 상태 실시간 갱신은 WebSocket 이벤트로 전달한다.
 위치 전송 기준은 이전 전송 위치에서 10m 이상 이동했을 때로 한다.
-GPS 정확도 기준값은 50m다. 좌표 payload와 채널 계약은 별도 API 명세에서 확정한다.
+GPS 정확도 기준값은 50m다. 좌표 payload와 기능별 채널 계약은 별도 API 명세를 따르며
+현재 이 저장소에는 해당 메시지 처리가 구현되지 않았다.
+공통 전송·인증 기반은 `/ws` WebSocket(STOMP), `/topic`, `/app`과 STOMP `CONNECT`
+bearer 인증으로 설정했다([ADR-0022](../../adr/0022-authenticated-stomp-transport-foundation.md)).
 
 #### 4.3.2 팀원 진행 상태 보기
 
@@ -139,8 +142,8 @@ GPS 정확도 기준값은 50m다. 좌표 payload와 채널 계약은 별도 API
 
 ##### 백엔드·기획 참고
 
-위치 공유 옵트인 상태는 서버가 참여자별로 저장. 팀원 목록 API, 실시간 갱신 payload와
-소켓 채널 구조는 후속 API 설계에서 확정
+위치 공유 옵트인 상태는 서버가 참여자별로 저장. 팀원 목록 API와 기능별 실시간
+destination·payload·`ACTIVE Participant` 인가는 별도 API 명세를 따르며 현재 미구현
 
 #### 4.3.3 지도 밝히기 (방문 인증)
 

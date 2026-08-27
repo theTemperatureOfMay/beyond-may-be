@@ -45,6 +45,7 @@ class MaskingPatternLayoutTest {
   void masksAuthorizationBearerAndJwtValues() {
     assertMasked("Authorization: Bearer abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz");
     assertMasked("credential=Bearer abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz");
+    assertMasked("CONNECT {Authorization=[Bearer valid-token]} session=null", "valid-token");
     assertMasked(
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature",
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature");
