@@ -3,7 +3,6 @@ package com.example.beyond_may_be.exploration.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 
 import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
@@ -45,9 +44,6 @@ class ExplorationServiceTest {
   @Mock private ExplorationParticipantRepository explorationParticipantRepository;
   @Mock private CourseRepository courseRepository;
   @Mock private UserRepository userRepository;
-  @Mock private com.example.beyond_may_be.visit.repository.VisitRepository visitRepository;
-
-  @Mock private ExplorationBroadcastService explorationBroadcastService;
 
   private Course confirmedCourse(LocalDateTime shareExpiresAt) {
     Course course =
@@ -185,57 +181,5 @@ class ExplorationServiceTest {
     assertThat(existing.getStatus()).isEqualTo(ParticipantStatus.ACTIVE);
     Mockito.verify(explorationParticipantRepository, Mockito.never())
         .save(any(ExplorationParticipant.class));
-  }
-
-  @DisplayName("활성 참여자만 팀원 목록을 조회할 수 있다.")
-  @Test
-  void listMembers_notActiveParticipant_throws() {
-    given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 9L))
-        .willReturn(Optional.empty());
-
-    assertThrows(ExplorationHandler.class, () -> explorationService.listMembers(5L, 9L));
-  }
-
-  @DisplayName("최초 시작 요청만 BEFORE에서 ONGOING으로 전환된다.")
-  @Test
-  void start_firstRequestSucceeds() {
-    ExplorationParticipant participant =
-        ExplorationParticipant.builder()
-            .explorationId(5L)
-            .userId(2L)
-            .role(ParticipantRole.OWNER)
-            .status(ParticipantStatus.ACTIVE)
-            .displayName("여행자")
-            .locationSharingEnabled(false)
-            .joinedAt(LocalDateTime.now())
-            .build();
-    given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
-        .willReturn(Optional.of(participant));
-    given(explorationRepository.startIfBefore(anyLong(), any(), any())).willReturn(1);
-    given(explorationRepository.findById(5L)).willReturn(Optional.of(exploration(5L)));
-
-    ExplorationDtos.StartResponse response = explorationService.start(5L, 2L);
-
-    assertThat(response.explorationId()).isEqualTo(5L);
-  }
-
-  @DisplayName("이미 시작된 탐험을 다시 시작하려 하면 예외가 발생한다.")
-  @Test
-  void start_alreadyStarted_throws() {
-    ExplorationParticipant participant =
-        ExplorationParticipant.builder()
-            .explorationId(5L)
-            .userId(2L)
-            .role(ParticipantRole.MEMBER)
-            .status(ParticipantStatus.ACTIVE)
-            .displayName("여행자")
-            .locationSharingEnabled(false)
-            .joinedAt(LocalDateTime.now())
-            .build();
-    given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
-        .willReturn(Optional.of(participant));
-    given(explorationRepository.startIfBefore(anyLong(), any(), any())).willReturn(0);
-
-    assertThrows(ExplorationHandler.class, () -> explorationService.start(5L, 2L));
   }
 }

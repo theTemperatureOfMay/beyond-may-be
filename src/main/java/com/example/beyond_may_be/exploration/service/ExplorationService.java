@@ -17,11 +17,8 @@ import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRe
 import com.example.beyond_may_be.exploration.repository.ExplorationRepository;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.repository.UserRepository;
-import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,8 +33,6 @@ public class ExplorationService {
   private final ExplorationParticipantRepository explorationParticipantRepository;
   private final CourseRepository courseRepository;
   private final UserRepository userRepository;
-  private final VisitRepository visitRepository;
-  private final ExplorationBroadcastService explorationBroadcastService;
 
   public ExplorationDtos.JoinResponse join(Long courseId, Long userId) {
     Course course =
@@ -64,8 +59,6 @@ public class ExplorationService {
       if (participant.getStatus() == ParticipantStatus.LEFT) {
         participant.reactivate();
       }
-      explorationBroadcastService.broadcastMemberJoined(
-          exploration.getId(), participant.getUserId(), participant.getDisplayName());
       return ExplorationConverter.toJoinResponse(participant);
     }
 
@@ -91,8 +84,6 @@ public class ExplorationService {
                 .locationSharingEnabled(false)
                 .joinedAt(LocalDateTime.now())
                 .build());
-
-    explorationBroadcastService.broadcastMemberJoined(exploration.getId(), userId, displayName);
     return ExplorationConverter.toJoinResponse(participant);
   }
 
@@ -108,61 +99,5 @@ public class ExplorationService {
                         || suffixPattern.matcher(participant.getDisplayName()).matches())
             .count();
     return sameNameCount == 0 ? nickname : nickname + " (" + (sameNameCount + 1) + ")";
-  }
-
-  @Transactional(readOnly = true)
-  public ExplorationDtos.MemberListResponse listMembers(Long explorationId, Long userId) {
-    requireActiveParticipant(explorationId, userId);
-    List<ExplorationParticipant> members =
-        explorationParticipantRepository.findByExplorationIdAndStatus(
-            explorationId, ParticipantStatus.ACTIVE);
-
-    List<Long> participantIds = members.stream().map(ExplorationParticipant::getId).toList();
-    Map<Long, Integer> visitedCountsByParticipantId = new HashMap<>();
-    for (VisitRepository.ParticipantVisitCount count :
-        visitRepository.countByParticipantIds(participantIds)) {
-      visitedCountsByParticipantId.put(count.getParticipantId(), (int) count.getVisitCount());
-    }
-
-    return ExplorationConverter.toMemberListResponse(members, visitedCountsByParticipantId);
-  }
-
-  public ExplorationDtos.StartResponse start(Long explorationId, Long userId) {
-    ExplorationParticipant participant = requireActiveParticipant(explorationId, userId);
-
-    int updated =
-        explorationRepository.startIfBefore(
-            explorationId, participant.getId(), LocalDateTime.now());
-    if (updated == 0) {
-      throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_STARTED);
-    }
-
-    Exploration exploration =
-        explorationRepository
-            .findById(explorationId)
-            .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
-    return ExplorationConverter.toStartResponse(exploration);
-  }
-
-  private ExplorationParticipant requireActiveParticipant(Long explorationId, Long userId) {
-    return explorationParticipantRepository
-        .findByExplorationIdAndUserId(explorationId, userId)
-        .filter(participant -> participant.getStatus() == ParticipantStatus.ACTIVE)
-        .orElseThrow(() -> new ExplorationHandler(ErrorStatus.PARTICIPANT_NOT_ACTIVE));
-  }
-
-  @Transactional(readOnly = true)
-  public boolean isActiveAndLocationSharing(Long explorationId, Long userId) {
-    return explorationParticipantRepository
-        .findByExplorationIdAndUserId(explorationId, userId)
-        .filter(participant -> participant.getStatus() == ParticipantStatus.ACTIVE)
-        .map(ExplorationParticipant::isLocationSharingEnabled)
-        .orElse(false);
-  }
-
-  public void setLocationSharing(Long explorationId, Long userId, boolean enabled) {
-    explorationParticipantRepository
-        .findByExplorationIdAndUserId(explorationId, userId)
-        .ifPresent(participant -> participant.setLocationSharing(enabled));
   }
 }

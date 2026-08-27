@@ -58,8 +58,8 @@
 `user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
 일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
-Socket.IO 핸드셰이크는 같은 토큰을 쿼리 파라미터(`?token=...`)로 전달한다
-(ADR-0012). 토큰 재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
+실시간 채널 인증 계약은 재설계가 필요하다(ADR-0021). 토큰 재발급·로그아웃·만료
+UX(6.1.5)는 아직 다루지 않았다.
 
 ## 현재 코드의 영속 구조
 
@@ -172,7 +172,7 @@ erDiagram
 - TourAPI `overview`는 비어 있는 일반 설명만 보강한다. 5·18 연관 의미는 별도 컬럼이나
   생성 문구 없이 사람이 검수해 기존 `description`에 저장한 내용만 유지한다.
 - 인증 `GET /api/v1/places/{placeId}`는 활성 장소 카탈로그만 반환한다. 방문 상태와 버튼
-  활성 여부는 탐험·방문 API와 클라이언트 GPS가 소유한다. 없거나 비활성인 장소는
+  활성 여부는 향후 탐험·방문 API와 클라이언트 GPS가 소유한다. 없거나 비활성인 장소는
   `PLACE404`, TourAPI 보강 오류는 `PLACE503`, DB·내부 오류는 `COMMON500`이다.
 - 외부 제공자명, 추천 점수와 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
@@ -319,7 +319,8 @@ erDiagram
 
 - `token`(UUID 문자열)이 기본키다. 별도 `auth_token_id`를 두지 않는다.
 - `user_id`, 만료 시각(`expires_at`, 발급 시 30일 뒤로 고정)을 가진다.
-- 인증 토큰 발급·검증 방식은 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md)를
+- 인증 토큰 발급·검증 방식은
+  [ADR-0021](../adr/0021-remove-premature-exploration-realtime-implementation.md)을
   따른다.
 
 ## 상태 전환
@@ -369,7 +370,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
-| Socket.IO(netty-socketio, 별도 포트) | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. 위치 이벤트는 10m 이동 기준으로 갱신. 상세는 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md) |
+| 실시간 채널(미구현) | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. WebSocket(STOMP) 상세 계약은 재설계 후 확정한다([ADR-0021](../adr/0021-remove-premature-exploration-realtime-implementation.md)) |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.
@@ -378,12 +379,12 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 
 - 식별코드 배정은 `(nickname, identification_code)` 유일 제약 충돌 시 재시도한다.
 - 추천 세트에 저장하는 Place ID는 모두 `places` 존재 여부를 검증한다.
-- Course 확정·취소, Exploration 시작과 AI 수정 카운트는 현재 상태를 조건으로
-  갱신한다.
+- Course 확정·취소와 AI 수정 카운트는 현재 상태를 조건으로 갱신한다. Exploration
+  시작 전환은 현재 미구현이다.
 - 공유 링크 만료는 `share_expires_at`으로 판정하며 만료된 신규 합류 요청은 410으로
   거부한다.
-- 방문 인증은 Participant가 활성 상태이고 Place가 유효한지 검사한다. CoursePlace
-  문맥이 있으면 같은 Exploration의 Course에 포함되는지도 한 트랜잭션에서 검사한다.
+- 향후 방문 인증 API는 Participant가 활성 상태이고 Place가 유효한지 검사해야 한다.
+  CoursePlace 문맥이 있으면 같은 Exploration의 Course 포함 여부도 검사해야 한다.
 - 사진 업로드 실패는 Visit을 취소하지 않는다. 객체 업로드 후 DB 저장이 실패하면
   객체 삭제를 시도하고 남은 고아 객체는 운영 정리 대상으로 처리한다.
 
@@ -408,7 +409,7 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
   적용한다.
 - `V4__auth_tokens.sql`이 `auth_tokens` 테이블을 추가했고, `V5__place_coordinate_precision.sql`이
   `places.latitude`, `places.longitude`를 `numeric(9,6)`으로 좁혀 소수점 이하 6자리
-  정밀도를 보존한다(ADR-0012). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
+  정밀도를 보존한다(ADR-0021). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
   않는다.
 - `V6__allow_missing_place_details.sql`이 외부 데이터에 운영시간이나 설명이 없는 장소를
   사실과 다르게 채우지 않도록 `places.business_hours`, `places.description`의

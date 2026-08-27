@@ -27,10 +27,6 @@ groq:
   model: ${GROQ_MODEL:openai/gpt-oss-120b}
   timeout-seconds: ${GROQ_TIMEOUT_SECONDS:60}
 
-socketio:
-  host: 0.0.0.0
-  port: ${SOCKETIO_PORT:9092}
-
 management:
   endpoints:
     web:

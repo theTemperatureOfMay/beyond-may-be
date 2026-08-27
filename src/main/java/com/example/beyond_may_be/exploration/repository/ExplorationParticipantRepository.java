@@ -1,7 +1,6 @@
 package com.example.beyond_may_be.exploration.repository;
 
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
-import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,12 +13,6 @@ public interface ExplorationParticipantRepository
   Optional<ExplorationParticipant> findByExplorationIdAndUserId(Long explorationId, Long userId);
 
   List<ExplorationParticipant> findByExplorationId(Long explorationId);
-
-  List<ExplorationParticipant> findByExplorationIdAndStatus(
-      Long explorationId, ParticipantStatus status);
-
-  @Query("SELECT p.id FROM ExplorationParticipant p WHERE p.explorationId = :explorationId")
-  List<Long> findParticipantIdsByExplorationId(@Param("explorationId") Long explorationId);
 
   @Query(
       "SELECT COUNT(p) > 0 FROM ExplorationParticipant p, Exploration e "
