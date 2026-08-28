@@ -1,4 +1,4 @@
-package com.example.beyond_may_be.exploration.controller;
+package com.example.beyond_may_be.course.controller;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
+import com.example.beyond_may_be.course.service.CourseService;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.exploration.service.ExplorationService;
 import java.time.OffsetDateTime;
@@ -25,9 +26,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = ExplorationJoinControllerTest.TestApplication.class)
+@SpringBootTest(classes = CourseJoinControllerTest.TestApplication.class)
 @AutoConfigureMockMvc
-class ExplorationJoinControllerTest {
+class CourseJoinControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private AuthTokenService authTokenService;
@@ -100,7 +101,7 @@ class ExplorationJoinControllerTest {
         "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
         "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration"
       })
-  @Import({SecurityConfig.class, ExplorationController.class, ExceptionAdvice.class})
+  @Import({SecurityConfig.class, CourseController.class, ExceptionAdvice.class})
   static class TestApplication {
 
     @Bean
@@ -111,6 +112,11 @@ class ExplorationJoinControllerTest {
     @Bean
     ExplorationService explorationService() {
       return org.mockito.Mockito.mock(ExplorationService.class);
+    }
+
+    @Bean
+    CourseService courseService() {
+      return org.mockito.Mockito.mock(CourseService.class);
     }
   }
 }
