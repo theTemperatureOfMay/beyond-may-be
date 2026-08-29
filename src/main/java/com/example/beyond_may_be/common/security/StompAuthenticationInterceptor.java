@@ -1,16 +1,20 @@
 package com.example.beyond_may_be.common.security;
 
 import com.example.beyond_may_be.auth.service.AuthTokenService;
+import com.example.beyond_may_be.common.websocket.StompContractException;
+import com.example.beyond_may_be.common.websocket.StompContractException.Code;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
+import com.example.beyond_may_be.exploration.service.ExplorationLocationService;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
@@ -21,15 +25,30 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class StompAuthenticationInterceptor implements ChannelInterceptor {
 
   private static final String BEARER_PREFIX = "Bearer ";
-  private static final Pattern EXPLORATION_EVENTS_DESTINATION =
-      Pattern.compile("/topic/explorations/(\\d+)/events");
+  private static final Pattern EXPLORATION_ACTIVE_PARTICIPANT_DESTINATION =
+      Pattern.compile("/topic/explorations/(\\d+)/(?:events|visits)");
+  private static final Pattern EXPLORATION_LOCATIONS_SEND_DESTINATION =
+      Pattern.compile("/app/explorations/\\d+/locations");
+  private static final Pattern EXPLORATION_LOCATIONS_SEND_LIKE_DESTINATION =
+      Pattern.compile("/app/explorations/[^/]*/locations");
+  private static final Pattern EXPLORATION_LOCATIONS_SUBSCRIBE_DESTINATION =
+      Pattern.compile("/topic/explorations/(\\d+)/locations");
 
   private final AuthTokenService authTokenService;
   private final ExplorationParticipantRepository explorationParticipantRepository;
+  private final ExplorationLocationService explorationLocationService;
+
+  public StompAuthenticationInterceptor(
+      AuthTokenService authTokenService,
+      ExplorationParticipantRepository explorationParticipantRepository,
+      @Lazy ExplorationLocationService explorationLocationService) {
+    this.authTokenService = authTokenService;
+    this.explorationParticipantRepository = explorationParticipantRepository;
+    this.explorationLocationService = explorationLocationService;
+  }
 
   @Override
   public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -40,11 +59,21 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
     }
     SimpMessageType messageType = accessor.getMessageType();
     if (messageType == SimpMessageType.MESSAGE) {
+      if (canSendLocationUpdate(accessor)) {
+        return message;
+      }
+      String destination = String.valueOf(accessor.getDestination());
+      if (accessor.getCommand() == StompCommand.SEND
+          && EXPLORATION_LOCATIONS_SEND_LIKE_DESTINATION.matcher(destination).matches()
+          && !EXPLORATION_LOCATIONS_SEND_DESTINATION.matcher(destination).matches()) {
+        throw new StompContractException(Code.LOCATION_PAYLOAD_INVALID);
+      }
       throw new AccessDeniedException("아직 허용된 WebSocket 메시지 경로가 없습니다.");
     }
     if (messageType == SimpMessageType.SUBSCRIBE) {
-      if (!canSubscribeToExplorationEvents(accessor)) {
-        throw new AccessDeniedException("탐험 상태 이벤트를 구독할 권한이 없습니다.");
+      if (!canSubscribeToActiveParticipantTopic(accessor)
+          && !canSubscribeToExplorationLocations(accessor)) {
+        throw new AccessDeniedException("탐험 이벤트를 구독할 권한이 없습니다.");
       }
       return message;
     }
@@ -66,9 +95,37 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
     return message;
   }
 
-  private boolean canSubscribeToExplorationEvents(StompHeaderAccessor accessor) {
+  private boolean canSendLocationUpdate(StompHeaderAccessor accessor) {
+    return accessor.getCommand() == StompCommand.SEND
+        && EXPLORATION_LOCATIONS_SEND_DESTINATION
+            .matcher(String.valueOf(accessor.getDestination()))
+            .matches()
+        && accessor.getUser() instanceof Authentication authentication
+        && authentication.getPrincipal() instanceof Long;
+  }
+
+  private boolean canSubscribeToExplorationLocations(StompHeaderAccessor accessor) {
     Matcher destinationMatcher =
-        EXPLORATION_EVENTS_DESTINATION.matcher(String.valueOf(accessor.getDestination()));
+        EXPLORATION_LOCATIONS_SUBSCRIBE_DESTINATION.matcher(
+            String.valueOf(accessor.getDestination()));
+    if (!destinationMatcher.matches()
+        || !(accessor.getUser() instanceof Authentication authentication)
+        || !(authentication.getPrincipal() instanceof Long userId)) {
+      return false;
+    }
+    try {
+      explorationLocationService.validateSubscription(
+          Long.valueOf(destinationMatcher.group(1)), userId);
+      return true;
+    } catch (NumberFormatException exception) {
+      return false;
+    }
+  }
+
+  private boolean canSubscribeToActiveParticipantTopic(StompHeaderAccessor accessor) {
+    Matcher destinationMatcher =
+        EXPLORATION_ACTIVE_PARTICIPANT_DESTINATION.matcher(
+            String.valueOf(accessor.getDestination()));
     if (!destinationMatcher.matches()
         || !(accessor.getUser() instanceof Authentication authentication)
         || !(authentication.getPrincipal() instanceof Long userId)) {

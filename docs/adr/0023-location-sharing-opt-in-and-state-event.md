@@ -42,7 +42,9 @@ recorded-date: 2026-08-28
   남기고 성공한 REST 응답과 DB 설정을 되돌리지 않는다. outbox, 자동 재시도와 replay는
   두지 않으며 클라이언트는 `eventId`로 중복을 제거한다.
 - 위 상태 이벤트 destination 구독은 해당 탐험의 `ACTIVE Participant`에게만 허용한다.
-  다른 `SUBSCRIBE`와 모든 클라이언트 `SEND`는 계속 거부한다.
+  이 결정 시점에는 다른 `SUBSCRIBE`와 모든 클라이언트 `SEND`를 계속 거부했다. 후속
+  [ADR-0026](0026-ephemeral-stomp-location-sharing.md)이 `/locations` 전송·구독만 별도
+  권한으로 연다.
 - `enabled=false` 변경 이벤트를 받은 클라이언트는 기존 마커를 제거한다. 실시간 위치
   `SEND`가 후속 구현될 때 서버는 매 이벤트마다 현재 동의 상태를 확인해 비동의 좌표를
   수락·전파하지 않아야 한다.
@@ -93,6 +95,7 @@ recorded-date: 2026-08-28
 
 - [ADR-0021](0021-remove-premature-exploration-realtime-implementation.md)
 - [ADR-0022](0022-authenticated-stomp-transport-foundation.md)
+- [ADR-0026](0026-ephemeral-stomp-location-sharing.md)
 - [백엔드 아키텍처](../architecture/backend.md)
 - [백엔드 MVP 상태](../product/mvp.md)
 - [제품 논의 필요](../product/open-questions.md)

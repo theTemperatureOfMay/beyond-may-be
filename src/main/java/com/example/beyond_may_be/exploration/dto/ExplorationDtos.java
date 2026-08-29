@@ -1,7 +1,11 @@
 package com.example.beyond_may_be.exploration.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import tools.jackson.core.JacksonException;
@@ -13,6 +17,78 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 
 public final class ExplorationDtos {
   private ExplorationDtos() {}
+
+  public record LocationUpdateRequest(
+      @NotNull
+          @DecimalMin("-90.0")
+          @DecimalMax("90.0")
+          @JsonDeserialize(using = StrictBigDecimalDeserializer.class)
+          BigDecimal latitude,
+      @NotNull
+          @DecimalMin("-180.0")
+          @DecimalMax("180.0")
+          @JsonDeserialize(using = StrictBigDecimalDeserializer.class)
+          BigDecimal longitude,
+      @NotNull
+          @DecimalMin("0.0")
+          @DecimalMax("50.0")
+          @JsonDeserialize(using = StrictBigDecimalDeserializer.class)
+          BigDecimal accuracyMeters,
+      @NotNull @JsonDeserialize(using = StrictOffsetDateTimeDeserializer.class)
+          OffsetDateTime recordedAt) {}
+
+  public static final class StrictBigDecimalDeserializer extends StdDeserializer<BigDecimal> {
+    public StrictBigDecimalDeserializer() {
+      super(BigDecimal.class);
+    }
+
+    @Override
+    public BigDecimal deserialize(JsonParser parser, DeserializationContext context)
+        throws JacksonException {
+      if (parser.hasToken(JsonToken.VALUE_NUMBER_INT)
+          || parser.hasToken(JsonToken.VALUE_NUMBER_FLOAT)) {
+        return parser.getDecimalValue();
+      }
+      context.reportInputMismatch(BigDecimal.class, "숫자 값만 허용됩니다.");
+      return null;
+    }
+  }
+
+  public static final class StrictOffsetDateTimeDeserializer
+      extends StdDeserializer<OffsetDateTime> {
+    public StrictOffsetDateTimeDeserializer() {
+      super(OffsetDateTime.class);
+    }
+
+    @Override
+    public OffsetDateTime deserialize(JsonParser parser, DeserializationContext context)
+        throws JacksonException {
+      if (parser.hasToken(JsonToken.VALUE_STRING)) {
+        try {
+          return OffsetDateTime.parse(parser.getValueAsString());
+        } catch (DateTimeParseException exception) {
+          context.reportInputMismatch(OffsetDateTime.class, "OffsetDateTime 값이어야 합니다.");
+        }
+      }
+      context.reportInputMismatch(OffsetDateTime.class, "문자열 OffsetDateTime 값만 허용됩니다.");
+      return null;
+    }
+  }
+
+  public record LocationUpdatedEvent(
+      UUID eventId,
+      String eventType,
+      Long explorationId,
+      OffsetDateTime occurredAt,
+      LocationUpdatedData data) {}
+
+  public record LocationUpdatedData(
+      Long participantId,
+      String displayName,
+      BigDecimal latitude,
+      BigDecimal longitude,
+      BigDecimal accuracyMeters,
+      OffsetDateTime recordedAt) {}
 
   public record LocationSharingUpdateRequest(
       @NotNull @JsonDeserialize(using = StrictBooleanDeserializer.class) Boolean enabled) {}
@@ -58,6 +134,16 @@ public final class ExplorationDtos {
       OffsetDateTime joinedAt,
       boolean alreadyJoined) {}
 
+  public record ParticipantJoinedEvent(
+      UUID eventId,
+      String eventType,
+      Long explorationId,
+      OffsetDateTime occurredAt,
+      ParticipantJoinedData data) {}
+
+  public record ParticipantJoinedData(
+      Long participantId, String displayName, String role, int participantCount) {}
+
   public record ParticipantsResponse(
       Long explorationId, int participantCount, List<ParticipantResponse> participants) {}
 
@@ -87,6 +173,16 @@ public final class ExplorationDtos {
 
   public record ExplorationStartedData(
       String status, Long startedByParticipantId, OffsetDateTime startedAt) {}
+
+  public record ExplorationCompletedEvent(
+      UUID eventId,
+      String eventType,
+      Long explorationId,
+      OffsetDateTime occurredAt,
+      ExplorationCompletedData data) {}
+
+  public record ExplorationCompletedData(
+      String status, OffsetDateTime completedAt, String completionReason) {}
 
   public record DetailResponse(
       Long explorationId,

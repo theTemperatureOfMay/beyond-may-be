@@ -51,8 +51,13 @@
 코스 생성자(OWNER)는 전체 장소를 방문하기 전에도 별도 '코스 완료' 버튼으로 탐험을 완료할 수 있다.
 
 완료된 단일 탐험도 `GET /api/v1/explorations/{explorationId}`로 조회할 수 있다. 전체
-장소 방문에 따른 자동 완료는 방문 저장 흐름의 책임이며 완료 목록·조기 완료 API와 함께
-아직 구현하지 않았다.
+장소 방문에 따른 자동 완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은
+Exploration과 활성 Participant를 완료하고 커밋 후
+`/topic/explorations/{explorationId}/events`에 이유
+`ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다. 완료 목록과 OWNER
+조기 완료 API·`OWNER_EARLY_COMPLETION` 생산자는 아직 구현하지 않았다
+([ADR-0024](../../adr/0024-exploration-state-event-channel.md),
+[ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md)).
 
 ### 5.2 방문 기록
 
@@ -73,6 +78,8 @@
 
 방문 기록은 참여자별로 저장한다. 팀원은 같은 장소를 각자 한 번씩 인증할 수 있고,
 팀 화면에는 참여자별 기록을 합친 전체 방문 기록을 표시한다.
+`POST /api/v1/visits`는 코스·주변 장소 방문을 저장하지만 이 목록과 재접속 복구에 필요한
+Visit 조회 API는 아직 구현하지 않았다.
 
 방문 인증에는 사진을 선택적으로 첨부할 수 있으며 사진 장수는 제한하지 않는다.
 사진은 한 장씩 업로드하고 장당 10MB 이하의 JPEG·PNG·WebP 형식을 허용한다.

@@ -34,6 +34,9 @@ class VisitRepositoryTest {
                     VisitRepository.ParticipantVisitCount::getVisitCount));
 
     assertThat(counts).containsEntry(70L, 2L).containsEntry(71L, 1L);
+    assertThat(visitRepository.countDistinctCoursePlaceIds(List.of(70L, 71L))).isEqualTo(1L);
+    assertThat(visitRepository.existsByParticipantIdAndPlaceId(70L, 1L)).isTrue();
+    assertThat(visitRepository.existsByPlaceIdAndParticipantIdIn(2L, List.of(70L, 71L))).isTrue();
   }
 
   private Visit visit(long participantId, long placeId, Long coursePlaceId) {

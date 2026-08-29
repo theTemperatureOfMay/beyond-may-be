@@ -125,16 +125,33 @@ class ExplorationServiceTest {
     // given
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
         .willReturn(Optional.empty());
     given(explorationParticipantRepository.existsActiveParticipationElsewhere(2L, 5L))
         .willReturn(false);
-    given(explorationParticipantRepository.findByExplorationId(5L)).willReturn(List.of());
+    given(explorationParticipantRepository.findByExplorationId(5L))
+        .willReturn(
+            List.of(
+                ExplorationParticipant.builder()
+                    .explorationId(5L)
+                    .userId(1L)
+                    .role(ParticipantRole.OWNER)
+                    .status(ParticipantStatus.ACTIVE)
+                    .displayName("코스장")
+                    .locationSharingEnabled(false)
+                    .joinedAt(LocalDateTime.now().minusDays(1))
+                    .build()));
     given(userRepository.findById(2L))
         .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(2).build()));
     given(explorationParticipantRepository.save(any(ExplorationParticipant.class)))
-        .willAnswer(invocation -> invocation.getArgument(0));
+        .willAnswer(
+            invocation -> {
+              ExplorationParticipant participant = invocation.getArgument(0);
+              ReflectionTestUtils.setField(participant, "id", 72L);
+              return participant;
+            });
 
     // when
     ExplorationDtos.JoinResponse response = explorationService.join(10L, 2L);
@@ -151,6 +168,18 @@ class ExplorationServiceTest {
     Mockito.verify(explorationParticipantRepository).save(captor.capture());
     assertThat(captor.getValue().getRole()).isEqualTo(ParticipantRole.MEMBER);
     assertThat(captor.getValue().getStatus()).isEqualTo(ParticipantStatus.ACTIVE);
+    ArgumentCaptor<ExplorationDtos.ParticipantJoinedEvent> eventCaptor =
+        ArgumentCaptor.forClass(ExplorationDtos.ParticipantJoinedEvent.class);
+    Mockito.verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+    ExplorationDtos.ParticipantJoinedEvent event = eventCaptor.getValue();
+    assertThat(event.eventId()).isNotNull();
+    assertThat(event.eventType()).isEqualTo("PARTICIPANT_JOINED");
+    assertThat(event.explorationId()).isEqualTo(5L);
+    assertThat(event.occurredAt()).isEqualTo(response.joinedAt());
+    assertThat(event.data().participantId()).isEqualTo(72L);
+    assertThat(event.data().displayName()).isEqualTo("여행자");
+    assertThat(event.data().role()).isEqualTo("MEMBER");
+    assertThat(event.data().participantCount()).isEqualTo(2);
   }
 
   @DisplayName("같은 닉네임의 팀원이 이미 있으면 구분자를 붙인다.")
@@ -159,7 +188,8 @@ class ExplorationServiceTest {
     // given
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 3L))
         .willReturn(Optional.empty());
     given(explorationParticipantRepository.existsActiveParticipationElsewhere(3L, 5L))
@@ -193,7 +223,8 @@ class ExplorationServiceTest {
   void join_duplicateActiveParticipation_throws() {
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 3L))
         .willReturn(Optional.empty());
     given(explorationParticipantRepository.existsActiveParticipationElsewhere(3L, 5L))
@@ -219,7 +250,8 @@ class ExplorationServiceTest {
     ReflectionTestUtils.setField(completedExploration, "id", 5L);
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(completedExploration));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(completedExploration));
 
     ExplorationHandler exception =
         assertThrows(ExplorationHandler.class, () -> explorationService.join(10L, 2L));
@@ -243,7 +275,8 @@ class ExplorationServiceTest {
             .build();
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
         .willReturn(Optional.of(existing));
 
@@ -255,6 +288,7 @@ class ExplorationServiceTest {
     assertThat(existing.getStatus()).isEqualTo(ParticipantStatus.ACTIVE);
     Mockito.verify(explorationParticipantRepository, Mockito.never())
         .save(any(ExplorationParticipant.class));
+    Mockito.verify(applicationEventPublisher, Mockito.never()).publishEvent(any());
   }
 
   @DisplayName("이미 활성 참여 중인 사용자가 다시 합류를 요청하면 기존 상태를 그대로 반환한다.")
@@ -272,7 +306,8 @@ class ExplorationServiceTest {
             .build();
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
         .willReturn(Optional.of(existing));
 
@@ -282,6 +317,7 @@ class ExplorationServiceTest {
     assertThat(response.alreadyJoined()).isTrue();
     Mockito.verify(explorationParticipantRepository, Mockito.never())
         .save(any(ExplorationParticipant.class));
+    Mockito.verify(applicationEventPublisher, Mockito.never()).publishEvent(any());
   }
 
   @DisplayName("이탈했던 탐험에 재합류할 때도 다른 활성 탐험 참여가 있으면 차단된다.")
@@ -300,7 +336,8 @@ class ExplorationServiceTest {
             .build();
     given(courseRepository.findById(10L))
         .willReturn(Optional.of(confirmedCourse(LocalDateTime.now().plusDays(1))));
-    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration(5L)));
+    given(explorationRepository.findByCourseIdForUpdate(10L))
+        .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
         .willReturn(Optional.of(existing));
     given(explorationParticipantRepository.existsActiveParticipationElsewhere(2L, 5L))

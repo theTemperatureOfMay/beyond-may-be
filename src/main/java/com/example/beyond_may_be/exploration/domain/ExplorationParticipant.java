@@ -89,4 +89,10 @@ public class ExplorationParticipant extends BaseEntity {
     locationSharingEnabled = enabled;
     return true;
   }
+
+  public void complete() {
+    if (status == ParticipantStatus.ACTIVE) {
+      status = ParticipantStatus.COMPLETED;
+    }
+  }
 }

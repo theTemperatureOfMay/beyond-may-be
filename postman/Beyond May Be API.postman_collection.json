@@ -1693,7 +1693,7 @@
     },
     {
       "name": "팀 탐험 지도",
-      "description": "성향 조회, 공유 링크 팀 합류, 탐험 시작, 현재 팀원 목록과 탐험 상태 조회 API입니다.",
+      "description": "성향 조회, 공유 링크 팀 합류, 탐험 시작, 현재 팀원 목록·탐험 상태 조회와 방문 인증 API입니다.",
       "item": [
         {
           "name": "나의 성향 조회",
@@ -1737,7 +1737,7 @@
         },
         {
           "name": "팀 합류 (공유 링크)",
-          "description": "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 최초 합류는 201, 같은 탐험 재진입은 새 행을 만들지 않고 200과 `alreadyJoined: true`를 반환합니다. 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이거나 탐험이 완료됐으면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
+          "description": "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 최초 합류는 201, 같은 탐험 재진입은 새 행을 만들지 않고 200과 `alreadyJoined: true`를 반환합니다. 새 Participant 행을 생성한 합류만 커밋 후 상태 채널에 `PARTICIPANT_JOINED`를 발행합니다. 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이거나 탐험이 완료됐으면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -2577,6 +2577,257 @@
               ],
               "cookie": [],
               "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "방문 인증",
+          "description": "진행 중 탐험의 ACTIVE 참여자가 현재 GPS로 장소 방문을 인증합니다(4.3.3, 4.3.4). 인증 필요: `Authorization: Bearer {{accessToken}}`. body의 GPS 정확도는 50m 이하, 서버가 Place 좌표로 다시 계산한 거리는 100m 이하여야 합니다. 같은 참여자의 같은 Place는 한 번만 저장하지만 다른 팀원의 선행 방문은 개인 인증을 막지 않습니다. 코스 미포함 Place는 `coursePlaceId: null`로 저장하고 코스 진행률에서 제외합니다. 커밋 후 `/topic/explorations/{explorationId}/visits`에 좌표·사진 없는 `VISIT_CONFIRMED` JSON 이벤트를 전파하며 마지막 코스 장소면 자동 완료 상태 이벤트도 발행합니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/visits"
+          },
+          "response": [
+            {
+              "name": "201 - 주변 장소 방문 인증 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"생성에 성공했습니다.\",\n  \"code\": \"COMMON201\",\n  \"data\": {\n    \"visitId\": 9001,\n    \"explorationId\": 44,\n    \"participantId\": 72,\n    \"placeId\": 121,\n    \"coursePlaceId\": null,\n    \"isCoursePlace\": false,\n    \"visitedAt\": \"2026-08-15T14:32:10+09:00\",\n    \"distanceMeters\": 37,\n    \"teamFirstVisit\": true,\n    \"courseProgress\": {\n      \"completedCoursePlaceCount\": 2,\n      \"totalCoursePlaceCount\": 5,\n      \"completionRate\": 40\n    },\n    \"explorationStatus\": \"ONGOING\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 방문 인증 반경 초과",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1502,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"인증 반경을 벗어났습니다.\",\n  \"code\": \"VISIT400\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "403 - 활성 참여자가 아님",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"해당 탐험의 활성 참여자가 아닙니다.\",\n  \"code\": \"EXPLORATION403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 999999,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 개인 중복 방문",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 방문 인증한 장소입니다.\",\n  \"code\": \"VISIT409\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 진행 중 탐험이 아님",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"explorationId\": 44,\n  \"placeId\": 121,\n  \"latitude\": 35.1402,\n  \"longitude\": 126.9124,\n  \"accuracyMeters\": 18.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/visits"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"진행 중인 탐험이 아닙니다.\",\n  \"code\": \"EXPLORATION409_4\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         }

@@ -16,6 +16,25 @@ public final class ExplorationConverter {
 
   private ExplorationConverter() {}
 
+  public static ExplorationDtos.LocationUpdatedEvent toLocationUpdatedEvent(
+      UUID eventId,
+      OffsetDateTime occurredAt,
+      ExplorationParticipant participant,
+      ExplorationDtos.LocationUpdateRequest request) {
+    return new ExplorationDtos.LocationUpdatedEvent(
+        eventId,
+        "LOCATION_UPDATED",
+        participant.getExplorationId(),
+        occurredAt,
+        new ExplorationDtos.LocationUpdatedData(
+            participant.getId(),
+            participant.getDisplayName(),
+            request.latitude(),
+            request.longitude(),
+            request.accuracyMeters(),
+            request.recordedAt()));
+  }
+
   public static ExplorationDtos.JoinResponse toJoinResponse(
       ExplorationParticipant participant, boolean alreadyJoined) {
     return new ExplorationDtos.JoinResponse(
@@ -27,6 +46,17 @@ public final class ExplorationConverter {
         participant.isLocationSharingEnabled(),
         toOffsetDateTime(participant.getJoinedAt()),
         alreadyJoined);
+  }
+
+  public static ExplorationDtos.ParticipantJoinedEvent toParticipantJoinedEvent(
+      UUID eventId, ExplorationDtos.JoinResponse response, int participantCount) {
+    return new ExplorationDtos.ParticipantJoinedEvent(
+        eventId,
+        "PARTICIPANT_JOINED",
+        response.explorationId(),
+        response.joinedAt(),
+        new ExplorationDtos.ParticipantJoinedData(
+            response.participantId(), response.displayName(), response.role(), participantCount));
   }
 
   public static ExplorationDtos.ParticipantsResponse toParticipantsResponse(

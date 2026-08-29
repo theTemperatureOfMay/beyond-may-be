@@ -6,10 +6,13 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import com.example.beyond_may_be.auth.service.AuthTokenService;
+import com.example.beyond_may_be.common.websocket.StompContractException;
+import com.example.beyond_may_be.common.websocket.StompContractException.Code;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantRole;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
+import com.example.beyond_may_be.exploration.service.ExplorationLocationService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +43,7 @@ class StompAuthenticationInterceptorTest {
 
   @Mock private AuthTokenService authTokenService;
   @Mock private ExplorationParticipantRepository explorationParticipantRepository;
+  @Mock private ExplorationLocationService explorationLocationService;
 
   @ParameterizedTest
   @EnumSource(
@@ -74,12 +78,21 @@ class StompAuthenticationInterceptorTest {
         .isInstanceOf(BadCredentialsException.class);
   }
 
-  @ParameterizedTest
-  @EnumSource(
-      value = StompCommand.class,
-      names = {"SEND", "MESSAGE"})
-  void messageFrameIsDeniedUntilFeatureDestinationsAreImplemented(StompCommand command) {
-    StompHeaderAccessor headers = StompHeaderAccessor.create(command);
+  @Test
+  void authenticatedUserCanSendLocationUpdate() {
+    StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+    headers.setDestination("/app/explorations/44/locations");
+    headers.setUser(new UsernamePasswordAuthenticationToken(7L, null, List.of()));
+    headers.setLeaveMutable(true);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+    assertThat(interceptor.preSend(message, mock(MessageChannel.class))).isSameAs(message);
+  }
+
+  @Test
+  void serverMessageFrameRemainsDenied() {
+    StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.MESSAGE);
     headers.setDestination("/app/explorations/1/locations");
     headers.setUser(new UsernamePasswordAuthenticationToken(7L, null, List.of()));
     headers.setLeaveMutable(true);
@@ -88,6 +101,50 @@ class StompAuthenticationInterceptorTest {
 
     assertThatThrownBy(() -> interceptor.preSend(message, mock(MessageChannel.class)))
         .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"/app/explorations/1/locations/extra", "/app/explorations/1/events"})
+  void otherSendDestinationsRemainDenied(String destination) {
+    StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+    headers.setDestination(destination);
+    headers.setUser(new UsernamePasswordAuthenticationToken(7L, null, List.of()));
+    headers.setLeaveMutable(true);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, mock(MessageChannel.class)))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  void malformedLocationExplorationIdIsPayloadError() {
+    StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+    headers.setDestination("/app/explorations/not-a-number/locations");
+    headers.setUser(new UsernamePasswordAuthenticationToken(7L, null, List.of()));
+    headers.setLeaveMutable(true);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, mock(MessageChannel.class)))
+        .isInstanceOfSatisfying(
+            StompContractException.class,
+            exception -> assertThat(exception.getCode()).isEqualTo(Code.LOCATION_PAYLOAD_INVALID));
+  }
+
+  @Test
+  void emptyLocationExplorationIdIsPayloadError() {
+    StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+    headers.setDestination("/app/explorations//locations");
+    headers.setUser(new UsernamePasswordAuthenticationToken(7L, null, List.of()));
+    headers.setLeaveMutable(true);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, mock(MessageChannel.class)))
+        .isInstanceOfSatisfying(
+            StompContractException.class,
+            exception -> assertThat(exception.getCode()).isEqualTo(Code.LOCATION_PAYLOAD_INVALID));
   }
 
   @Test
@@ -102,6 +159,24 @@ class StompAuthenticationInterceptorTest {
         MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
 
     assertThat(interceptor.preSend(message, mock(MessageChannel.class))).isSameAs(message);
+  }
+
+  @Test
+  void activeParticipantCanSubscribeToVisitEvents() {
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(1L, 7L))
+        .willReturn(Optional.of(participant(ParticipantStatus.ACTIVE)));
+    Message<byte[]> message = subscribeMessage("/topic/explorations/1/visits");
+
+    assertThat(interceptor.preSend(message, mock(MessageChannel.class))).isSameAs(message);
+  }
+
+  @Test
+  void activeParticipantCanSubscribeToExplorationLocations() {
+    Message<byte[]> message = subscribeMessage("/topic/explorations/44/locations");
+
+    assertThat(interceptor.preSend(message, mock(MessageChannel.class))).isSameAs(message);
+
+    org.mockito.BDDMockito.then(explorationLocationService).should().validateSubscription(44L, 7L);
   }
 
   @ParameterizedTest
@@ -130,9 +205,11 @@ class StompAuthenticationInterceptorTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/topic/explorations/1/locations",
         "/topic/explorations/not-a-number/events",
-        "/topic/explorations/1/events/extra"
+        "/topic/explorations/not-a-number/visits",
+        "/topic/explorations/not-a-number/locations",
+        "/topic/explorations/1/events/extra",
+        "/topic/explorations/1/visits/extra"
       })
   void otherSubscriptionsRemainDenied(String destination) {
     Message<byte[]> message = subscribeMessage(destination);

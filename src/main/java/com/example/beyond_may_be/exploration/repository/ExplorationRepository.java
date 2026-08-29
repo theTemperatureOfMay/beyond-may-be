@@ -1,15 +1,23 @@
 package com.example.beyond_may_be.exploration.repository;
 
 import com.example.beyond_may_be.exploration.domain.Exploration;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ExplorationRepository extends JpaRepository<Exploration, Long> {
-  Optional<Exploration> findByCourseId(Long courseId);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select e from Exploration e where e.courseId = :courseId")
+  Optional<Exploration> findByCourseIdForUpdate(@Param("courseId") Long courseId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select e from Exploration e where e.id = :explorationId")
+  Optional<Exploration> findByIdForUpdate(@Param("explorationId") Long explorationId);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(

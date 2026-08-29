@@ -46,10 +46,15 @@ public enum ErrorStatus implements BaseErrorCode {
   DUPLICATE_ACTIVE_PARTICIPATION(HttpStatus.CONFLICT, "EXPLORATION409", "이미 다른 탐험에 참여 중입니다."),
   EXPLORATION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 완료된 탐험입니다."),
   EXPLORATION_START_CONFLICT(HttpStatus.CONFLICT, "EXPLORATION409_3", "이미 시작했거나 완료된 탐험입니다."),
+  EXPLORATION_NOT_ONGOING(HttpStatus.CONFLICT, "EXPLORATION409_4", "진행 중인 탐험이 아닙니다."),
 
   PLACE_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404", "장소를 찾을 수 없습니다."),
   PLACE_DETAIL_UNAVAILABLE(
       HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
+
+  // Visit
+  VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),
+  VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다."),
 
   // Recommendation
   RECOMMENDATION_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "RECOMMENDATION400", "여행 기간이 올바르지 않습니다."),

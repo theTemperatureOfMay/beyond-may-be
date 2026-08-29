@@ -8,7 +8,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface VisitRepository extends JpaRepository<Visit, Long> {
 
+  boolean existsByParticipantIdAndPlaceId(Long participantId, Long placeId);
+
+  boolean existsByPlaceIdAndParticipantIdIn(Long placeId, List<Long> participantIds);
+
   List<Visit> findByParticipantIdIn(List<Long> participantIds);
+
+  @Query(
+      "SELECT COUNT(DISTINCT v.coursePlaceId) FROM Visit v "
+          + "WHERE v.participantId IN :participantIds AND v.coursePlaceId IS NOT NULL")
+  long countDistinctCoursePlaceIds(@Param("participantIds") List<Long> participantIds);
 
   @Query(
       "SELECT v.participantId AS participantId, COUNT(DISTINCT v.placeId) AS visitCount "

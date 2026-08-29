@@ -24,7 +24,10 @@
 
 ##### 백엔드·기획 참고
 
-합류 직후 팀원 목록은 4.2.2의 탐험 참여자 목록 API로 조회한다.
+합류 직후 팀원 목록은 4.2.2의 탐험 참여자 목록 API로 조회한다. 새 Participant 행을
+처음 생성한 합류만 커밋 후 `/topic/explorations/{explorationId}/events`에
+`PARTICIPANT_JOINED`를 발행한다. 기존 `ACTIVE` 참여자의 재진입과 `LEFT` 참여자의
+재활성화에는 이 이벤트를 발행하지 않는다.
 
 ### 4.2 탐험 전 코스 보기
 
@@ -126,11 +129,22 @@ Course와 Exploration ID는 탐험 시작 전에 이미 발급된다. 요청 본
 광주 안/밖 판단은 백엔드가 담당한다.
 주변 추천과 단순 방문 인증 요청은 REST API로 처리한다.
 팀원 실시간 위치 공유와 방문 상태 실시간 갱신은 WebSocket 이벤트로 전달한다.
-위치 전송 기준은 이전 전송 위치에서 10m 이상 이동했을 때로 한다.
-GPS 정확도 기준값은 50m다. 좌표 payload와 기능별 채널 계약은 별도 API 명세를 따르며
-현재 이 저장소에는 해당 메시지 처리가 구현되지 않았다.
-공통 전송·인증 기반은 `/ws` WebSocket(STOMP), `/topic`, `/app`과 STOMP `CONNECT`
-bearer 인증으로 설정했다([ADR-0022](../../adr/0022-authenticated-stomp-transport-foundation.md)).
+인증된 클라이언트는 `application/json`으로
+`SEND /app/explorations/{explorationId}/locations`에 위도·경도·정확도·측정 시각을
+전송한다. 서버는 `ONGOING` 탐험의 `ACTIVE Participant`이면서 위치 공유에 동의한
+경우만 수락한다. 정확도 50m 초과 위치는 거부하고 같은 연결의 마지막 수락 위치에서
+10m 미만 이동한 위치는 오류 없이 무시한다. 마지막 위치는 연결 종료 시 제거하며 좌표와
+이 필터 상태는 PostgreSQL에 저장하지 않는다. 위치 공유 설정이 실제 변경되면 해당
+참여자의 연결별 기준점을 모두 제거하므로 다시 동의한 뒤의 첫 유효 위치는 즉시 전파한다.
+위치 수락은 탐험 완료·참여 상태·공유 설정 변경과 직렬화해 그 변경이 커밋된 뒤 과거
+상태의 좌표를 늦게 전파하지 않는다.
+거부 시 빈 body의 STOMP `ERROR`를 보내고 `message`에는
+`LOCATION_PAYLOAD_INVALID`, `LOCATION_ACCURACY_EXCEEDED`,
+`EXPLORATION_NOT_ONGOING`, `PARTICIPANT_NOT_ACTIVE`,
+`LOCATION_SHARING_DISABLED` 중 해당 코드를 사용한다. 예상하지 못한 처리 실패는
+`LOCATION_PROCESSING_FAILED`이며, 오류 뒤 연결을 닫고 서버가 자동 재전송하지 않는다
+([ADR-0022](../../adr/0022-authenticated-stomp-transport-foundation.md),
+[ADR-0026](../../adr/0026-ephemeral-stomp-location-sharing.md)).
 
 #### 4.3.2 팀원 진행 상태 보기
 
@@ -159,8 +173,26 @@ boolean `enabled`를 보내 기본값 `false`인 자신의 동의 설정만 바�
 `LOCATION_SHARING_CHANGED` envelope(`eventId`, `explorationId`, `occurredAt`,
 `data: { participantId, enabled }`)를 최선 노력으로 전파하며 해당 탐험의
 `ACTIVE Participant`만 이 채널을 구독할 수 있다.
-실시간 좌표 `SEND`와 방문 이벤트는 아직 구현하지 않았고 PostgreSQL에는 위치 좌표를
-저장하지 않는다([ADR-0023](../../adr/0023-location-sharing-opt-in-and-state-event.md)).
+이 상태 채널은 JSON envelope로 `PARTICIPANT_JOINED`, `EXPLORATION_STARTED`,
+`LOCATION_SHARING_CHANGED`, `EXPLORATION_COMPLETED` 계약을 사용한다. 상태 변경 커밋
+후 최선 노력으로 전파하며 replay를 보장하지 않으므로 재접속 시 탐험 상세와 참여자
+목록 HTTP API에서 정본을 다시 조회한다. 클라이언트는 같은 `eventId`를 중복 반영하지
+않는다. 위치 좌표는 이 채널에 포함하지 않고 방문 이벤트는 별도 `/visits` 채널로
+분리한다.
+
+옵트인 팀원 좌표는 별도
+`SUBSCRIBE /topic/explorations/{explorationId}/locations`에서 `LOCATION_UPDATED`
+JSON envelope로 받는다. `ONGOING` 탐험의 `ACTIVE Participant`만 구독할 수 있고
+payload에는 탐험 범위의 `participantId`, `displayName`, 좌표·정확도·측정 시각만 포함해
+userId를 노출하지 않는다. 좌표 이벤트는 화면용 휘발 상태로 replay하지 않으며
+`LOCATION_SHARING_CHANGED(enabled=false)`를 받으면 해당 마커를 제거한다.
+
+방문 인증은 전용 채널로 전파하고 전체 코스 장소 방문이 만든 자동 완료는
+`EXPLORATION_COMPLETED` 생산자까지 연결한다. OWNER 조기 완료 생산자는 아직 없다
+([ADR-0023](../../adr/0023-location-sharing-opt-in-and-state-event.md),
+[ADR-0024](../../adr/0024-exploration-state-event-channel.md),
+[ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md),
+[ADR-0026](../../adr/0026-ephemeral-stomp-location-sharing.md)).
 
 #### 4.3.3 지도 밝히기 (방문 인증)
 
@@ -187,10 +219,25 @@ boolean `enabled`를 보내 기본값 `false`인 자신의 동의 설정만 바�
 핵심 인터랙션.
 
 인증 반경 → 100m (현재 기준이며 추후 조정 가능)
-단순 방문 인증 요청은 REST API로 처리하고 서버가 거리를 재검증한다.
-`visit:confirmed` 소켓 payload와 `visitedAt` 단위는 별도 API 명세에서 확정한다.
+인증 `POST /api/v1/visits`는 `explorationId`, `placeId`, `latitude`, `longitude`,
+`accuracyMeters`를 받는다. 서버는 진행 중 탐험의 `ACTIVE Participant`, 활성 Place,
+GPS 정확도 50m 이하와 반올림 전 거리 100m 이하를 검증하고 `201 Created`로 Visit,
+서버 계산 거리, `teamFirstVisit`, 코스 진행률과 탐험 상태를 반환한다. Participant와
+CoursePlace는 서버가 결정하며 검증 좌표·정확도는 저장하지 않는다.
+
+저장 커밋 후 `/topic/explorations/{explorationId}/visits`에 JSON
+`VISIT_CONFIRMED` envelope를 최선 노력으로 한 번 전파한다. payload에는 `visitId`,
+`participantId`, `displayName`, `placeId`, nullable `coursePlaceId`, `visitedAt`,
+`teamFirstVisit`, `courseProgress`, `explorationStatus`만 포함하고 좌표·정확도·사진은
+포함하지 않는다. 같은 탐험의 현재 `ACTIVE Participant`만 구독할 수 있다. replay는
+보장하지 않으며 탐험 집계는 HTTP 상세로 복구한다. 개별 방문·핀 복구용 Visit 조회 API는
+이번 범위에서 제외했다.
 
 팀 장소 완료는 최초 인증으로 전환하고, 개인 방문 기록은 참여자별로 각각 저장한다.
+코스에 없는 주변 Place도 `coursePlaceId=null`로 저장·전파하지만 코스 진행률은 바꾸지
+않는다. 마지막 코스 장소를 채운 방문은 응답과 방문 이벤트의 탐험 상태를 `COMPLETED`로
+반환하고 상태 채널에도 완료 이유 `ALL_COURSE_PLACES_VISITED`를 전파한다
+([ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md)).
 
 #### 4.3.4 탐험 지도 내 코스 상세 보기
 
@@ -208,7 +255,8 @@ boolean `enabled`를 보내 기본값 `false`인 자신의 동의 설정만 바�
 3.1.2 타임라인 컴포넌트 재사용
 
 `GET /api/v1/explorations/{explorationId}`는 팀 완료 코스 장소 수와 전체 장소 수를
-요약해 반환한다. 장소별 완료 상태는 아직 코스 조회 응답에 포함하지 않는다.
+요약해 반환한다. 방문 인증 응답과 실시간 이벤트도 같은 팀 집계 진행률을 반환한다.
+장소별 완료 상태는 아직 코스 조회 응답에 포함하지 않는다.
 
 ### 4.4 주변 탐색
 

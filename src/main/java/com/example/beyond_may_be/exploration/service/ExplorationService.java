@@ -63,7 +63,7 @@ public class ExplorationService {
 
     Exploration exploration =
         explorationRepository
-            .findByCourseId(courseId)
+            .findByCourseIdForUpdate(courseId)
             .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
     if (exploration.getStatus() == ExplorationStatus.COMPLETED) {
       throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_COMPLETED);
@@ -92,7 +92,9 @@ public class ExplorationService {
         userRepository
             .findById(userId)
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
-    String displayName = resolveDisplayName(exploration.getId(), user.getNickname());
+    List<ExplorationParticipant> allParticipants =
+        explorationParticipantRepository.findByExplorationId(exploration.getId());
+    String displayName = resolveDisplayName(allParticipants, user.getNickname());
 
     ExplorationParticipant participant =
         explorationParticipantRepository.save(
@@ -105,7 +107,17 @@ public class ExplorationService {
                 .locationSharingEnabled(false)
                 .joinedAt(LocalDateTime.now())
                 .build());
-    return ExplorationConverter.toJoinResponse(participant, false);
+    ExplorationDtos.JoinResponse response = ExplorationConverter.toJoinResponse(participant, false);
+    int participantCount =
+        Math.toIntExact(
+            allParticipants.stream()
+                    .filter(candidate -> candidate.getStatus() != ParticipantStatus.LEFT)
+                    .count()
+                + 1);
+    applicationEventPublisher.publishEvent(
+        ExplorationConverter.toParticipantJoinedEvent(
+            UUID.randomUUID(), response, participantCount));
+    return response;
   }
 
   public ExplorationDtos.StartResponse start(Long explorationId, Long userId) {
@@ -245,9 +257,7 @@ public class ExplorationService {
     return response;
   }
 
-  private String resolveDisplayName(Long explorationId, String nickname) {
-    List<ExplorationParticipant> allParticipants =
-        explorationParticipantRepository.findByExplorationId(explorationId);
+  private String resolveDisplayName(List<ExplorationParticipant> allParticipants, String nickname) {
     Pattern suffixPattern = Pattern.compile(Pattern.quote(nickname) + " \\((\\d+)\\)$");
     long sameNameCount =
         allParticipants.stream()
