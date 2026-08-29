@@ -18,6 +18,7 @@ import com.example.beyond_may_be.course.repository.CoursePlaceRepository;
 import com.example.beyond_may_be.course.repository.CourseRepository;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
+import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantRole;
 import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
@@ -40,6 +41,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -440,7 +443,7 @@ class CourseServiceTest {
     org.springframework.test.util.ReflectionTestUtils.setField(place, "id", 100L);
     given(placeRepository.findAllById(List.of(100L))).willReturn(List.of(place));
 
-    CourseDtos.CourseDetailResponse response = courseService.getCourseDetail(10L);
+    CourseDtos.CourseDetailResponse response = courseService.getCourseDetail(10L, null);
 
     assertThat(response.title()).isEqualTo("광주 여행");
     assertThat(response.places()).hasSize(1);
@@ -466,7 +469,7 @@ class CourseServiceTest {
         .willReturn(List.of(missingPlaceRef));
     given(placeRepository.findAllById(List.of(999L))).willReturn(List.of());
 
-    CourseDtos.CourseDetailResponse response = courseService.getCourseDetail(10L);
+    CourseDtos.CourseDetailResponse response = courseService.getCourseDetail(10L, null);
 
     assertThat(response.places()).isEmpty();
   }
@@ -477,7 +480,7 @@ class CourseServiceTest {
     Course course = draftCourse();
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
 
-    assertThrows(CourseHandler.class, () -> courseService.getCourseDetail(10L));
+    assertThrows(CourseHandler.class, () -> courseService.getCourseDetail(10L, null));
   }
 
   @DisplayName("공유 링크가 만료된 코스를 조회하면 예외가 발생한다.")
@@ -487,7 +490,59 @@ class CourseServiceTest {
     course.confirm(LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(1));
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
 
-    assertThrows(ExplorationHandler.class, () -> courseService.getCourseDetail(10L));
+    assertThrows(ExplorationHandler.class, () -> courseService.getCourseDetail(10L, null));
+  }
+
+  @DisplayName("공유 링크가 만료된 코스는 인증했어도 참여 이력이 없으면 조회할 수 없다.")
+  @Test
+  void getCourseDetail_shareExpiredNonParticipant_throws() {
+    Course course = draftCourse();
+    course.confirm(LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(1));
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+
+    Exploration exploration =
+        Exploration.builder().courseId(10L).status(ExplorationStatus.COMPLETED).build();
+    ReflectionTestUtils.setField(exploration, "id", 20L);
+    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(20L, 2L))
+        .willReturn(Optional.empty());
+
+    ExplorationHandler exception =
+        assertThrows(ExplorationHandler.class, () -> courseService.getCourseDetail(10L, 2L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.SHARE_LINK_EXPIRED);
+  }
+
+  @DisplayName("공유 링크가 만료돼도 현재 또는 과거 참여자는 코스를 조회할 수 있다.")
+  @ParameterizedTest(name = "{0}")
+  @EnumSource(
+      value = ParticipantStatus.class,
+      names = {"ACTIVE", "COMPLETED", "LEFT"})
+  void getCourseDetail_shareExpiredParticipant_returnsCourse(ParticipantStatus participantStatus) {
+    Course course = draftCourse();
+    course.confirm(LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(1));
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+
+    Exploration exploration =
+        Exploration.builder().courseId(10L).status(ExplorationStatus.COMPLETED).build();
+    ReflectionTestUtils.setField(exploration, "id", 20L);
+    ExplorationParticipant participant =
+        ExplorationParticipant.builder()
+            .explorationId(20L)
+            .userId(1L)
+            .role(ParticipantRole.MEMBER)
+            .status(participantStatus)
+            .displayName("여행자")
+            .locationSharingEnabled(false)
+            .joinedAt(LocalDateTime.now().minusDays(4))
+            .build();
+    given(explorationRepository.findByCourseId(10L)).willReturn(Optional.of(exploration));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(20L, 1L))
+        .willReturn(Optional.of(participant));
+
+    CourseDtos.CourseDetailResponse response = courseService.getCourseDetail(10L, 1L);
+
+    assertThat(response.title()).isEqualTo("광주 여행");
   }
 
   private CoursePlace existingCoursePlace(long placeId, int day, int order, int stayMinutes) {
