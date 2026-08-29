@@ -1043,7 +1043,7 @@
         },
         {
           "name": "코스 확정",
-          "description": "DRAFT 코스를 확정합니다(3.3.1). 코스 소유자만 호출할 수 있고, 성공하면 Exploration(BEFORE)과 소유자 Participant(OWNER, ACTIVE)가 함께 생성되며 공유 링크 만료 시각(3일 뒤)이 설정됩니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
+          "description": "DRAFT 코스를 확정합니다(3.3.1). 코스 소유자만 호출할 수 있고, 다른 BEFORE·ONGOING 탐험의 ACTIVE Participant가 없을 때 Exploration(BEFORE)과 소유자 Participant(OWNER, ACTIVE)를 함께 생성하며 공유 링크 만료 시각(3일 뒤)을 설정합니다. 이미 활성 참여가 있으면 409 EXPLORATION409를 반환합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다.",
           "request": {
             "method": "POST",
             "header": [
@@ -1078,6 +1078,30 @@
               ],
               "cookie": [],
               "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"courseId\": 1,\n    \"explorationId\": 1,\n    \"status\": \"CONFIRMED\",\n    \"confirmedAt\": \"2026-08-13T10:00:00\",\n    \"shareExpiresAt\": \"2026-08-16T10:00:00\"\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "409 - 다른 활성 탐험 참여 중",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/1/confirm"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"message\":\"이미 다른 탐험에 참여 중입니다.\",\"code\":\"EXPLORATION409\",\"data\":null,\"success\":false}"
             },
             {
               "name": "409 - 이미 확정된 코스",

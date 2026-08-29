@@ -71,27 +71,23 @@ public class ExplorationService {
 
     var existing =
         explorationParticipantRepository.findByExplorationIdAndUserId(exploration.getId(), userId);
-    if (existing.isPresent()) {
-      ExplorationParticipant participant = existing.get();
-      if (participant.getStatus() == ParticipantStatus.LEFT) {
-        if (explorationParticipantRepository.existsActiveParticipationElsewhere(
-            userId, exploration.getId())) {
-          throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
-        }
-        participant.reactivate();
-      }
-      return ExplorationConverter.toJoinResponse(participant, true);
-    }
-
-    if (explorationParticipantRepository.existsActiveParticipationElsewhere(
-        userId, exploration.getId())) {
-      throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
+    if (existing.isPresent() && existing.get().getStatus() != ParticipantStatus.LEFT) {
+      return ExplorationConverter.toJoinResponse(existing.get(), true);
     }
 
     User user =
         userRepository
-            .findById(userId)
+            .findByIdForUpdate(userId)
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    if (explorationParticipantRepository.existsActiveParticipation(userId)) {
+      throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
+    }
+    if (existing.isPresent()) {
+      ExplorationParticipant participant = existing.get();
+      participant.reactivate();
+      return ExplorationConverter.toJoinResponse(participant, true);
+    }
+
     List<ExplorationParticipant> allParticipants =
         explorationParticipantRepository.findByExplorationId(exploration.getId());
     String displayName = resolveDisplayName(allParticipants, user.getNickname());

@@ -340,7 +340,7 @@ class CourseServiceTest {
                   .status(exploration.getStatus())
                   .build();
             });
-    given(userRepository.findById(1L))
+    given(userRepository.findByIdForUpdate(1L))
         .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
 
     // when
@@ -359,6 +359,25 @@ class CourseServiceTest {
     assertThat(savedParticipant.getRole()).isEqualTo(ParticipantRole.OWNER);
     assertThat(savedParticipant.getStatus()).isEqualTo(ParticipantStatus.ACTIVE);
     assertThat(savedParticipant.getDisplayName()).isEqualTo("여행자");
+  }
+
+  @DisplayName("다른 탐험에 활성 참여 중인 사용자는 새 코스를 확정할 수 없다.")
+  @Test
+  void confirm_activeParticipation_throws() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(userRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
+    given(explorationParticipantRepository.existsActiveParticipation(1L)).willReturn(true);
+
+    ExplorationHandler exception =
+        assertThrows(ExplorationHandler.class, () -> courseService.confirm(10L, 1L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
+    org.mockito.InOrder locks = Mockito.inOrder(userRepository, explorationParticipantRepository);
+    locks.verify(userRepository).findByIdForUpdate(1L);
+    locks.verify(explorationParticipantRepository).existsActiveParticipation(1L);
+    Mockito.verify(explorationRepository, Mockito.never()).save(any());
   }
 
   @DisplayName("존재하지 않는 코스를 확정하려 하면 예외가 발생한다.")

@@ -313,6 +313,8 @@ erDiagram
   위치 좌표와 연결별 마지막 수락 위치는 저장하지 않는다. 위치는 연결별 10m 이동과 GPS
   정확도 50m 이하를 만족할 때만 `/locations` 채널에 휘발성 전파한다(ADR-0026).
 - 사용자는 `BEFORE`와 `ONGOING`을 합쳐 활성 Participant를 최대 하나만 가진다.
+- 코스 확정의 OWNER 생성과 공유 코스 합류의 Participant 생성·재활성화는 사용자 행을
+  비관적 쓰기 잠금으로 직렬화한 뒤 같은 트랜잭션에서 활성 참여를 검사한다.
 - 같은 Exploration의 활성 Participant는 탐험을 시작할 수 있으며 최초 요청만
   `BEFORE → ONGOING` 전환에 성공한다.
 - 시작한 Participant는 `started_by_participant_id`로 기록한다.

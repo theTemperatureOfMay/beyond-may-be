@@ -31,8 +31,6 @@ public interface ExplorationParticipantRepository
           + "com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus.ACTIVE "
           + "AND e.status IN ("
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.BEFORE, "
-          + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING) "
-          + "AND p.explorationId <> :excludeExplorationId")
-  boolean existsActiveParticipationElsewhere(
-      @Param("userId") Long userId, @Param("excludeExplorationId") Long excludeExplorationId);
+          + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING)")
+  boolean existsActiveParticipation(@Param("userId") Long userId);
 }
