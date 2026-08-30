@@ -17,8 +17,9 @@
 - 현재 카드, 되돌리기와 일괄 전송 전 반응은 프런트엔드 로컬 스토리지에 둔다.
 - `Course`와 `Exploration`은 생명주기가 다르므로 분리한다.
 - 한국관광공사 OpenAPI는 초기 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소의
-  상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강에 제한해 사용하고 런타임 장소
-  정본은 `places`로 유지한다.
+  상세정보 사후 보강, 장소 상세 GET의 빈 필드 동기 보강과 사용자가 요청한 주변 장소
+  조회에 사용한다. 외부 응답을 그대로 정본으로 삼지 않고 유효 장소를 저장·재사용해
+  런타임 장소 정본은 `places`로 유지한다.
 - Redis는 MVP 범위에서 사용하지 않는다.
 
 ## 도메인 책임
@@ -45,7 +46,9 @@
 | 기간·추천·반응·장소 선택 | 인증된 사용자 |
 | `DRAFT` 코스 수정·확정 | 해당 `Course` 소유자 |
 | 공유 코스 합류 | 인증된 사용자, 활성 참여 없음, 유효한 공유 만료 시각 |
-| 탐험 시작·팀원 조회·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 탐험 시작·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 실시간 위치 전송·구독 | `ONGOING Exploration`의 `ACTIVE Participant` |
+| 팀원 조회 | 해당 `Exploration`의 `LEFT`가 아닌 `Participant` |
 | 방문 인증·사진 첨부 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
 | 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
@@ -58,8 +61,26 @@
 `user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
 일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
-Socket.IO 핸드셰이크는 같은 토큰을 쿼리 파라미터(`?token=...`)로 전달한다
-(ADR-0012). 토큰 재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
+WebSocket의 `/ws` HTTP upgrade는 허용하고 STOMP `CONNECT` native
+`Authorization: Bearer <token>` 헤더를 같은 `AuthTokenService`로 검증해 userId
+principal을 설정한다. `/topic/explorations/{explorationId}/events`와 `/visits` 구독은
+해당 탐험의 `ACTIVE Participant`만 허용한다. `/locations` 구독과
+`/app/explorations/{explorationId}/locations` 전송은 `ONGOING` 탐험의
+`ACTIVE Participant`만 허용하고, 전송 시 현재 위치 공유 동의도 확인한다. 탐험 ID 형식,
+payload, 탐험·참여 관계와 상태를 검증한다. 위치 수락은 탐험·참여자 행을 순서대로 잠가
+공유 설정 변경·탐험 완료와 직렬화하며, 상태 변경 커밋 뒤 과거 상태의 좌표를 늦게
+전파하지 않는다.
+이들 오류는 빈 body와 안정된 `message` code를 가진 STOMP
+`ERROR`로 종료한다. 계약 오류는 `LOCATION_PAYLOAD_INVALID`,
+`LOCATION_ACCURACY_EXCEEDED`, `EXPLORATION_NOT_ONGOING`,
+`PARTICIPANT_NOT_ACTIVE`, `LOCATION_SHARING_DISABLED`, 예상하지 못한 오류는
+`LOCATION_PROCESSING_FAILED`로 구분한다
+([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md),
+[ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md),
+[ADR-0024](../adr/0024-exploration-state-event-channel.md),
+[ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md),
+[ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md)). 토큰
+재발급·로그아웃·만료 UX(6.1.5)는 아직 다루지 않았다.
 
 ## 현재 코드의 영속 구조
 
@@ -172,8 +193,16 @@ erDiagram
 - TourAPI `overview`는 비어 있는 일반 설명만 보강한다. 5·18 연관 의미는 별도 컬럼이나
   생성 문구 없이 사람이 검수해 기존 `description`에 저장한 내용만 유지한다.
 - 인증 `GET /api/v1/places/{placeId}`는 활성 장소 카탈로그만 반환한다. 방문 상태와 버튼
-  활성 여부는 탐험·방문 API와 클라이언트 GPS가 소유한다. 없거나 비활성인 장소는
+  활성 여부는 향후 탐험·방문 조회 API와 클라이언트 GPS가 소유한다. 없거나 비활성인 장소는
   `PLACE404`, TourAPI 보강 오류는 `PLACE503`, DB·내부 오류는 `COMMON500`이다.
+- 인증 `GET /api/v1/explorations/{explorationId}/nearby-places`는 `ONGOING` 탐험의
+  `ACTIVE Participant`가 보낸 전역 범위 안의 좌표로 `locationBasedList2`를 반경 1km·
+  거리순·단일 페이지 호출한다. 광주 `areaCode=5`와 지원 분류·필수값을 통과한 장소를
+  `tour_content_id`로 저장·재사용하고 현재 코스 장소를 제외한 실제 거리순 최대 3곳을
+  내부 `place_id`로 반환한다. 외부 키가 없거나 호출·응답 검증에 실패하거나 유효 후보가
+  없으면 저장된 활성 장소에 같은 조건을 적용하고, 대체 후보도 없으면 빈 목록을 정상
+  반환한다. 광주 행정경계 판정과 버튼 비활성화는 프런트엔드가 담당하며 백엔드는 외부
+  결과 지역만 검증한다.
 - 외부 제공자명, 추천 점수와 동기화 시각은 저장하지 않는다.
 - 코스가 참조하는 Place는 hard delete하지 않는다.
 - 방문 인증 반경 100m를 검증하려면 위도·경도에 소수점 이하 최소 6자리 정밀도가
@@ -289,7 +318,12 @@ erDiagram
   생성한다.
 - 별도 `Team` 테이블 없이 Participant가 역할, 상태, 표시 이름과 위치 공유 동의를
   소유한다.
+- 위치 공유 동의 기본값은 `false`이며 Participant 설정만 PostgreSQL에 저장한다. 실시간
+  위치 좌표와 연결별 마지막 수락 위치는 저장하지 않는다. 위치는 연결별 10m 이동과 GPS
+  정확도 50m 이하를 만족할 때만 `/locations` 채널에 휘발성 전파한다(ADR-0026).
 - 사용자는 `BEFORE`와 `ONGOING`을 합쳐 활성 Participant를 최대 하나만 가진다.
+- 코스 확정의 OWNER 생성과 공유 코스 합류의 Participant 생성·재활성화는 사용자 행을
+  비관적 쓰기 잠금으로 직렬화한 뒤 같은 트랜잭션에서 활성 참여를 검사한다.
 - 같은 Exploration의 활성 Participant는 탐험을 시작할 수 있으며 최초 요청만
   `BEFORE → ONGOING` 전환에 성공한다.
 - 시작한 Participant는 `started_by_participant_id`로 기록한다.
@@ -308,6 +342,13 @@ erDiagram
 - 팀 방문 기록과 팀 누적 밝힌 지도는 해당 Exploration의 모든 Participant Visit을
   합쳐 계산한다. CoursePlace 문맥이 없는 주변 장소 Visit도 두 조회에는 포함하지만
   코스 완료율에서는 제외한다.
+- 인증 `POST /api/v1/visits`는 `ONGOING Exploration`의 `ACTIVE Participant`, 활성
+  Place, GPS 정확도 50m 이하와 반올림 전 거리 100m 이하를 검증한다. Exploration 쓰기
+  잠금 안에서 개인 중복·팀 최초 방문·진행률을 계산하고 마지막 팀 CoursePlace 방문이면
+  Exploration과 활성 Participant를 자동 완료한다.
+- Visit 저장 커밋 후 전용 `/topic/explorations/{explorationId}/visits`에 좌표·정확도·
+  사진이 없는 `VISIT_CONFIRMED` JSON envelope를 최선 노력으로 전파한다. 자동 완료는
+  `/events` 상태 채널에도 `EXPLORATION_COMPLETED`를 전파한다(ADR-0025).
 - Visit에는 사진을 선택적으로 여러 장 연결할 수 있다.
 - 사진 파일은 객체 저장소, DB에는 비공개 `object_key`와 표시 순서를 저장한다.
 - `(visit_id, display_order)`는 유일하다.
@@ -319,7 +360,8 @@ erDiagram
 
 - `token`(UUID 문자열)이 기본키다. 별도 `auth_token_id`를 두지 않는다.
 - `user_id`, 만료 시각(`expires_at`, 발급 시 30일 뒤로 고정)을 가진다.
-- 인증 토큰 발급·검증 방식은 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md)를
+- 인증 토큰 발급·검증 방식은
+  [ADR-0021](../adr/0021-remove-premature-exploration-realtime-implementation.md)을
   따른다.
 
 ## 상태 전환
@@ -364,12 +406,12 @@ Exploration 완료 → COMPLETED
 |---|---|
 | PostgreSQL | 사용자, 질문, 장소, 추천 결과, 코스, 탐험, 방문과 사진 메타데이터 |
 | 프런트엔드 로컬 스토리지 | 가입 전 검사 결과, 현재 카드, 되돌리기, 일괄 전송 전 반응 |
-| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강과 장소 상세 GET의 빈 필드 동기 보강 입력. 런타임 정본이 아님(ADR-0015, ADR-0017, ADR-0020) |
+| 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강, 장소 상세 GET의 빈 필드 동기 보강과 수동 주변 장소 조회 입력. 유효 주변 장소도 PostgreSQL에 저장해 외부 응답 자체는 런타임 정본이 아님(ADR-0015, ADR-0017, ADR-0020) |
 | Groq API | 추천 후보 순위와 선택 장소의 날짜별 방문 순서를 strict JSON Schema로 제안. 서버 검증 실패 시 규칙 기반 결과로 전체 대체 |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 객체 저장소 | 방문 인증 사진 원본 |
-| Socket.IO(netty-socketio, 별도 포트) | 방문 완료·팀 진행과 동의한 참여자의 일시적 위치 이벤트 전파. 위치 이벤트는 10m 이동 기준으로 갱신. 상세는 [ADR-0012](../adr/0012-team-exploration-realtime-channel.md) |
+| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계는 탐험·참여자 HTTP 조회로 복구한다. 개별 방문 복구 조회와 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md)). |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.
@@ -378,12 +420,12 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 
 - 식별코드 배정은 `(nickname, identification_code)` 유일 제약 충돌 시 재시도한다.
 - 추천 세트에 저장하는 Place ID는 모두 `places` 존재 여부를 검증한다.
-- Course 확정·취소, Exploration 시작과 AI 수정 카운트는 현재 상태를 조건으로
-  갱신한다.
+- Course 확정·취소와 AI 수정 카운트는 현재 상태를 조건으로 갱신한다. Exploration 시작도
+  `BEFORE` 상태를 조건으로 갱신해 최초 요청 하나만 성공시킨다.
 - 공유 링크 만료는 `share_expires_at`으로 판정하며 만료된 신규 합류 요청은 410으로
   거부한다.
-- 방문 인증은 Participant가 활성 상태이고 Place가 유효한지 검사한다. CoursePlace
-  문맥이 있으면 같은 Exploration의 Course에 포함되는지도 한 트랜잭션에서 검사한다.
+- 방문 인증 API는 Participant가 활성 상태이고 Place가 유효한지 검사하며 CoursePlace
+  문맥은 같은 Exploration의 Course 포함 여부로 서버가 결정한다.
 - 사진 업로드 실패는 Visit을 취소하지 않는다. 객체 업로드 후 DB 저장이 실패하면
   객체 삭제를 시도하고 남은 고아 객체는 운영 정리 대상으로 처리한다.
 
@@ -408,7 +450,7 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
   적용한다.
 - `V4__auth_tokens.sql`이 `auth_tokens` 테이블을 추가했고, `V5__place_coordinate_precision.sql`이
   `places.latitude`, `places.longitude`를 `numeric(9,6)`으로 좁혀 소수점 이하 6자리
-  정밀도를 보존한다(ADR-0012). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
+  정밀도를 보존한다(ADR-0021). 기존에 저장된 값 자체의 정밀도는 소급 보정되지
   않는다.
 - `V6__allow_missing_place_details.sql`이 외부 데이터에 운영시간이나 설명이 없는 장소를
   사실과 다르게 채우지 않도록 `places.business_hours`, `places.description`의

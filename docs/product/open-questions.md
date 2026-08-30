@@ -13,16 +13,15 @@
 | 2.1.1 | 운영시간·휴무일 반영의 상세 계약 | `정책 확정, API 상세 [백엔드 확인]` |
 | 2.1.2·2.2.2 | 추천 조회·추가 제공 계약 | `GET /api/v1/recommendations`로 저장 회차·확정 반응 복구, 회차별 반응 교체, 미노출 후보 부족 시 TourAPI 1회 보충과 중복 없는 최종 부분 회차 구현 완료(ADR-0019) |
 | 1.2.2·2.1.2 | 사색러와 기억러의 장소 범위 경계 | `기억러는 5·18·민주화 전용이 아니라 역사 건축물·역사 장소 대상, 사색러와의 상세 경계 [결정 필요]` |
-| 4.4.1 | TourAPI 주변 장소 수집·주기적 전체 갱신과 실패 대체 | `추천 생성의 변경분 1회 보충은 ADR-0015로 확정, 주변·주기 갱신 정책 [결정 필요]` |
-| 4.4.1 | `locationBasedList2` 런타임 호출과 기존 장소 정본 ADR의 충돌 정리 | `런타임 호출은 기능 명세에 반영, 백엔드 아키텍처·ADR 갱신 [문서화 필요]` |
+| 4.4.1 | TourAPI 주변 장소 수집·주기적 전체 갱신과 실패 대체 | 수동 주변 조회는 `locationBasedList2` 실패·키 없음·유효 후보 없음 시 저장된 활성 장소를 같은 1km·코스 제외·거리순 조건으로 대체한다. 주기적 전체 갱신은 `[MVP 이후 운영 정책]` |
+| 4.4.1 | `locationBasedList2` 런타임 호출과 기존 장소 정본 경계 | 수동 주변 조회에서만 한 페이지를 런타임 호출하고 유효 장소를 `places`에 저장·재사용하도록 기능 명세와 백엔드 아키텍처에 반영했다. 런타임 장소 정본은 계속 `places`다. |
 | 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
-| 4.1.1·4.2.2 | 팀원 목록 조회 계약 | `POST /api/v1/courses/{courseId}/join, GET /api/v1/explorations/{explorationId}/members 확정. ADR-0012` |
-| 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | `정확도 50m 확정, 좌표는 camelCase(latitude/longitude, BigDecimal) 확정. places 좌표 정밀도는 V5 migration으로 numeric(9,6) 반영(ADR-0012)` |
-| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | `Socket.IO(room=exploration:{id})로 확정, 이벤트 카탈로그·인증 방식은 ADR-0012` |
-| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `100m·GPS 필수 확정, POST /api/v1/explorations/{explorationId}/places/{placeId}/visits 확정(ADR-0012)` |
-| 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | `참여자별 1회·팀 전체 표시·주변 장소 기록 포함·Visit 스키마 반영 완료, API 상세 [백엔드 확인]` |
-| 4.4.1 | 주변 추천 노출과 REST API 계약 | `수동 노출 확정, API 상세 [백엔드 확인]` |
-| 5.1.2 | 전체 코스 완료 전환 | `전체 장소 자동 완료·OWNER 조기 완료 확정, API 상세 [백엔드 확인]` |
+| 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | 정확도 50m 이하의 엄격한 숫자 좌표·`OffsetDateTime` 측정 시각을 `/app/explorations/{explorationId}/locations`로 보내고 연결별 마지막 수락 위치에서 10m 이상 이동한 경우만 전파하도록 확정·구현했다. 공유 설정 변경 시 기준점을 초기화하고 계약 오류는 안정된 STOMP `ERROR message` code로 구분한다(ADR-0026). places `numeric(9,6)` 정밀도는 유지한다. |
+| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | 상태 `/events`, 방문 `/visits`, 휘발 위치 `/locations`를 분리하고 `ACTIVE Participant` 구독 인가를 적용했다. 위치는 `ONGOING` 탐험에서만 허용하고 userId 없이 옵트인 참여자의 `participantId`·표시 이름·좌표를 전파하며 저장·replay하지 않는다(ADR-0024~0026). 방문 개별 복구 조회와 다중 서버 외부 broker는 제외했다. |
+| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `POST /api/v1/visits`, GPS 정확도 50m 이하·서버 거리 100m 이하, 원본 좌표 미저장과 방문 결과·진행률 응답을 확정·구현했다(ADR-0025). 개별 방문 복구 조회는 제외했다. |
+| 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | 참여자별 Place 1회, 다른 팀원의 개인 방문 허용, 주변 Place 저장·실시간 전파와 코스 진행률 제외를 구현했다(ADR-0025). 방문 목록·사진 저장 API `[백엔드 확인]` |
+| 4.4.1 | 주변 추천 노출과 REST API 계약 | `GET /api/v1/explorations/{explorationId}/nearby-places`가 현재 좌표를 받아 `ONGOING` 탐험의 `ACTIVE Participant`에게 광주·1km·코스 제외 조건의 장소를 최대 3곳 제공하도록 확정·구현했다. |
+| 5.1.2 | 전체 코스 완료 전환 | 마지막 팀 코스 장소 방문이 Exploration·활성 Participant를 자동 완료하고 `ALL_COURSE_PLACES_VISITED` 상태 이벤트를 발행하도록 구현했다(ADR-0025). OWNER 조기 완료 API와 해당 완료 이벤트 생산자 `[백엔드 확인]` |
 | 5.2.1 | 방문 사진 업로드 계약 | `장수 제한 없음·장당 10MB·JPEG/PNG/WebP 확정, 저장 API [백엔드 확인]` |
 | 2.1.2·2.2.4·4.4.2 | 외부 장소 이미지의 저작권·이용 조건과 저장·프록시·직접 링크 방식 | `[결정 필요]` |
 | 3.1.0·3.3.1 | `DRAFT` 코스 만료·정리 주기 | `[MVP 이후 운영 정책]` |

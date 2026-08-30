@@ -40,17 +40,19 @@ public enum ErrorStatus implements BaseErrorCode {
 
   // Exploration
   EXPLORATION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404", "탐험을 찾을 수 없습니다."),
+  EXPLORATION_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPLORATION404_2", "탐험 참여자를 찾을 수 없습니다."),
+  EXPLORATION_PARTICIPANT_FORBIDDEN(HttpStatus.FORBIDDEN, "EXPLORATION403", "해당 탐험의 활성 참여자가 아닙니다."),
   SHARE_LINK_EXPIRED(HttpStatus.GONE, "EXPLORATION410", "공유 링크가 만료되었습니다."),
   DUPLICATE_ACTIVE_PARTICIPATION(HttpStatus.CONFLICT, "EXPLORATION409", "이미 다른 탐험에 참여 중입니다."),
-  PARTICIPANT_NOT_ACTIVE(HttpStatus.FORBIDDEN, "EXPLORATION403", "활성 참여자만 수행할 수 있습니다."),
-  EXPLORATION_ALREADY_STARTED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 시작된 탐험입니다."),
+  EXPLORATION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "EXPLORATION409_2", "이미 완료된 탐험입니다."),
+  EXPLORATION_START_CONFLICT(HttpStatus.CONFLICT, "EXPLORATION409_3", "이미 시작했거나 완료된 탐험입니다."),
+  EXPLORATION_NOT_ONGOING(HttpStatus.CONFLICT, "EXPLORATION409_4", "진행 중인 탐험이 아닙니다."),
 
   PLACE_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404", "장소를 찾을 수 없습니다."),
   PLACE_DETAIL_UNAVAILABLE(
       HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
 
   // Visit
-  PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "장소를 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),
   VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다."),
 

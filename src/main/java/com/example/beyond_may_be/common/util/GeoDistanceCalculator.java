@@ -18,6 +18,7 @@ public final class GeoDistanceCalculator {
                 * Math.cos(lat2Rad)
                 * Math.sin(deltaLon / 2)
                 * Math.sin(deltaLon / 2);
+    a = Math.max(0, Math.min(1, a));
     double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return EARTH_RADIUS_METERS * c;
   }

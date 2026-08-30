@@ -555,6 +555,14 @@ public class CourseService {
       throw new CourseHandler(ErrorStatus.COURSE_ALREADY_CONFIRMED);
     }
 
+    User owner =
+        userRepository
+            .findByIdForUpdate(userId)
+            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    if (explorationParticipantRepository.existsActiveParticipation(userId)) {
+      throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
+    }
+
     LocalDateTime now = LocalDateTime.now();
     course.confirm(now, now.plusDays(SHARE_LINK_VALID_DAYS));
 
@@ -564,11 +572,6 @@ public class CourseService {
                 .courseId(course.getId())
                 .status(ExplorationStatus.BEFORE)
                 .build());
-
-    User owner =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
 
     explorationParticipantRepository.save(
         ExplorationParticipant.builder()

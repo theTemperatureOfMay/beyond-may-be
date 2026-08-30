@@ -10,7 +10,9 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
 
   boolean existsByParticipantIdAndPlaceId(Long participantId, Long placeId);
 
-  boolean existsByCoursePlaceIdAndParticipantIdIn(Long coursePlaceId, List<Long> participantIds);
+  boolean existsByPlaceIdAndParticipantIdIn(Long placeId, List<Long> participantIds);
+
+  List<Visit> findByParticipantIdIn(List<Long> participantIds);
 
   @Query(
       "SELECT COUNT(DISTINCT v.coursePlaceId) FROM Visit v "
@@ -18,13 +20,9 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
   long countDistinctCoursePlaceIds(@Param("participantIds") List<Long> participantIds);
 
   @Query(
-      "SELECT v.participantId AS participantId, COUNT(v) AS visitCount FROM Visit v "
-          + "WHERE v.participantId IN :participantIds GROUP BY v.participantId")
+      "SELECT v.participantId AS participantId, COUNT(DISTINCT v.placeId) AS visitCount "
+          + "FROM Visit v WHERE v.participantId IN :participantIds GROUP BY v.participantId")
   List<ParticipantVisitCount> countByParticipantIds(
-      @Param("participantIds") List<Long> participantIds);
-
-  @Query("SELECT DISTINCT v.placeId FROM Visit v WHERE v.participantId IN :participantIds")
-  List<Long> findDistinctPlaceIdsByParticipantIds(
       @Param("participantIds") List<Long> participantIds);
 
   interface ParticipantVisitCount {

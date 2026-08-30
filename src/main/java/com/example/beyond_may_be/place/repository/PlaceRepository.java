@@ -18,10 +18,15 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
   Optional<Place> findByIdAndActiveTrue(Long id);
 
+  List<Place> findByActiveTrue();
+
+  List<Place> findByTravelMbtiTypeAndActiveTrue(TravelPreferenceType travelMbtiType);
+
   @Query("select p.tourContentId from Place p where p.tourContentId in :contentIds")
   Set<Long> findExistingTourContentIds(@Param("contentIds") Collection<Long> contentIds);
 
   @Modifying
+  @Transactional
   @Query(
       value =
           """
@@ -77,8 +82,4 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
       nativeQuery = true)
   int updateBusinessHoursIfMissing(
       @Param("placeId") Long placeId, @Param("businessHours") String businessHours);
-
-  List<Place> findByActiveTrue();
-
-  List<Place> findByTravelMbtiTypeAndActiveTrue(TravelPreferenceType travelMbtiType);
 }

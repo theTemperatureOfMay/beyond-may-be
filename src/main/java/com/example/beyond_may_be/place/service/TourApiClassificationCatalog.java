@@ -1,4 +1,4 @@
-package com.example.beyond_may_be.recommendation.service;
+package com.example.beyond_may_be.place.service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,14 +9,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-final class TourApiClassificationCatalog {
+public final class TourApiClassificationCatalog {
 
   private static final String RESOURCE = "/tourapi/classification.psv";
   private static final Catalog CATALOG = load();
 
   private TourApiClassificationCatalog() {}
 
-  static Classification resolve(String largeCode, String middleCode, String smallCode) {
+  public static Classification resolve(String largeCode, String middleCode, String smallCode) {
     Entry small = smallCode == null ? null : CATALOG.smallEntries().get(smallCode);
     if (small != null
         && small.largeCode().equals(largeCode)
@@ -73,7 +73,7 @@ final class TourApiClassificationCatalog {
     return new Entry(values[0], values[1], values[2], values[3], values[4], values[5]);
   }
 
-  record Classification(String category, List<String> tags) {}
+  public record Classification(String category, List<String> tags) {}
 
   private record Catalog(
       Map<String, String> largeNames,

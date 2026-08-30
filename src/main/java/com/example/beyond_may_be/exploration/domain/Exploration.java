@@ -59,4 +59,9 @@ public class Exploration extends BaseEntity {
     this.startedAt = startedAt;
     this.completedAt = completedAt;
   }
+
+  public void complete(LocalDateTime completedAt) {
+    this.status = ExplorationStatus.COMPLETED;
+    this.completedAt = completedAt;
+  }
 }

@@ -14,6 +14,7 @@ import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.course.dto.CourseDtos;
 import com.example.beyond_may_be.course.service.CourseService;
+import com.example.beyond_may_be.exploration.service.ExplorationService;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -106,6 +107,11 @@ class CourseControllerTest {
     @Bean
     CourseService courseService() {
       return org.mockito.Mockito.mock(CourseService.class);
+    }
+
+    @Bean
+    ExplorationService explorationService() {
+      return org.mockito.Mockito.mock(ExplorationService.class);
     }
   }
 }

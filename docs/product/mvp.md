@@ -4,14 +4,15 @@
 담당하는 책임과 현재 구현 상태를 관리한다. 프런트엔드 구현 상태나 전체 서비스의
 통합 완료 여부는 판단하지 않는다.
 
-- 기준 일자: 2026-08-24
+- 기준 일자: 2026-08-28
 - 제품 범위: 상세 기능 명세의 49개 소기능 전체
-- 현재 상태: 구현 완료 9개, 부분 구현 5개, 미구현 19개, 명세 불일치 1개, 동작 8개,
-  대상 아님 7개
+- 현재 상태: 구현 완료 7개, 부분 구현 14개, 미구현 10개, 명세 불일치 1개, 동작 11개,
+  대상 아님 6개
 - `동작`으로 판정된 기능: 2.1.1 여행 기간 설정, 2.1.2 AI 추천 장소 목록 조회,
   2.2.1 장소 스와이프 — 좋아요, 2.2.2 장소 스와이프 — 싫어요,
-  2.3.1 선택 장소 목록 확인, 2.3.2 선택 완료 및 코스 설계 이동,
-  3.1.0 AI 코스 생성, 6.3.1 공통 빈 상태
+  2.2.4 장소 상세 보기, 2.3.1 선택 장소 목록 확인,
+  2.3.2 선택 완료 및 코스 설계 이동, 3.1.0 AI 코스 생성,
+  4.3.1 현재 위치 표시, 4.3.3 지도 밝히기, 6.3.1 공통 빈 상태
 - `데모 검증`으로 판정된 기능: 없음
 
 ## 상태 판정 기준
@@ -65,11 +66,11 @@
 |---|---|---|---|---|---|
 | 1.1.1 | 서비스 시작 화면 진입 | 세션 상태와 확정 코스 유무 조회 | 데모 핵심 | `미구현` | 세션 상태 분기 정책은 정해졌지만 세션 상태 조회 API와 상세 계약이 없다. |
 | 1.1.2 | 성향 검사 시작 | 21개 풀에서 기본 질문 7개 조회와 동점 추가 질문 | 데모 핵심 | `미구현` | `Question`, `QuestionOption` 엔티티만 있고 질문 조회 Controller·Service·Repository가 없다. |
-| 1.1.3 | 사이드바 및 재진입 | 닉네임·식별코드 로그인, 세션 복구와 rate limit | 일반 | `부분 구현` | `UserService.login`이 `AuthTokenService`로 opaque 토큰(30일 만료, DB 기반)을 발급한다(ADR-0012). 토큰 복구 UX·로그아웃·rate limit은 아직 없다. |
+| 1.1.3 | 사이드바 및 재진입 | 닉네임·식별코드 로그인, 세션 복구와 rate limit | 일반 | `부분 구현` | `UserService.login`이 `AuthTokenService`로 opaque 토큰(30일 만료, DB 기반)을 발급한다(ADR-0021). 토큰 복구 UX·로그아웃·rate limit은 아직 없다. |
 | 1.2.1 | 성향 검사 질문 진행 | 질문·선택지·가중치 데이터 제공 | 데모 핵심 | `미구현` | 질문과 선택지 가중치 엔티티만 있고 실행 가능한 조회 계약이 없다. |
 | 1.2.2 | 성향 결과 계산 및 표시 | 응답 채점, 동점 처리·유형별 비율 응답과 결과 저장 | 데모 핵심 | `미구현` | `User`에 유형·점수 필드는 있으나 채점·동점 추가 질문·비율 계산·결과 저장 API가 없다. |
 | 1.2.3 | 성향 결과 SNS 공유 카드 생성 | 공유 URL·OG와 이미지 생성 결과 서버 저장 | 일반 | `미구현` | 이미지 생성 결과 저장과 공유 백엔드 계약이 없다. |
-| 1.3.1 | 닉네임 입력 및 세션 등록 | 닉네임 검증, 식별코드·세션 발급과 저장 | 데모 핵심 | `부분 구현` | `UserController.signUp`이 사용자·1~99 식별코드·인증 토큰(ADR-0012)을 저장·발급한다. 닉네임 요청 검증은 아직 없다. |
+| 1.3.1 | 닉네임 입력 및 세션 등록 | 닉네임 검증, 식별코드·세션 발급과 저장 | 데모 핵심 | `부분 구현` | `UserController.signUp`이 사용자·1~99 식별코드·인증 토큰(ADR-0021)을 저장·발급한다. 닉네임 요청 검증은 아직 없다. |
 
 ## 2. 장소 선택
 
@@ -94,33 +95,33 @@
 | 3.1.2 | 코스 순서 상세 보기 | 순서·장소명·카테고리와 도보 이동 표시 | 데모 핵심 | `미구현` | 코스 순서·장소 정보 응답 DTO와 조회 API가 없다. |
 | 3.2.1 | AI 코스 수정 요청 | 수정 프롬프트 처리, 서버 관리 2회 제한과 미리보기 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/chat`(`CourseService.requestChatRevision`)이 150자 길이 검증 후 Groq(OpenAI 호환) chat completions API(`GroqCourseChatClient`)로 프롬프트를 처리해 코스 재배치 미리보기(`COURSE_REVISION`) 또는 장소 추천(`ADD_RECOMMENDATION`)을 반환하고, `Course.aiRevisionCount`로 서버가 2회 제한을 관리한다(초과 시 `COURSE_AI_REVISION_LIMIT_EXCEEDED`). `POST /api/v1/courses/{courseId}/chat/apply`로 미리보기를 실제 저장에 반영한다. 추천 키워드 칩은 프런트 전용이라 백엔드 계약에 없다. `ADD_RECOMMENDATION`은 활성(`active=true`) 장소 전체를 후보로 Groq에 전달해 그중에서만 추천하도록 강제하고(후보 밖 placeId를 반환하면 오류 처리), 응답에 실제 `placeId`·이름·카테고리·좌표를 포함한다. 추천 장소는 `PUT /api/v1/courses/{courseId}/places`로 직접 추가하거나, `POST /api/v1/courses/{courseId}/places/{placeId}`(`CourseService.addRecommendedPlace`)로 추가하면 Groq가 기존 코스 전체 + 새 장소를 다시 받아 동선을 재배치해 즉시 저장한다(미리보기 단계 없음). 이 엔드포인트는 `aiRevisionCount` 2회 제한과 무관하며 소비하지 않는다. |
 | 3.2.2 | 직접 코스 수정 | 장소 순서 변경·삭제·추가와 검증 | 일반 | `부분 구현` | `PUT /api/v1/courses/{courseId}/places`(`CourseService.editPlaces`)가 여행 기간별 최소 장소 수, 중복 placeId, day 범위를 검증한 뒤 `CoursePlace`를 새 순서로 교체 저장한다. 삭제는 요청 목록에서 제외하는 방식으로 지원한다. 코스에 없던 새 placeId도 실제 `places` 테이블에 존재하면 추가할 수 있다(신규 추가 장소의 `estimatedStayMinutes`는 기본값 60분, 존재하지 않으면 `COURSE_PLACE_NOT_FOUND`). 장소 검색 UI(2.1.2, AI 추천 장소 목록 조회)는 아직 없어 클라이언트가 placeId를 어떻게 얻는지는 3.2.1의 챗봇 추천에 의존한다. 되돌리기 이력은 프런트엔드가 로컬로 관리한다([ADR-0014](../adr/0014-course-edit-chatbot-state-ownership.md)). |
-| 3.3.1 | 코스 확정 | AI 생성 성공 시 draft·courseId 저장, confirmed 전환, 수정 차단과 확정 취소 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/confirm`이 소유자 검증, `DRAFT→CONFIRMED` 전환, `Exploration(BEFORE)`·owner Participant 생성, 공유 만료(3일) 설정을 수행한다(`CourseService.confirm`). AI 수정 횟수 제한, 확정 취소는 아직 없다. |
+| 3.3.1 | 코스 확정 | AI 생성 성공 시 draft·courseId 저장, confirmed 전환, 수정 차단과 확정 취소 | 데모 핵심 | `부분 구현` | `POST /api/v1/courses/{courseId}/confirm`이 소유자 검증 후 사용자 행을 잠그고 다른 `BEFORE`·`ONGOING` 활성 참여가 없을 때만 `DRAFT→CONFIRMED` 전환, `Exploration(BEFORE)`·owner Participant 생성과 공유 만료(3일) 설정을 수행한다(`CourseService.confirm`). 활성 참여가 있으면 `409 EXPLORATION409`를 반환한다. AI 수정 횟수 제한, 확정 취소는 아직 없다. |
 | 3.3.2 | 코스 공유 링크 생성 | Course ID 기반 URL 조합, 만료 시각 저장·검증과 재발급 | 데모 핵심 | `미구현` | `Course.shareExpiresAt` 필드만 있고 공유 만료 갱신·검증·재발급 API가 없다. |
-| 3.3.3 | 탐험 시작 | 활성 참여자의 Exploration 1회성 활성화와 상태 전환 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/start`가 조건부 UPDATE(`ExplorationRepository.startIfBefore`)로 `BEFORE→ONGOING` 1회성 전환을 보장한다(`ExplorationService.start`). |
+| 3.3.3 | 탐험 시작 | 활성 참여자의 Exploration 1회성 활성화와 상태 전환 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/start`(`ExplorationService.start`)가 `ACTIVE Participant`를 확인하고 `BEFORE → ONGOING` 조건부 갱신을 수행해 최초 요청만 성공시킨다. 커밋 후 `/topic/explorations/{explorationId}/events`로 `EXPLORATION_STARTED`를 전파한다. |
 
 ## 4. 팀 탐험 지도
 
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
-| 4.1.1 | 공유 링크를 통한 팀 합류 및 코스 조회 | 링크 검증, 세션 발급·로그인과 중복 없는 팀 합류 | 데모 핵심 | `구현 완료` | `POST /api/v1/courses/{courseId}/join`(`ExplorationService.join`)이 공유 만료 검증, 다른 활성 탐험 참여 시 409 차단(6.4.1의 차단 경로), 동일 닉네임 구분자 부여를 수행한다. 코스 데이터 조회는 4.2.1과 동일 API(`GET /api/v1/courses/{courseId}`). |
-| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/courses/{courseId}`(`CourseService.getCourseDetail`)가 확정 코스 정보와 일자·순서대로 정렬된 장소 목록(좌표 포함)을 반환한다. 인증 불필요(비로그인 미리보기 허용), 공유 만료 시 410. 동선 폴리라인은 프런트가 Kakao Maps/TMAP으로 렌더링하므로 서버 응답에 없다(ADR-0009). |
-| 4.2.2 | 팀원 확인 | 합류 팀원 목록 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/explorations/{explorationId}/members`(`ExplorationService.listMembers`)가 활성 참여자만 반환하며, 방문 완료 수는 `VisitRepository` 집계로 채운다(4.3.2와 동일 응답). |
+| 4.1.1 | 공유 링크를 통한 팀 합류 및 코스 조회 | 링크 검증, 세션 발급·로그인과 중복 없는 팀 합류 | 데모 핵심 | `구현 완료` | `POST /api/v1/courses/{courseId}/join`(`ExplorationService.join`)이 공유 만료·완료 탐험을 검증하고, Participant 생성·재활성화 전에 사용자 행을 잠근 뒤 다른 활성 탐험 참여를 검사하며 동일 닉네임 구분자를 부여한다. 최초 합류는 `201 COMMON201`과 `alreadyJoined: false`, 기존 참여자 재진입은 새 행 없이 `200 COMMON200`과 `alreadyJoined: true`를 반환한다. 새 Participant 행을 생성한 합류만 커밋 후 상태 채널에 `PARTICIPANT_JOINED`를 발행한다. 코스 데이터 조회는 4.2.1과 동일 API(`GET /api/v1/courses/{courseId}`). |
+| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/courses/{courseId}`(`CourseService.getCourseDetail`)가 확정 코스 정보와 일자·순서대로 정렬된 장소 목록(좌표 포함)을 반환한다. 인증 불필요(비로그인 미리보기 허용), 공유 만료 시 410. 인증된 현재·과거 참여자는 `GET /api/v1/explorations/{explorationId}`로 탐험 상태와 실행 권한을 함께 조회한다. 동선 폴리라인은 프런트가 Kakao Maps/TMAP으로 렌더링하므로 서버 응답에 없다(ADR-0009). |
+| 4.2.2 | 팀원 확인 | 합류 팀원 목록 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/explorations/{explorationId}/participants`가 현재 참여자만 조회를 허용하고 `LEFT`를 제외한 팀원을 OWNER 우선·합류 시각 순으로 반환한다. 탐험 전에도 방문 수를 포함하며 프런트엔드만 표시하지 않는다. |
 | 4.2.3 | 성향 검사 진입 | 대상 아님 | 일반 | `대상 아님` | 탐험 전 화면에서 성향 검사로 이동하는 프런트엔드 라우팅이다. |
-| 4.2.4 | 탐험 시작 | 활성 참여자의 BEFORE·ONGOING 1회성 전환 | 데모 핵심 | `구현 완료` | 3.3.3과 동일 API(`POST /api/v1/explorations/{explorationId}/start`). |
-| 4.3.1 | 현재 위치 표시 | 대상 아님 | 데모 핵심 | `대상 아님` | 개인 GPS 취득과 지도 마커는 프런트엔드 책임이다. |
-| 4.3.2 | 팀원 진행 상태 보기 | 방문 수 조회, 실시간 갱신과 참여자별 위치 공유 옵트인 저장 | 데모 핵심 | `구현 완료` | 팀원 목록·방문 수는 4.2.2와 동일 API. 실시간 갱신은 Socket.IO `member:progress`/`member:location`(ADR-0012). 옵트인은 소켓 `location:optIn` 이벤트로 `ExplorationParticipant.locationSharingEnabled`에 저장한다(`ExplorationService.setLocationSharing`). |
-| 4.3.3 | 지도 밝히기 (방문 인증) | GPS 좌표 재검증, Place 방문 저장과 팀 실시간 전파 | 데모 핵심 | `구현 완료` | `POST /api/v1/explorations/{explorationId}/places/{placeId}/visits`(`VisitService.confirmVisit`)가 Haversine 거리 재검증(100m), 중복 인증 차단, 팀 최초 인증·코스 자동완료 판정을 수행하고 Socket.IO `visit:confirmed`/`member:progress`로 전파한다. |
-| 4.3.4 | 탐험 지도 내 코스 상세 보기 | 장소별 방문 상태를 포함한 코스 조회 | 일반 | `미구현` | 장소별 팀 방문 완료 상태를 포함하는 코스 조회 API가 없다. |
-| 4.4.1 | 주변 장소 추천 | 좌표·광주 범위·1km 반경 기반 최대 3곳 조회 | 일반 | `미구현` | 광주 범위·1km 거리·최대 3곳을 계산하는 조회 API와 서비스가 없다. |
-| 4.4.2 | 장소 상세 보기 | 장소 상세 조회와 코스 미포함 주변 장소 방문 인증 연결 | 일반 | `부분 구현` | 공용 장소 상세 GET과 코스 미포함 Place 방문 저장은 동작한다. 방문 완료 배지·버튼 상태를 조합할 장소별 탐험 조회 계약은 아직 없다. |
+| 4.2.4 | 탐험 시작 | 활성 참여자의 BEFORE→ONGOING 1회성 전환 | 데모 핵심 | `구현 완료` | 3.3.3과 같은 시작 API가 역할과 관계없이 활성 참여자의 요청을 허용하고, 이미 시작·완료됐거나 경쟁 요청에서 갱신하지 못하면 409를 반환한다. 성공 커밋 후 상태 채널에 `EXPLORATION_STARTED`를 발행한다. GPS 권한 처리는 프런트엔드 책임이다. |
+| 4.3.1 | 현재 위치 표시 | 유효 GPS 위치의 참여자 인가·정확도·이동 거리 검증과 실시간 전파 | 데모 핵심 | `동작` | 인증 STOMP `SEND /app/explorations/{explorationId}/locations`가 `ONGOING` 탐험의 공유 동의 `ACTIVE Participant`만 허용하고 엄격한 숫자 좌표·offset 시각, 정확도 50m 이하와 연결별 10m 이동을 검증한다. 공유 설정 변경 시 기준점을 초기화하고 상태 변경과 위치 수락을 직렬화하며, 계약 오류는 안정된 STOMP `ERROR message` code로 반환한다. 수락 위치는 DB에 저장하지 않고 `/topic/.../locations`에 JSON으로 전파하며 단위·실제 WebSocket 통합 테스트가 통과한다. GPS 취득과 내 위치 마커 렌더링은 프런트엔드 책임이다(ADR-0026). |
+| 4.3.2 | 팀원 진행 상태 보기 | 방문 수 조회, 실시간 갱신과 참여자별 위치 공유 옵트인 저장 | 데모 핵심 | `부분 구현` | 팀원 목록 API가 참여자별 고유 방문 수와 위치 공유 동의 상태를 반환한다. 저빈도 상태는 `/events`, 개인 방문과 팀 진행률은 `/visits`, 옵트인 위치는 휘발 `/locations` JSON envelope로 분리하며 참여자 범위로 인가한다. 위치는 userId 없이 전파하고 replay하지 않으며 공유 해제 상태 이벤트로 마커를 제거한다. 탐험·참여자 HTTP 조회로 상태·집계를 복구하지만 개별 방문과 마지막 위치 replay는 없다(ADR-0024~0026). |
+| 4.3.3 | 지도 밝히기 (방문 인증) | GPS 좌표 재검증, Place 방문 저장과 팀 실시간 전파 | 데모 핵심 | `동작` | 인증 `POST /api/v1/visits`가 `ONGOING` 탐험의 `ACTIVE Participant`, GPS 정확도 50m 이하·장소 반경 100m 이하·개인별 중복을 검증하고 Place 기반 Visit을 저장한다. 다른 팀원의 선행 방문과 코스 미포함 주변 장소도 개인별로 기록하며, 커밋 후 `/visits` 채널에 좌표·사진 없는 `VISIT_CONFIRMED`를 JSON으로 전파한다(ADR-0025). |
+| 4.3.4 | 탐험 지도 내 코스 상세 보기 | 장소별 방문 상태를 포함한 코스 조회 | 일반 | `부분 구현` | 방문 인증 응답·이벤트와 `GET /api/v1/explorations/{explorationId}`가 `coursePlaceId` 문맥의 팀 Visit만으로 완료 장소 수·전체 장소 수·완료율을 반환한다. 주변 장소는 진행률에서 제외한다. 장소별 팀 완료 상태를 포함하는 코스 조회는 아직 없다. |
+| 4.4.1 | 주변 장소 추천 | 좌표·광주 범위·1km 반경 기반 최대 3곳 조회 | 일반 | `동작` | 인증 `GET /api/v1/explorations/{explorationId}/nearby-places`가 `ONGOING` 탐험의 `ACTIVE Participant`와 전역 좌표 범위를 검증하고 `locationBasedList2`를 1km·거리순으로 호출한다. 광주·지원 분류의 유효 장소를 DB에 저장·재사용하고 코스 장소를 제외해 최대 3곳을 반환한다. 외부 키·호출·응답·유효 후보가 없으면 저장된 활성 장소로 대체하며 후보가 없으면 빈 목록을 정상 반환한다. 정확한 광주 행정경계와 버튼 비활성화는 프런트엔드 책임이다. |
+| 4.4.2 | 장소 상세 보기 | 장소 상세 조회와 코스 미포함 주변 장소 방문 인증 연결 | 일반 | `부분 구현` | 인증된 장소 상세 GET과 코스 미포함 Place 방문 저장·실시간 전파는 동작하며 주변 방문은 코스 진행률에서 제외한다. 방문 완료 배지·버튼 상태를 복구할 조회 계약은 아직 없다. |
 
 ## 5. 팀 내 여행 기록
 
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
-| 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `미구현` | 탐험 상태별 목록과 팀 방문 수를 조회하는 API가 없다. |
-| 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `미구현` | 팀 기준 장소 완료 정책은 정해졌으나 전체 코스 완료 전환과 목록 조회가 없다. |
-| 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `미구현` | Place 기반 `Visit`과 `VisitPhoto` 엔티티는 있으나 방문 목록·집계·사진 업로드 API가 없다. |
+| 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `부분 구현` | `GET /api/v1/explorations/{explorationId}`가 단일 탐험의 상태, `LEFT` 제외 팀원 수, 주변 장소를 포함한 팀 고유 방문 장소 수와 코스 진행률을 반환한다. 사용자의 ONGOING 탐험 목록 조회는 아직 없다. |
+| 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `부분 구현` | 마지막 팀 코스 장소 방문은 Exploration과 `ACTIVE Participant`를 자동 완료하고 방문 이벤트에 `COMPLETED`, 상태 채널에 이유 `ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 커밋 후 전파한다. 단일 완료 탐험 조회는 가능하지만 완료 목록·정렬과 OWNER 조기 완료 API는 아직 없다. |
+| 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `부분 구현` | `POST /api/v1/visits`가 코스·주변 Place 기반 개인 방문을 저장하지만 방문 목록·재접속 복구 조회와 사진 업로드 API는 없다. |
 | 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `미구현` | 대응 조회·집계 API가 없다. |
 
 ## 6. 공통·예외 처리
@@ -145,18 +146,37 @@
 ## 현재 명세와 코드의 주요 불일치
 
 - 실제 기능 API는 회원가입·로그인, 추천·회차 반응, AI 코스 생성, 코스 확정,
-  코스 조회(공개 미리보기·소유자 전용 DRAFT 조회), 코스 수정(직접 수정·AI 챗봇),
-  팀 합류·팀원 목록·탐험 시작, 방문 인증과 Socket.IO 실시간 채널이다
-  (ADR-0012, ADR-0014, ADR-0016).
+  코스 조회(공개 미리보기·소유자 전용 DRAFT 조회), 코스 수정(직접 수정·AI 챗봇)과
+  팀 합류, 팀원 목록, 탐험 시작과 탐험 상세 상태·진행률 조회, 방문 인증이다. 상태
+  채널은 새 참여자 합류·탐험 시작·위치 공유 설정 변경과 자동 완료를 발행한다. 방문
+  채널은 개인 방문과 팀 진행률을 별도로 발행한다. 옵트인 위치 채널은 `ONGOING` 탐험의
+  유효 위치를 휘발 전파한다. 세 채널 모두 참여자 범위로 인가하며 OWNER 조기 완료와
+  방문 조회·사진 API, 위치 replay와 외부 broker는 아직 없다(ADR-0022~0026).
 - 회원가입·로그인은 opaque 인증 토큰(30일 만료, DB 기반)을 발급한다.
   닉네임 요청 검증, 세션 복구 UX, 로그아웃, rate limit은 아직 없다.
 - `SecurityConfig`는 `anyRequest().authenticated()`로 전환했다 — 이전의
   "허용 목록 외 전부 403" 임시 상태를 실제 인증 체계로 대체했다.
 - 좌표 정밀도는 `V5__place_coordinate_precision.sql`로 `numeric(9,6)`으로
-  전환했다(ADR-0012). 기존에 저장된 값의 정밀도 자체는 소급 보정되지 않는다.
+  전환했으며 이 데이터 결정은 유지한다(ADR-0021). 기존에 저장된 값의 정밀도 자체는
+  소급 보정되지 않는다.
 
 ## 재검사 근거
 
+- 2026-08-29 기능 4.3.1·4.3.2의 STOMP 위치 전송·구독, `ONGOING`·`ACTIVE`·옵트인 인가,
+  엄격한 JSON 좌표·정확도, 연결별 10m 필터와 휘발성 전파를 ADR-0026·기능 명세·코드·
+  테스트와 대조했다. 위치 관련 단위·실제 WebSocket 통합 테스트 54개와 전체 346개
+  테스트, `spotlessCheck`, 전체 `build`, 제품 지식·하네스 semantic 검사와
+  `git diff --check`가 통과했다. 프런트엔드 Geolocation·마커 처리와 운영 reverse
+  proxy·다중 서버 broker는 확인하지 않았다.
+- 2026-08-28 현재 작업 트리에서 팀원 조회·탐험 시작·상세 조회, 위치 공유 설정, 방문 인증과
+  상태·방문·위치 이벤트 및 구독 인가를 기능 명세·아키텍처·ADR-0021~0026 및 코드·테스트와
+  대조해 49개 행 집계를 갱신했다. 전체 332개 테스트가 실패·건너뜀 없이 통과했고,
+  `spotlessCheck`와 전체 `build`도 통과했다. 프런트엔드와 운영 reverse proxy·실제 broker
+  전달 상태는 확인하지 않았다.
+- 2026-08-25 Socket.IO와 팀원 조회·탐험 시작·방문 인증 API를 제거하고 course 미리보기·
+  합류를 보존했다. 전체 219개 테스트, `spotlessCheck`, 전체 `build`, 하네스 semantic 검사,
+  Postman JSON 파싱과 제거 경로 검색이 통과했다(ADR-0021). 프런트엔드·Notion 최종 계약과
+  운영 배포 상태는 확인하지 않았다.
 - 2026-08-24 AI 코스 생성 Service·Groq HTTP 클라이언트·MockMvc 테스트를 포함한 전체
   228개 테스트가 실패·건너뜀 없이 통과했다. `spotlessCheck`, 전체 `build`, Postman JSON
   파싱과 제품 지식·하네스 semantic 검사도 통과했다. 실제 Groq 운영 호출과 프런트엔드

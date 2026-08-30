@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0021
 decision-date: 2026-08-12
 recorded-date: 2026-08-12
 ---
