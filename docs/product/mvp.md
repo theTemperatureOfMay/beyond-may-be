@@ -104,7 +104,7 @@
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
 | 4.1.1 | 공유 링크를 통한 팀 합류 및 코스 조회 | 링크 검증, 세션 발급·로그인과 중복 없는 팀 합류 | 데모 핵심 | `구현 완료` | `POST /api/v1/courses/{courseId}/join`(`ExplorationService.join`)이 공유 만료·완료 탐험을 검증하고, Participant 생성·재활성화 전에 사용자 행을 잠근 뒤 다른 활성 탐험 참여를 검사하며 동일 닉네임 구분자를 부여한다. 최초 합류는 `201 COMMON201`과 `alreadyJoined: false`, 기존 참여자 재진입은 새 행 없이 `200 COMMON200`과 `alreadyJoined: true`를 반환한다. 새 Participant 행을 생성한 합류만 커밋 후 상태 채널에 `PARTICIPANT_JOINED`를 발행한다. 코스 데이터 조회는 4.2.1과 동일 API(`GET /api/v1/courses/{courseId}`). |
-| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/courses/{courseId}`(`CourseService.getCourseDetail`)가 확정 코스 정보와 일자·순서대로 정렬된 장소 목록(좌표 포함)을 반환한다. 공유 기간에는 비로그인 미리보기를 허용하고, 만료 뒤에는 인증된 현재·과거 참여자만 계속 조회할 수 있으며 그 외에는 410을 반환한다. 인증된 현재·과거 참여자는 `GET /api/v1/explorations/{explorationId}`로 탐험 상태와 실행 권한을 함께 조회한다. 동선 폴리라인은 프런트가 Kakao Maps/TMAP으로 렌더링하므로 서버 응답에 없다(ADR-0009). |
+| 4.2.1 | 코스 미리보기 | 확정 코스·장소·동선·요약 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/courses/{courseId}`(`CourseService.getCourseDetail`)가 확정 코스 정보와 일자·순서대로 정렬된 장소 목록(좌표 포함)을 반환한다. 인증 불필요(비로그인 미리보기 허용), 공유 만료 시 410. 인증된 현재·과거 참여자는 `GET /api/v1/explorations/{explorationId}`로 탐험 상태와 실행 권한을 함께 조회한다. 동선 폴리라인은 프런트가 Kakao Maps/TMAP으로 렌더링하므로 서버 응답에 없다(ADR-0009). |
 | 4.2.2 | 팀원 확인 | 합류 팀원 목록 조회 | 데모 핵심 | `구현 완료` | `GET /api/v1/explorations/{explorationId}/participants`가 현재 참여자만 조회를 허용하고 `LEFT`를 제외한 팀원을 OWNER 우선·합류 시각 순으로 반환한다. 탐험 전에도 방문 수를 포함하며 프런트엔드만 표시하지 않는다. |
 | 4.2.3 | 성향 검사 진입 | 대상 아님 | 일반 | `대상 아님` | 탐험 전 화면에서 성향 검사로 이동하는 프런트엔드 라우팅이다. |
 | 4.2.4 | 탐험 시작 | 활성 참여자의 BEFORE→ONGOING 1회성 전환 | 데모 핵심 | `구현 완료` | 3.3.3과 같은 시작 API가 역할과 관계없이 활성 참여자의 요청을 허용하고, 이미 시작·완료됐거나 경쟁 요청에서 갱신하지 못하면 409를 반환한다. 성공 커밋 후 상태 채널에 `EXPLORATION_STARTED`를 발행한다. GPS 권한 처리는 프런트엔드 책임이다. |
@@ -131,7 +131,7 @@
 | 6.1.1 | 페이지 없음 (404) | 리소스 미존재 오류 계약 | 일반 | `명세 불일치` | 미인증 미등록 경로는 인증 진입점에서 401, 인증된 미등록 경로는 프레임워크 404를 반환하며 공통 `ApiResponse` 404 오류 계약은 없다. |
 | 6.1.2 | 서버 오류 (500) | 예외 응답과 재시도 가능한 오류 구분 | 일반 | `부분 구현` | `ExceptionAdvice`가 처리되지 않은 예외를 공통 500 응답으로 변환하지만 기능별 오류·재시도 계약은 없다. |
 | 6.1.3 | 요청 지연 (타임아웃) | API·외부 연동 timeout 설정과 오류 응답 | 일반 | `부분 구현` | 추천 생성은 전체 30초를 넘으면 `RECOMMENDATION503`, AI 코스 생성은 전체 60초를 넘으면 `COURSE503_2`로 종료하며 자동 재시도하지 않는다. TourAPI 최대 5초와 Groq 최대 20초 timeout은 각각 기존 DB 후보·규칙 경로로 복구한다. 다른 외부 연동의 timeout 계약은 아직 구현되지 않았다. |
-| 6.1.4 | 만료된 링크 | Course 공유 만료 시각 저장·검증과 410 응답 | 일반 | `구현 완료` | `CourseService.confirm`이 공유 만료 시각을 저장한다. `CourseService.getCourseDetail`은 만료 뒤 인증된 현재·과거 참여자의 조회를 허용하고 비인증·비참여 요청에는 `SHARE_LINK_EXPIRED`(410)를 반환하며, `ExplorationService.join`은 만료된 신규 합류를 410으로 거부한다. URL 문자열은 저장하지 않는다. |
+| 6.1.4 | 만료된 링크 | Course 공유 만료 시각 저장·검증과 410 응답 | 일반 | `구현 완료` | `CourseService.confirm`이 공유 만료 시각을 저장하고 `CourseService.getCourseDetail`과 `ExplorationService.join`이 만료를 검증해 `SHARE_LINK_EXPIRED`(410)를 반환한다. URL 문자열은 저장하지 않는다. |
 | 6.1.5 | 세션 만료 | 세션 토큰 검증과 401 응답 | 일반 | `구현 완료` | `AuthTokenService`가 30일 만료 토큰을 발급하고 만료·무효 토큰을 거부하며 `TokenAuthenticationFilter`와 `SecurityConfig`가 보호 경로에 `401 Unauthorized`를 반환한다. |
 | 6.3.1 | 공통 빈 상태 | 정상 0건 응답과 기능별 대체 경로 계약 | 일반 | `동작` | 추천 생성 API가 활성 후보 0건을 오류가 아닌 `200 OK`와 빈 `places`로 반환하며, 빈 1회차 반응도 새 회차를 만들지 않는다. 서비스 테스트가 두 계약을 검증한다. |
 | 6.4.1 | 중복 참여 차단 | BEFORE·ONGOING 활성 참여 1개 제한, 기록을 보존하는 기존 이탈과 신규 합류 | 일반 | `부분 구현` | `ExplorationService.join`이 다른 활성 탐험 참여를 409로 차단하고 같은 탐험의 `LEFT` 참여 기록을 재활성화한다. 기존 탐험 이탈 API와 이탈 후 신규 합류 흐름은 아직 없다. |

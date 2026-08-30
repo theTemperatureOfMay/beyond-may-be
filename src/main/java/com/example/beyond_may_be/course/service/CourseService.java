@@ -588,7 +588,7 @@ public class CourseService {
   }
 
   @Transactional(readOnly = true)
-  public CourseDtos.CourseDetailResponse getCourseDetail(Long courseId, Long userId) {
+  public CourseDtos.CourseDetailResponse getCourseDetail(Long courseId) {
     Course course =
         courseRepository
             .findById(courseId)
@@ -598,18 +598,7 @@ public class CourseService {
     }
     if (course.getShareExpiresAt() == null
         || LocalDateTime.now().isAfter(course.getShareExpiresAt())) {
-      boolean participated =
-          userId != null
-              && explorationRepository
-                  .findByCourseId(courseId)
-                  .flatMap(
-                      exploration ->
-                          explorationParticipantRepository.findByExplorationIdAndUserId(
-                              exploration.getId(), userId))
-                  .isPresent();
-      if (!participated) {
-        throw new ExplorationHandler(ErrorStatus.SHARE_LINK_EXPIRED);
-      }
+      throw new ExplorationHandler(ErrorStatus.SHARE_LINK_EXPIRED);
     }
 
     List<CoursePlace> coursePlaces =

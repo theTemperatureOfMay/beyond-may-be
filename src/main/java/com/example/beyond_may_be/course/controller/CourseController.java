@@ -53,9 +53,8 @@ public class CourseController {
   }
 
   @GetMapping("/{courseId}")
-  public ApiResponse<CourseDtos.CourseDetailResponse> getCourseDetail(
-      @PathVariable Long courseId, @AuthenticationPrincipal Long userId) {
-    return ApiResponse.onSuccess(courseService.getCourseDetail(courseId, userId));
+  public ApiResponse<CourseDtos.CourseDetailResponse> getCourseDetail(@PathVariable Long courseId) {
+    return ApiResponse.onSuccess(courseService.getCourseDetail(courseId));
   }
 
   @Operation(summary = "탐험 합류", description = "최초 합류는 201, 기존 참여자의 재요청 및 재합류는 200을 반환합니다.")

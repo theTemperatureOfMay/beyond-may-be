@@ -11,8 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ExplorationRepository extends JpaRepository<Exploration, Long> {
-  Optional<Exploration> findByCourseId(Long courseId);
-
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select e from Exploration e where e.courseId = :courseId")
   Optional<Exploration> findByCourseIdForUpdate(@Param("courseId") Long courseId);

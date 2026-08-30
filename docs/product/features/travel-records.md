@@ -27,8 +27,7 @@
 
 인증된 현재 또는 과거 참여자는 `GET /api/v1/explorations/{explorationId}`로 단일
 탐험의 상태, N / M 코스 진행률과 팀원 수를 조회할 수 있다. 사용자의 진행 중 탐험 목록
-조회는 아직 구현하지 않았다. 코스 공유 기간이 끝난 뒤에도 참여 이력이 있으면 인증된
-`GET /api/v1/courses/{courseId}`로 장소와 일정을 복구할 수 있다.
+조회는 아직 구현하지 않았다.
 
 #### 5.1.2 완료한 코스 조회
 
@@ -51,9 +50,8 @@
 전체 코스 장소가 팀 완료되면 자동으로 탐험을 완료한다.
 코스 생성자(OWNER)는 전체 장소를 방문하기 전에도 별도 '코스 완료' 버튼으로 탐험을 완료할 수 있다.
 
-완료된 단일 탐험은 `GET /api/v1/explorations/{explorationId}`로, 장소와 일정은 공유
-기간이 끝난 뒤에도 인증된 `GET /api/v1/courses/{courseId}`로 조회할 수 있다. 전체 장소
-방문에 따른 자동 완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은
+완료된 단일 탐험도 `GET /api/v1/explorations/{explorationId}`로 조회할 수 있다. 전체
+장소 방문에 따른 자동 완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은
 Exploration과 활성 Participant를 완료하고 커밋 후
 `/topic/explorations/{explorationId}/events`에 이유
 `ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다. 완료 목록과 OWNER

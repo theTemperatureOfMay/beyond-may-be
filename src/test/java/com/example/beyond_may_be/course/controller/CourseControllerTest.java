@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -48,18 +47,6 @@ class CourseControllerTest {
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(1L));
   }
 
-  private CourseDtos.CourseDetailResponse courseDetail() {
-    return new CourseDtos.CourseDetailResponse(
-        10L,
-        "광주 여행",
-        "CONFIRMED",
-        "ONE_NIGHT_TWO_DAYS",
-        LocalDate.of(2099, 8, 20),
-        LocalDate.of(2099, 8, 21),
-        LocalTime.of(7, 0),
-        List.of());
-  }
-
   @Test
   void generatesDraftCourseFromCurrentSelection() throws Exception {
     given(courseService.generate(1L))
@@ -100,26 +87,6 @@ class CourseControllerTest {
   @Test
   void rejectsUnauthenticatedCourseGeneration() throws Exception {
     mockMvc.perform(post("/api/v1/courses/ai-generation")).andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  void getsSharedCourseWithoutAuthentication() throws Exception {
-    given(courseService.getCourseDetail(10L, null)).willReturn(courseDetail());
-
-    mockMvc
-        .perform(get("/api/v1/courses/10"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.title").value("광주 여행"));
-  }
-
-  @Test
-  void getsSharedCourseWithAuthentication() throws Exception {
-    given(courseService.getCourseDetail(10L, 1L)).willReturn(courseDetail());
-
-    mockMvc
-        .perform(get("/api/v1/courses/10").header("Authorization", "Bearer valid-token"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.title").value("광주 여행"));
   }
 
   @SpringBootConfiguration

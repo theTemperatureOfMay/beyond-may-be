@@ -1131,17 +1131,10 @@
         },
         {
           "name": "코스(확정) 조회",
-          "description": "공유 링크로 접속했을 때 확정 코스 데이터를 조회합니다(4.1.1·4.2.1). 공유 기간에는 인증 없이 미리보기할 수 있습니다. 만료 뒤에는 `Authorization: Bearer {{accessToken}}`으로 인증된 현재·과거 참여자만 계속 조회할 수 있고, 비인증·비참여 요청은 410을 반환합니다. 확정되지 않은 코스는 404입니다. Path variable `courseId`.",
+          "description": "공유 링크로 접속했을 때 확정 코스 데이터를 조회합니다(4.1.1·4.2.1). 인증이 필요 없습니다(비로그인 사용자도 미리보기 가능) — architecture/backend.md의 '유효한 공유 코스 미리보기 | 비인증 허용'과 일치. 확정되지 않은 코스는 404, 공유 링크가 만료됐으면 410을 반환합니다. Path variable `courseId`.",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "description": "공유 만료 후 현재·과거 참여자 조회 시 활성화합니다.",
-                "disabled": true
-              }
-            ],
+            "header": [],
             "url": "{{baseUrl}}/api/v1/courses/1"
           },
           "response": [
@@ -1182,25 +1175,6 @@
               ],
               "cookie": [],
               "body": "{\n  \"message\": \"코스를 찾을 수 없습니다.\",\n  \"code\": \"COURSE404\",\n  \"data\": null,\n  \"success\": false\n}"
-            },
-            {
-              "name": "410 - 공유 링크 만료(비인증·비참여)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": "{{baseUrl}}/api/v1/courses/1"
-              },
-              "status": "Gone",
-              "code": 410,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"message\": \"공유 링크가 만료되었습니다.\",\n  \"code\": \"EXPLORATION410\",\n  \"data\": null,\n  \"success\": false\n}"
             }
           ]
         },
