@@ -27,4 +27,16 @@ public final class PlaceConverter {
     return new PlaceRecommendationResponse(
         places.stream().map(PlaceConverter::toDetailResponse).toList());
   }
+
+  public static PlaceDtos.NearbyPlaceResponse toNearbyPlaceResponse(
+      Place place, long distanceMeters) {
+    return new PlaceDtos.NearbyPlaceResponse(
+        place.getId(),
+        place.getName(),
+        place.getCategory(),
+        place.getLatitude(),
+        place.getLongitude(),
+        distanceMeters,
+        place.getThumbnailUrl());
+  }
 }

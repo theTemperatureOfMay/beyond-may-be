@@ -282,15 +282,21 @@ CoursePlace는 서버가 결정하며 검증 좌표·정확도는 저장하지 �
 탐색 반경: 1km
 최대 표시 수: 3개
 
-주변 추천은 REST API로 요청한다. 세부 계약은 별도 API 명세에서 확정한다.
+인증 `GET /api/v1/explorations/{explorationId}/nearby-places`는 현재 위도
+`latitude`와 경도 `longitude`를 query로 받는다. 전역 좌표 범위를 검증하고 해당
+`ONGOING Exploration`의 `ACTIVE Participant`만 허용한다. 응답은 내부 `placeId`,
+장소명, 카테고리, 좌표, 서버 계산 거리(m), 썸네일을 거리순으로 최대 3곳 반환한다.
 
-서버는 사용자가 주변 장소 더보기를 클릭할 때
-`KorService2/locationBasedList2`를 직접 호출한다. 요청 좌표는 `mapX=longitude`,
-`mapY=latitude`, 탐색 반경은 `radius=1000`, 거리순은 `arrange=E`를 사용한다.
-코스 포함 장소와 서비스에서 사용할 수 없는 장소를 제외한 뒤 최대 3곳을 반환한다.
+서버는 사용자가 주변 장소 더보기를 클릭할 때 `KorService2/locationBasedList2`를
+한 페이지 직접 호출한다. 요청 좌표는 `mapX=longitude`, `mapY=latitude`, 탐색 반경은
+`radius=1000`, 거리순은 `arrange=E`를 사용한다. 광주 `areaCode=5`이고 지원 분류와
+필수값이 유효한 장소만 `tourContentId`로 기존 `places`를 재사용하거나 신규 저장한다.
+현재 코스 장소와 실제 거리 1km 밖 장소는 제외한다.
 
-관광 OpenAPI 실패 시 저장된 장소로 대체할지 오류를 반환할지는
-[논의 필요](../open-questions.md)에서 확정한다.
+TourAPI 키가 없거나 호출·응답 검증에 실패하거나 유효 후보가 없으면 저장된 활성 장소에
+같은 1km·코스 제외·거리순·최대 3곳 조건을 적용한다. 대체 후보도 없으면 `200 OK`와
+빈 `places`를 반환하며 자동 재시도하지 않는다. 광주 밖 버튼 비활성화는 프런트엔드가
+담당하고, 백엔드는 임의의 사각형 경계를 두지 않고 외부 결과의 `areaCode=5`만 검증한다.
 
 #### 4.4.2 장소 상세 보기 (탐험 지도 내)
 

@@ -26,6 +26,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
   Set<Long> findExistingTourContentIds(@Param("contentIds") Collection<Long> contentIds);
 
   @Modifying
+  @Transactional
   @Query(
       value =
           """

@@ -2,6 +2,7 @@ package com.example.beyond_may_be.recommendation.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.beyond_may_be.place.service.TourApiClassificationCatalog;
 import org.junit.jupiter.api.Test;
 
 class TourApiClassificationCatalogTest {

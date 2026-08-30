@@ -21,4 +21,15 @@ public final class PlaceDtos {
       String thumbnailUrl) {}
 
   public record PlaceRecommendationResponse(List<DetailResponse> places) {}
+
+  public record NearbyPlacesResponse(List<NearbyPlaceResponse> places) {}
+
+  public record NearbyPlaceResponse(
+      Long placeId,
+      String name,
+      String category,
+      BigDecimal latitude,
+      BigDecimal longitude,
+      long distanceMeters,
+      String thumbnailUrl) {}
 }

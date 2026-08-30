@@ -7,6 +7,7 @@ import com.example.beyond_may_be.course.domain.enums.TravelSchedule;
 import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.repository.PlaceRepository;
 import com.example.beyond_may_be.place.service.PlaceDetailEnrichmentService;
+import com.example.beyond_may_be.place.service.TourApiClassificationCatalog;
 import com.example.beyond_may_be.place.service.TourApiSyncClient;
 import com.example.beyond_may_be.place.service.TourApiSyncClient.SyncItem;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
