@@ -22,6 +22,7 @@ public final class CourseDtos {
       String name,
       String category,
       TravelPreferenceType travelMbtiType,
+      String summary,
       String address,
       BigDecimal latitude,
       BigDecimal longitude,
