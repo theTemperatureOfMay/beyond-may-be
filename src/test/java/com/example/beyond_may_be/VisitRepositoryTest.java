@@ -53,6 +53,35 @@ class VisitRepositoryTest {
     assertThat(visitRepository.existsByPlaceIdAndParticipantIdIn(2L, List.of(70L, 71L))).isTrue();
   }
 
+  @DisplayName("팀 방문은 최신순으로, 각 방문 사진은 표시 순서대로 조회한다.")
+  @Test
+  void teamVisitQueries_returnRequiredOrder() {
+    Visit older =
+        visitRepository.saveAndFlush(
+            Visit.builder()
+                .participantId(92L)
+                .placeId(900003L)
+                .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+                .build());
+    Visit newer =
+        visitRepository.saveAndFlush(
+            Visit.builder()
+                .participantId(93L)
+                .placeId(900004L)
+                .visitedAt(LocalDateTime.of(2026, 8, 15, 15, 5, 40))
+                .build());
+    visitPhotoRepository.saveAllAndFlush(List.of(photo(older.getId(), 2), photo(older.getId(), 1)));
+
+    assertThat(visitRepository.findByParticipantIdInOrderByVisitedAtDesc(List.of(92L, 93L)))
+        .extracting(Visit::getId)
+        .containsExactly(newer.getId(), older.getId());
+    assertThat(
+            visitPhotoRepository.findByVisitIdInOrderByVisitIdAscDisplayOrderAsc(
+                List.of(older.getId())))
+        .extracting(VisitPhoto::getDisplayOrder)
+        .containsExactly(1, 2);
+  }
+
   @DisplayName("방문 사진 표시 순서는 최댓값 다음으로 계산되고 중복될 수 없다.")
   @Test
   void visitPhotoDisplayOrder_isUniquePerVisit() {

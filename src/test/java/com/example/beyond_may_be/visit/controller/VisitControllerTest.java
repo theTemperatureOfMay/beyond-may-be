@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.reset;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,10 +19,13 @@ import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
 import com.example.beyond_may_be.visit.service.VisitService;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -46,6 +50,105 @@ class VisitControllerTest {
   void setUp() {
     reset(authTokenService, visitService);
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(9L));
+  }
+
+  @DisplayName("탐험의 팀 방문 기록을 중첩된 장소와 사진 정보로 반환한다.")
+  @Test
+  void getVisits_participant_returnsTeamVisits() throws Exception {
+    given(visitService.getVisits(44L, 9L))
+        .willReturn(
+            new VisitDtos.VisitsResponse(
+                44L,
+                List.of(
+                    new VisitDtos.VisitResponse(
+                        9001L,
+                        new VisitDtos.ParticipantResponse(72L, "김감자감자"),
+                        new VisitDtos.PlaceResponse(
+                            121L,
+                            "양림동 펭귄마을",
+                            "관광지",
+                            com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType
+                                .REMEMBERER,
+                            List.of("골목", "역사"),
+                            "광주광역시 남구 천변좌로446번길 7",
+                            null),
+                        null,
+                        false,
+                        OffsetDateTime.parse("2026-08-15T14:32:10+09:00"),
+                        List.of(
+                            new VisitDtos.VisitPhotoResponse(
+                                501L,
+                                1,
+                                "https://example.com/signed/501",
+                                OffsetDateTime.parse("2026-08-15T15:32:10+09:00"))))),
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/visits")
+                .queryParam("explorationId", "44")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.explorationId").value(44))
+        .andExpect(jsonPath("$.data.visits[0].visitId").value(9001))
+        .andExpect(jsonPath("$.data.visits[0].participant.participantId").value(72))
+        .andExpect(jsonPath("$.data.visits[0].participant.displayName").value("김감자감자"))
+        .andExpect(jsonPath("$.data.visits[0].participant.userId").doesNotExist())
+        .andExpect(jsonPath("$.data.visits[0].place.placeId").value(121))
+        .andExpect(jsonPath("$.data.visits[0].place.name").value("양림동 펭귄마을"))
+        .andExpect(jsonPath("$.data.visits[0].place.category").value("관광지"))
+        .andExpect(jsonPath("$.data.visits[0].place.travelMbtiType").value("REMEMBERER"))
+        .andExpect(jsonPath("$.data.visits[0].place.tags[0]").value("골목"))
+        .andExpect(jsonPath("$.data.visits[0].place.address").value("광주광역시 남구 천변좌로446번길 7"))
+        .andExpect(jsonPath("$.data.visits[0].place.thumbnailUrl").isEmpty())
+        .andExpect(jsonPath("$.data.visits[0].coursePlaceId").isEmpty())
+        .andExpect(jsonPath("$.data.visits[0].isCoursePlace").value(false))
+        .andExpect(jsonPath("$.data.visits[0].visitedAt").value("2026-08-15T14:32:10+09:00"))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].visitPhotoId").value(501))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].displayOrder").value(1))
+        .andExpect(
+            jsonPath("$.data.visits[0].photos[0].imageUrl").value("https://example.com/signed/501"))
+        .andExpect(
+            jsonPath("$.data.visits[0].photos[0].urlExpiresAt").value("2026-08-15T15:32:10+09:00"))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].objectKey").doesNotExist())
+        .andExpect(jsonPath("$.data.totalCount").value(1));
+  }
+
+  @DisplayName("탐험 ID 형식이 잘못되면 팀 방문 기록 조회를 400으로 거부한다.")
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "-1", "not-a-number"})
+  void getVisits_invalidExplorationId_returnsBadRequest(String explorationId) throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/visits")
+                .queryParam("explorationId", explorationId)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("탐험 ID가 누락되면 팀 방문 기록 조회를 400으로 거부한다.")
+  @Test
+  void getVisits_missingExplorationId_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("인증 없이 팀 방문 기록을 조회하면 401로 거부한다.")
+  @Test
+  void getVisits_unauthenticated_returnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits").queryParam("explorationId", "44"))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
   }
 
   @DisplayName("방문 인증에 성공하면 생성된 방문과 팀 진행 상태를 201로 반환한다.")

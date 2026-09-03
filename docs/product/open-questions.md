@@ -17,9 +17,9 @@
 | 4.4.1 | `locationBasedList2` 런타임 호출과 기존 장소 정본 경계 | 수동 주변 조회에서만 한 페이지를 런타임 호출하고 유효 장소를 `places`에 저장·재사용하도록 기능 명세와 백엔드 아키텍처에 반영했다. 런타임 장소 정본은 계속 `places`다. |
 | 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
 | 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | 정확도 50m 이하의 엄격한 숫자 좌표·`OffsetDateTime` 측정 시각을 `/app/explorations/{explorationId}/locations`로 보내고 연결별 마지막 수락 위치에서 10m 이상 이동한 경우만 전파하도록 확정·구현했다. 공유 설정 변경 시 기준점을 초기화하고 계약 오류는 안정된 STOMP `ERROR message` code로 구분한다(ADR-0026). places `numeric(9,6)` 정밀도는 유지한다. |
-| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | 상태 `/events`, 방문 `/visits`, 휘발 위치 `/locations`를 분리하고 `ACTIVE Participant` 구독 인가를 적용했다. 위치는 `ONGOING` 탐험에서만 허용하고 userId 없이 옵트인 참여자의 `participantId`·표시 이름·좌표를 전파하며 저장·replay하지 않는다(ADR-0024~0026). 방문 개별 복구 조회와 다중 서버 외부 broker는 제외했다. |
-| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `POST /api/v1/visits`, GPS 정확도 50m 이하·서버 거리 100m 이하, 원본 좌표 미저장과 방문 결과·진행률 응답을 확정·구현했다(ADR-0025). 개별 방문 복구 조회는 제외했다. |
-| 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | 참여자별 Place 1회, 다른 팀원의 개인 방문 허용, 주변 Place 저장·실시간 전파와 코스 진행률 제외를 구현했다(ADR-0025). 사진 첨부는 구현했으며 팀 방문 목록 API는 `[백엔드 확인]` |
+| 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | 상태 `/events`, 방문 `/visits`, 휘발 위치 `/locations`를 분리하고 `ACTIVE Participant` 구독 인가를 적용했다. 위치는 `ONGOING` 탐험에서만 허용하고 userId 없이 옵트인 참여자의 `participantId`·표시 이름·좌표를 전파하며 저장·replay하지 않는다. 팀 방문 기록은 HTTP GET으로 복구하고 다중 서버 외부 broker는 제외했다(ADR-0024~0027). |
+| 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `POST /api/v1/visits`, GPS 정확도 50m 이하·서버 거리 100m 이하, 원본 좌표 미저장과 방문 결과·진행률 응답을 확정·구현했다. 팀 전체 개별 방문은 `GET /api/v1/visits?explorationId={explorationId}`로 복구한다(ADR-0025, ADR-0027). |
+| 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | 참여자별 Place 1회, 다른 팀원의 개인 방문 허용, 주변 Place 저장·실시간 전파와 코스 진행률 제외를 구현했다. 현재·과거 참여자의 팀 방문 목록과 사진 URL 재발급도 구현했다(ADR-0025, ADR-0027). |
 | 4.4.1 | 주변 추천 노출과 REST API 계약 | `GET /api/v1/explorations/{explorationId}/nearby-places`가 현재 좌표를 받아 `ONGOING` 탐험의 `ACTIVE Participant`에게 광주·1km·코스 제외 조건의 장소를 최대 3곳 제공하도록 확정·구현했다. |
 | 5.1.2 | 전체 코스 완료 전환 | 마지막 팀 코스 장소 방문이 Exploration·활성 Participant를 자동 완료하고 `ALL_COURSE_PLACES_VISITED` 상태 이벤트를 발행하도록 구현했다(ADR-0025). OWNER 조기 완료 API와 해당 완료 이벤트 생산자 `[백엔드 확인]` |
 | 5.2.1 | 방문 사진 업로드 계약 | Visit 작성자인 `ACTIVE Participant`만 한 장씩 첨부하며 장수 제한 없음·장당 10MB·JPEG/PNG/WebP, 비공개 S3·ECS Task Role·1시간 presigned GET URL로 확정·구현했다(ADR-0027). 고아 객체 운영 정리 주기는 `[MVP 이후 운영 정책]` |

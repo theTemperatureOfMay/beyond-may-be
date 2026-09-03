@@ -5,24 +5,36 @@ import com.example.beyond_may_be.apiPayload.code.status.SuccessStatus;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
 import com.example.beyond_may_be.visit.service.VisitService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
+@Validated
 @RequestMapping("/api/v1/visits")
 public class VisitController {
 
   private final VisitService visitService;
+
+  @GetMapping
+  public ApiResponse<VisitDtos.VisitsResponse> getVisits(
+      @RequestParam @Positive(message = "_BAD_REQUEST") Long explorationId,
+      @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(visitService.getVisits(explorationId, userId));
+  }
 
   @PostMapping
   public ResponseEntity<ApiResponse<VisitDtos.ConfirmResponse>> confirm(

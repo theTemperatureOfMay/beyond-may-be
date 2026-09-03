@@ -84,8 +84,12 @@ API와 `OWNER_EARLY_COMPLETION` 생산자는 아직 구현하지 않았다
 
 방문 기록은 참여자별로 저장한다. 팀원은 같은 장소를 각자 한 번씩 인증할 수 있고,
 팀 화면에는 참여자별 기록을 합친 전체 방문 기록을 표시한다.
-`POST /api/v1/visits`는 코스·주변 장소 방문을 저장하지만 이 목록과 재접속 복구에 필요한
-Visit 조회 API는 아직 구현하지 않았다.
+인증된 현재 또는 과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로
+해당 탐험의 모든 참여자 Visit을 `visitedAt` 내림차순 조회한다. 코스 장소와 주변 장소를
+모두 포함하며 응답에는 방문 참여자의 고정 표시 이름, 장소 정보, CoursePlace 연결 여부와
+사진을 담는다. 사진은 `displayOrder` 오름차순이고 저장된 object key마다 새 presigned GET
+URL과 만료 시각을 발급하며 userId와 object key는 노출하지 않는다. 방문이 없으면 빈 배열과
+`totalCount: 0`을 반환한다. 탐험이 없으면 404, 참여 이력이 없으면 403으로 거부한다.
 
 방문 인증에는 사진을 선택적으로 첨부할 수 있으며 사진 장수는 제한하지 않는다.
 사진은 한 장씩 업로드하고 장당 10MB 이하의 JPEG·PNG·WebP 형식을 허용한다.
@@ -94,7 +98,7 @@ Visit을 만든 현재 `ACTIVE Participant` 본인은 인증
 완료된 탐험에는 추가할 수 없다. 서버가 다음 표시 순서를 배정하고 원본은 비공개 S3,
 DB에는 object key와 순서만 저장한다. 성공 응답은 object key 대신 기본 1시간 유효한
 presigned GET URL과 실제 만료 시각을 반환한다. 이후 팀 방문 목록 조회는 저장된 key마다
-새 URL을 발급해야 한다([ADR-0027](../../adr/0027-private-s3-visit-photo-storage.md)).
+새 URL을 발급한다([ADR-0027](../../adr/0027-private-s3-visit-photo-storage.md)).
 
 (셋로그처럼) 사진찍고 인증 후 백로그 형태로 생성해줌
 ex) 포켓몬 고, 피크민처럼

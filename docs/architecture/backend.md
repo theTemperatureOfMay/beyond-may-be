@@ -349,6 +349,12 @@ erDiagram
 - 팀 방문 기록과 팀 누적 밝힌 지도는 해당 Exploration의 모든 Participant Visit을
   합쳐 계산한다. CoursePlace 문맥이 없는 주변 장소 Visit도 두 조회에는 포함하지만
   코스 완료율에서는 제외한다.
+- 인증 `GET /api/v1/visits?explorationId={explorationId}`는 Exploration 존재를 먼저
+  확인하고 현재 또는 과거 Participant에게 모든 팀 Visit을 `visited_at` 내림차순으로
+  반환한다. 비활성화된 Place의 과거 Visit도 보존된 장소 정보로 조회하며 방문이 없으면
+  빈 배열과 `totalCount: 0`을 반환한다.
+- 팀 방문 조회의 사진은 `display_order` 오름차순이며 요청할 때마다 저장된 object key로
+  새 presigned GET URL과 실제 만료 시각을 만든다. userId와 object key는 응답하지 않는다.
 - 인증 `POST /api/v1/visits`는 `ONGOING Exploration`의 `ACTIVE Participant`, 활성
   Place, GPS 정확도 50m 이하와 반올림 전 거리 100m 이하를 검증한다. Exploration 쓰기
   잠금 안에서 개인 중복·팀 최초 방문·진행률을 계산하고 마지막 팀 CoursePlace 방문이면
@@ -424,7 +430,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 비공개 Amazon S3 | 방문 인증 사진 원본. 모든 공개 접근·ACL을 차단하고 SSE-S3·HTTPS를 적용한다. ECS Task Role에는 전용 버킷 `visits/*`의 GET·PUT·DELETE만 허용하며 API는 1시간 presigned GET URL만 노출한다(ADR-0027). |
-| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계는 탐험·참여자 HTTP 조회로 복구한다. 개별 방문 복구 조회와 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md)). |
+| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계·개별 방문은 탐험·참여자·팀 방문 기록 HTTP 조회로 복구한다. 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md), [ADR-0027](../adr/0027-private-s3-visit-photo-storage.md)). |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.

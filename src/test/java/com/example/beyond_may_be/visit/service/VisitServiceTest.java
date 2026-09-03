@@ -69,6 +69,143 @@ class VisitServiceTest {
   @Mock private VisitPhotoRepository visitPhotoRepository;
   @Mock private VisitPhotoStorage visitPhotoStorage;
 
+  @DisplayName("과거 참여자는 코스 밖 장소와 사진을 포함한 팀 방문 기록을 시간 역순으로 조회한다.")
+  @Test
+  void getVisits_historicalParticipant_returnsTeamVisitsNewestFirst() {
+    ExplorationParticipant current = participant(72L, 9L, ParticipantStatus.LEFT);
+    ExplorationParticipant teammate = participant(73L, 10L, ParticipantStatus.COMPLETED);
+    ReflectionTestUtils.setField(teammate, "displayName", "여행자");
+    Visit recentVisit =
+        Visit.builder()
+            .participantId(73L)
+            .placeId(101L)
+            .coursePlaceId(301L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 15, 5, 40))
+            .build();
+    ReflectionTestUtils.setField(recentVisit, "id", 9002L);
+    Visit nearbyVisit =
+        Visit.builder()
+            .participantId(72L)
+            .placeId(121L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .build();
+    ReflectionTestUtils.setField(nearbyVisit, "id", 9001L);
+    Place coursePlace = place(101L, "35.146702", "126.919998");
+    ReflectionTestUtils.setField(coursePlace, "name", "국립아시아문화전당");
+    ReflectionTestUtils.setField(coursePlace, "category", "문화시설");
+    ReflectionTestUtils.setField(coursePlace, "travelMbtiType", TravelPreferenceType.ARTIST);
+    ReflectionTestUtils.setField(coursePlace, "tags", List.of("전시", "문화"));
+    ReflectionTestUtils.setField(coursePlace, "address", "광주광역시 동구 문화전당로 38");
+    ReflectionTestUtils.setField(
+        coursePlace, "thumbnailUrl", "https://example.com/places/101.webp");
+    Place nearbyPlace = place(121L, "35.140200", "126.912400");
+    VisitPhoto firstPhoto =
+        VisitPhoto.builder().visitId(9001L).objectKey("visits/9001/first").displayOrder(1).build();
+    ReflectionTestUtils.setField(firstPhoto, "id", 501L);
+    VisitPhoto secondPhoto =
+        VisitPhoto.builder().visitId(9001L).objectKey("visits/9001/second").displayOrder(2).build();
+    ReflectionTestUtils.setField(secondPhoto, "id", 502L);
+
+    given(explorationRepository.findById(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.COMPLETED)));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
+        .willReturn(Optional.of(current));
+    given(explorationParticipantRepository.findByExplorationId(44L))
+        .willReturn(List.of(current, teammate));
+    given(visitRepository.findByParticipantIdInOrderByVisitedAtDesc(List.of(72L, 73L)))
+        .willReturn(List.of(recentVisit, nearbyVisit));
+    given(placeRepository.findAllById(List.of(101L, 121L)))
+        .willReturn(List.of(coursePlace, nearbyPlace));
+    given(
+            visitPhotoRepository.findByVisitIdInOrderByVisitIdAscDisplayOrderAsc(
+                List.of(9002L, 9001L)))
+        .willReturn(List.of(firstPhoto, secondPhoto));
+    given(visitPhotoStorage.createSignedGetUrl("visits/9001/first"))
+        .willReturn(
+            new VisitPhotoStorage.SignedUrl(
+                "https://example.com/signed/501", Instant.parse("2026-08-15T06:32:10Z")));
+    given(visitPhotoStorage.createSignedGetUrl("visits/9001/second"))
+        .willReturn(
+            new VisitPhotoStorage.SignedUrl(
+                "https://example.com/signed/502", Instant.parse("2026-08-15T06:34:00Z")));
+
+    VisitDtos.VisitsResponse response = visitService.getVisits(44L, 9L);
+
+    assertThat(response.explorationId()).isEqualTo(44L);
+    assertThat(response.totalCount()).isEqualTo(2);
+    assertThat(response.visits())
+        .extracting(VisitDtos.VisitResponse::visitId)
+        .containsExactly(9002L, 9001L);
+    VisitDtos.VisitResponse courseVisit = response.visits().get(0);
+    assertThat(courseVisit.participant()).isEqualTo(new VisitDtos.ParticipantResponse(73L, "여행자"));
+    assertThat(courseVisit.place().name()).isEqualTo("국립아시아문화전당");
+    assertThat(courseVisit.place().travelMbtiType()).isEqualTo(TravelPreferenceType.ARTIST);
+    assertThat(courseVisit.place().thumbnailUrl()).isEqualTo("https://example.com/places/101.webp");
+    assertThat(courseVisit.coursePlaceId()).isEqualTo(301L);
+    assertThat(courseVisit.isCoursePlace()).isTrue();
+    assertThat(courseVisit.photos()).isEmpty();
+    VisitDtos.VisitResponse nearby = response.visits().get(1);
+    assertThat(nearby.participant()).isEqualTo(new VisitDtos.ParticipantResponse(72L, "김감자감자"));
+    assertThat(nearby.coursePlaceId()).isNull();
+    assertThat(nearby.isCoursePlace()).isFalse();
+    assertThat(nearby.photos())
+        .extracting(VisitDtos.VisitPhotoResponse::displayOrder)
+        .containsExactly(1, 2);
+    assertThat(nearby.photos().get(0).imageUrl()).isEqualTo("https://example.com/signed/501");
+    assertThat(nearby.photos().get(0).urlExpiresAt())
+        .isEqualTo(OffsetDateTime.parse("2026-08-15T15:32:10+09:00"));
+  }
+
+  @DisplayName("방문 기록이 없으면 빈 목록과 0건을 반환한다.")
+  @Test
+  void getVisits_noVisits_returnsEmptyResponse() {
+    ExplorationParticipant participant = participant(72L, 9L, ParticipantStatus.ACTIVE);
+    given(explorationRepository.findById(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.ONGOING)));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
+        .willReturn(Optional.of(participant));
+    given(explorationParticipantRepository.findByExplorationId(44L))
+        .willReturn(List.of(participant));
+    given(visitRepository.findByParticipantIdInOrderByVisitedAtDesc(List.of(72L)))
+        .willReturn(List.of());
+
+    VisitDtos.VisitsResponse response = visitService.getVisits(44L, 9L);
+
+    assertThat(response.explorationId()).isEqualTo(44L);
+    assertThat(response.visits()).isEmpty();
+    assertThat(response.totalCount()).isZero();
+    then(placeRepository).shouldHaveNoInteractions();
+    then(visitPhotoRepository).shouldHaveNoInteractions();
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("없는 탐험의 방문 기록 조회는 404로 거부한다.")
+  @Test
+  void getVisits_missingExploration_throwsNotFound() {
+    given(explorationRepository.findById(44L)).willReturn(Optional.empty());
+
+    ExplorationHandler exception =
+        catchThrowableOfType(ExplorationHandler.class, () -> visitService.getVisits(44L, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.EXPLORATION_NOT_FOUND);
+    then(explorationParticipantRepository).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("현재나 과거 참여자가 아니면 팀 방문 기록 조회를 403으로 거부한다.")
+  @Test
+  void getVisits_nonParticipant_throwsForbidden() {
+    given(explorationRepository.findById(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.COMPLETED)));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
+        .willReturn(Optional.empty());
+
+    ExplorationHandler exception =
+        catchThrowableOfType(ExplorationHandler.class, () -> visitService.getVisits(44L, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus._FORBIDDEN);
+    then(visitRepository).shouldHaveNoInteractions();
+  }
+
   @DisplayName("활성 참여자 본인은 방문 사진을 다음 표시 순서로 첨부한다.")
   @ParameterizedTest(name = "{0}")
   @MethodSource("supportedImages")

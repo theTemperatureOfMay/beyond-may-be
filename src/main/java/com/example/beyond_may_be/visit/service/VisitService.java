@@ -23,7 +23,11 @@ import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,6 +61,62 @@ public class VisitService {
   private final ApplicationEventPublisher applicationEventPublisher;
   private final VisitPhotoRepository visitPhotoRepository;
   private final VisitPhotoStorage visitPhotoStorage;
+
+  @Transactional(readOnly = true)
+  public VisitDtos.VisitsResponse getVisits(Long explorationId, Long userId) {
+    explorationRepository
+        .findById(explorationId)
+        .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+    explorationParticipantRepository
+        .findByExplorationIdAndUserId(explorationId, userId)
+        .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
+
+    List<ExplorationParticipant> participants =
+        explorationParticipantRepository.findByExplorationId(explorationId);
+    Map<Long, ExplorationParticipant> participantsById =
+        participants.stream()
+            .collect(Collectors.toMap(ExplorationParticipant::getId, Function.identity()));
+    List<Visit> visits =
+        visitRepository.findByParticipantIdInOrderByVisitedAtDesc(
+            participants.stream().map(ExplorationParticipant::getId).toList());
+    if (visits.isEmpty()) {
+      return VisitConverter.toVisitsResponse(explorationId, List.of());
+    }
+
+    Map<Long, Place> placesById =
+        placeRepository
+            .findAllById(visits.stream().map(Visit::getPlaceId).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+    List<Long> visitIds = visits.stream().map(Visit::getId).toList();
+    Map<Long, List<VisitPhoto>> photosByVisitId =
+        visitPhotoRepository.findByVisitIdInOrderByVisitIdAscDisplayOrderAsc(visitIds).stream()
+            .collect(Collectors.groupingBy(VisitPhoto::getVisitId));
+
+    List<VisitDtos.VisitResponse> responses =
+        visits.stream()
+            .map(
+                visit -> {
+                  List<VisitDtos.VisitPhotoResponse> photos =
+                      photosByVisitId.getOrDefault(visit.getId(), List.of()).stream()
+                          .map(
+                              photo -> {
+                                VisitPhotoStorage.SignedUrl signedUrl =
+                                    visitPhotoStorage.createSignedGetUrl(photo.getObjectKey());
+                                return VisitConverter.toVisitPhotoResponse(
+                                    photo, signedUrl.imageUrl(), signedUrl.expiresAt());
+                              })
+                          .toList();
+                  return VisitConverter.toVisitResponse(
+                      visit,
+                      Objects.requireNonNull(
+                          participantsById.get(visit.getParticipantId()), "방문 참여자 정보가 없습니다."),
+                      Objects.requireNonNull(placesById.get(visit.getPlaceId()), "방문 장소 정보가 없습니다."),
+                      photos);
+                })
+            .toList();
+    return VisitConverter.toVisitsResponse(explorationId, responses);
+  }
 
   public VisitDtos.ConfirmResponse confirmVisit(VisitDtos.ConfirmRequest request, Long userId) {
     // ponytail: 탐험별 방문을 직렬화한다. 탐험당 처리량이 문제가 되면 장소 단위 잠금으로 좁힌다.

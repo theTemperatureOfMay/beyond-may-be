@@ -3094,6 +3094,180 @@
           ]
         },
         {
+          "name": "팀 방문 기록 조회",
+          "description": "한 탐험의 전체 팀 방문 기록을 조회합니다(5.2.1). 인증 필요: Authorization: Bearer {{accessToken}}. 필수 query explorationId는 양의 int64이며 현재 또는 과거 참여자만 조회할 수 있습니다. 코스·주변 장소 Visit을 visitedAt 내림차순으로 반환하고 사진은 displayOrder 오름차순입니다. 사진마다 비공개 S3 object key로 새 presigned GET URL을 발급하며 userId와 object key는 노출하지 않습니다. 방문이 없으면 빈 배열과 totalCount 0을 반환합니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+          },
+          "response": [
+            {
+              "name": "200 - 팀 방문 기록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"visits\": [\n      {\n        \"visitId\": 9002,\n        \"participant\": {\n          \"participantId\": 70,\n          \"displayName\": \"여행자\"\n        },\n        \"place\": {\n          \"placeId\": 101,\n          \"name\": \"국립아시아문화전당\",\n          \"category\": \"문화시설\",\n          \"travelMbtiType\": \"ARTIST\",\n          \"tags\": [\"전시\", \"문화\"],\n          \"address\": \"광주광역시 동구 문화전당로 38\",\n          \"thumbnailUrl\": \"https://example.com/places/101.webp\"\n        },\n        \"coursePlaceId\": 301,\n        \"isCoursePlace\": true,\n        \"visitedAt\": \"2026-08-15T15:05:40+09:00\",\n        \"photos\": [\n          {\n            \"visitPhotoId\": 503,\n            \"displayOrder\": 1,\n            \"imageUrl\": \"https://example.com/signed/503\",\n            \"urlExpiresAt\": \"2026-08-15T16:05:40+09:00\"\n          }\n        ]\n      },\n      {\n        \"visitId\": 9001,\n        \"participant\": {\n          \"participantId\": 72,\n          \"displayName\": \"김감자감자\"\n        },\n        \"place\": {\n          \"placeId\": 121,\n          \"name\": \"양림동 펭귄마을\",\n          \"category\": \"관광지\",\n          \"travelMbtiType\": \"REMEMBERER\",\n          \"tags\": [\"골목\", \"역사\"],\n          \"address\": \"광주광역시 남구 천변좌로446번길 7\",\n          \"thumbnailUrl\": null\n        },\n        \"coursePlaceId\": null,\n        \"isCoursePlace\": false,\n        \"visitedAt\": \"2026-08-15T14:32:10+09:00\",\n        \"photos\": []\n      }\n    ],\n    \"totalCount\": 2\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "200 - 빈 팀 방문 기록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"visits\": [],\n    \"totalCount\": 0\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 탐험 ID 형식 오류",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=0"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"잘못된 요청입니다.\",\n  \"code\": \"COMMON400\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 탐험 참여 이력 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=999999"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 팀 방문 또는 사진 조회 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/visits?explorationId=44"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "방문 사진 첨부",
           "description": "방문 기록을 만든 ACTIVE 참여자 본인이 사진 한 장을 첨부합니다(5.2.1). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `visitId`; multipart `file`은 필수이며 JPEG·PNG·WebP, 장당 10MB 이하만 허용합니다. 호출 횟수 제한은 없고 서버가 다음 표시 순서를 배정합니다. 원본은 비공개 S3에 저장하며 응답은 object key 대신 기본 1시간 유효한 presigned GET URL을 반환합니다. 파일 누락 400, 타인 또는 비활성 참여자 403, Visit 없음 404, 완료 탐험·순서 충돌 409, 10MB 초과 413, 지원하지 않는 형식 415입니다.",
           "request": {

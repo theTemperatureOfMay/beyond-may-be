@@ -21,6 +21,8 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
 
   List<Visit> findByParticipantIdIn(List<Long> participantIds);
 
+  List<Visit> findByParticipantIdInOrderByVisitedAtDesc(List<Long> participantIds);
+
   @Query(
       "SELECT COUNT(DISTINCT v.coursePlaceId) FROM Visit v "
           + "WHERE v.participantId IN :participantIds AND v.coursePlaceId IS NOT NULL")

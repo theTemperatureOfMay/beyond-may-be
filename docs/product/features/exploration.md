@@ -230,8 +230,8 @@ CoursePlace는 서버가 결정하며 검증 좌표·정확도는 저장하지 �
 `participantId`, `displayName`, `placeId`, nullable `coursePlaceId`, `visitedAt`,
 `teamFirstVisit`, `courseProgress`, `explorationStatus`만 포함하고 좌표·정확도·사진은
 포함하지 않는다. 같은 탐험의 현재 `ACTIVE Participant`만 구독할 수 있다. replay는
-보장하지 않으며 탐험 집계는 HTTP 상세로 복구한다. 개별 방문·핀 복구용 Visit 조회 API는
-이번 범위에서 제외했다.
+보장하지 않으며 탐험 집계는 HTTP 상세로, 개별 방문·핀은 현재 또는 과거 참여자의
+`GET /api/v1/visits?explorationId={explorationId}`로 복구한다.
 
 팀 장소 완료는 최초 인증으로 전환하고, 개인 방문 기록은 참여자별로 각각 저장한다.
 코스에 없는 주변 Place도 `coursePlaceId=null`로 저장·전파하지만 코스 진행률은 바꾸지

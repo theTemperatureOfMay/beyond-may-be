@@ -37,8 +37,9 @@ recorded-date: 2026-08-28
   `EXPLORATION_COMPLETED`도 발행한다. 두 이벤트 listener는 `AFTER_COMMIT`에 동작하며
   broker 실패가 커밋된 업무 상태를 되돌리지 않는다.
 - 이벤트 replay를 보장하지 않는다. 재접속 시 탐험 상세 HTTP 조회로 상태와 집계는
-  복구하지만, 개별 방문·핀의 완전한 복구에 필요한 Visit 조회 API는 이번 범위에서
-  제외해 미해결로 남긴다. 사진 업로드와 OWNER 조기 완료 API도 포함하지 않는다.
+  복구한다. 이 결정 당시 개별 방문·핀의 완전한 복구에 필요한 Visit 조회와 사진 업로드는
+  범위에서 제외했으며, 후속 ADR-0027과 `GET /api/v1/visits`가 이를 구현했다. OWNER 조기
+  완료 API는 여전히 포함하지 않는다.
 - 기존 Place 기반 Visit 스키마와 좌표 정밀도가 계약을 충족하므로 Flyway migration은
   추가하지 않는다.
 
@@ -66,20 +67,19 @@ recorded-date: 2026-08-28
   조회 API, 상태 이벤트 공통 destination과 WebSocket `CONNECT` 인증, 사용자 흐름
 - 확인하지 못함: 프런트엔드 핀 전환·`eventId` 중복 제거·재접속 복구, 실제 모바일 GPS와
   운영 reverse proxy·broker 전달
-- 미해결: Visit 조회·방문 장소 복구 API, 사진 업로드, OWNER 조기 완료, 다중 인스턴스
-  이벤트 전달
+- 미해결: OWNER 조기 완료, 다중 인스턴스 이벤트 전달
 - 복구: 코드와 문서는 Git으로 복구할 수 있다. migration이 없어 DB rollback 절차는 없다.
 
 ### 변경 영향 검사
 
 - 검사 스킬: `change-impact-review`
-- 검사 일자: 2026-08-28
+- 검사 일자: 2026-09-03
 - 검사 결과: `통과 (finding 없음)`
-- 검사 근거: REST DTO·Controller·Postman 계약, Visit 스키마와 V2·V5 migration,
-  STOMP 구독 인가·커밋 후 publisher, 팀 진행률·자동 완료 흐름을 탐험·여행 기록 명세,
-  MVP·백엔드 아키텍처·논의 문서와 대조했다. 격리된 전체 build의 332개 테스트,
-  `spotlessCheck`, 하네스 semantic·제품 지식 베이스와 diff 검사가 통과했고 Standards·Spec
-  코드 재검사에도 finding이 없었다.
+- 검사 근거: 기존 방문 REST 저장·STOMP 전파 결정과 후속 팀 방문 기록 GET의 복구 경계를
+  탐험·여행 기록 명세, MVP·백엔드 아키텍처·ADR-0027, 코드·테스트·Postman과 대조했다.
+  GET 구현은 이벤트 payload나 구독 인가를 바꾸지 않는다. 전체 404개 테스트,
+  `spotlessCheck`, 전체 `build`, Postman JSON 파싱, 하네스 semantic·제품 지식 베이스와
+  `git diff --check`가 통과했고 명세 코드 검토 finding은 없었다.
 
 ### 관련 문서
 
