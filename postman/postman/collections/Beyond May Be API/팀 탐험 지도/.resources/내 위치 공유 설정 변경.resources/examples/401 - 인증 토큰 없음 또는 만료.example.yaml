@@ -1,0 +1,19 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+  method: PATCH
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "enabled": true
+      }
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  body:
+    type: text
+    content: ""
+order: 3000

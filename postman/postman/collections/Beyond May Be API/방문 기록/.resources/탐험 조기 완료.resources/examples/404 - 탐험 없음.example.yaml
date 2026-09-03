@@ -1,21 +1,21 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/courses/1/join"
+  url: "{{baseUrl}}/api/v1/explorations/999999/complete"
   method: POST
   headers:
     Authorization: Bearer {{accessToken}}
 response:
-  statusCode: 410
-  statusText: Gone
+  statusCode: 404
+  statusText: Not Found
   headers:
     Content-Type: application/json
   body:
     type: json
     content: |-
       {
-        "message": "공유 링크가 만료되었습니다.",
-        "code": "EXPLORATION410",
+        "message": "탐험을 찾을 수 없습니다.",
+        "code": "EXPLORATION404",
         "data": null,
         "success": false
       }
-order: 5000
+order: 4000

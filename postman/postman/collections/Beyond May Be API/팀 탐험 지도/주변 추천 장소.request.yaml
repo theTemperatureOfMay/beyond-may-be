@@ -1,5 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/exploration/1/nearby-places"
-method: GET
-examples: ./.resources/주변 추천 장소.resources/examples
-order: 6000

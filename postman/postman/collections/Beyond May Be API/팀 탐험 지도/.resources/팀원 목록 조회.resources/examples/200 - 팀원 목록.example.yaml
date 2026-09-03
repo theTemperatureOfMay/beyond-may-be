@@ -1,6 +1,6 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/explorations/1/members"
+  url: "{{baseUrl}}/api/v1/explorations/44/participants"
   method: GET
   headers:
     Authorization: Bearer {{accessToken}}
@@ -16,16 +16,28 @@ response:
         "message": "성공입니다.",
         "code": "COMMON200",
         "data": {
-          "members": [
+          "explorationId": 44,
+          "participantCount": 2,
+          "participants": [
             {
-              "userId": 1,
+              "participantId": 70,
               "displayName": "여행자",
-              "visitedCount": 3
+              "role": "OWNER",
+              "status": "ACTIVE",
+              "visitedPlaceCount": 3,
+              "locationSharingEnabled": true,
+              "isMe": false,
+              "joinedAt": "2026-08-14T18:00:00+09:00"
             },
             {
-              "userId": 2,
-              "displayName": "여행자 (2)",
-              "visitedCount": 1
+              "participantId": 71,
+              "displayName": "별밤지기",
+              "role": "MEMBER",
+              "status": "ACTIVE",
+              "visitedPlaceCount": 2,
+              "locationSharingEnabled": false,
+              "isMe": true,
+              "joinedAt": "2026-08-15T09:40:00+09:00"
             }
           ]
         },

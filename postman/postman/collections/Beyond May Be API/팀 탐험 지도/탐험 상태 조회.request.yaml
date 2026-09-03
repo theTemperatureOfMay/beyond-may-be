@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations/44"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/탐험 상태 조회.resources/examples
+order: 8000

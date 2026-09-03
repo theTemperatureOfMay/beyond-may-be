@@ -5,17 +5,17 @@ request:
   headers:
     Authorization: Bearer {{accessToken}}
 response:
-  statusCode: 410
-  statusText: Gone
+  statusCode: 409
+  statusText: Conflict
   headers:
     Content-Type: application/json
   body:
     type: json
     content: |-
       {
-        "message": "공유 링크가 만료되었습니다.",
-        "code": "EXPLORATION410",
+        "message": "이미 완료된 탐험입니다.",
+        "code": "EXPLORATION409_2",
         "data": null,
         "success": false
       }
-order: 5000
+order: 4000

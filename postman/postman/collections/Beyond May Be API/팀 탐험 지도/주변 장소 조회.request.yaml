@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations/44/nearby-places?latitude=35.146600&longitude=126.919900"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  latitude: "35.146600"
+  longitude: "126.919900"
+examples: ./.resources/주변 장소 조회.resources/examples
+order: 9000

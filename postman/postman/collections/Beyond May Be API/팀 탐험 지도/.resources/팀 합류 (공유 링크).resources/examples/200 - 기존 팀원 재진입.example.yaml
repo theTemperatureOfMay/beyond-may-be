@@ -1,6 +1,6 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/explorations/44/start"
+  url: "{{baseUrl}}/api/v1/courses/1/join"
   method: POST
   headers:
     Authorization: Bearer {{accessToken}}
@@ -16,12 +16,15 @@ response:
         "message": "성공입니다.",
         "code": "COMMON200",
         "data": {
-          "explorationId": 44,
-          "courseId": 31,
-          "status": "ONGOING",
-          "participantId": 72,
-          "startedAt": "2026-08-15T10:00:00+09:00"
+          "explorationId": 1,
+          "participantId": 2,
+          "role": "MEMBER",
+          "status": "ACTIVE",
+          "displayName": "여행자 (2)",
+          "locationSharingEnabled": false,
+          "joinedAt": "2026-08-15T21:15:00+09:00",
+          "alreadyJoined": true
         },
         "success": true
       }
-order: 1000
+order: 2000

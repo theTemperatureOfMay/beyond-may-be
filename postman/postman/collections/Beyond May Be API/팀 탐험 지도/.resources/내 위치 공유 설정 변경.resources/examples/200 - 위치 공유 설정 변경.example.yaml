@@ -1,9 +1,16 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/explorations/44/start"
-  method: POST
+  url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+  method: PATCH
   headers:
     Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "enabled": true
+      }
 response:
   statusCode: 200
   statusText: OK
@@ -17,10 +24,9 @@ response:
         "code": "COMMON200",
         "data": {
           "explorationId": 44,
-          "courseId": 31,
-          "status": "ONGOING",
           "participantId": 72,
-          "startedAt": "2026-08-15T10:00:00+09:00"
+          "locationSharingEnabled": true,
+          "updatedAt": "2026-08-15T21:20:00+09:00"
         },
         "success": true
       }

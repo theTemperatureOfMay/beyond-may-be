@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+method: PATCH
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "enabled": true
+    }
+examples: ./.resources/내 위치 공유 설정 변경.resources/examples
+order: 7000

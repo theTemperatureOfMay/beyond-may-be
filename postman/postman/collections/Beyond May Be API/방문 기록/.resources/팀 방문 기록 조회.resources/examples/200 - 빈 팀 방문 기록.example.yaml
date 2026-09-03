@@ -1,9 +1,11 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/explorations/44/start"
-  method: POST
+  url: "{{baseUrl}}/api/v1/visits?explorationId=44"
+  method: GET
   headers:
     Authorization: Bearer {{accessToken}}
+  queryParams:
+    explorationId: "44"
 response:
   statusCode: 200
   statusText: OK
@@ -17,11 +19,9 @@ response:
         "code": "COMMON200",
         "data": {
           "explorationId": 44,
-          "courseId": 31,
-          "status": "ONGOING",
-          "participantId": 72,
-          "startedAt": "2026-08-15T10:00:00+09:00"
+          "visits": [],
+          "totalCount": 0
         },
         "success": true
       }
-order: 1000
+order: 2000

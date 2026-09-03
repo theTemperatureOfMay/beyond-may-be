@@ -1,5 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/v1/visit-logs/1"
-method: GET
-examples: ./.resources/방문 로그 상세조회.resources/examples
-order: 3000

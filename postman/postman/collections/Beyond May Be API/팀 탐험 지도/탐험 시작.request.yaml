@@ -1,7 +1,7 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/explorations/1/start"
+url: "{{baseUrl}}/api/v1/explorations/44/start"
 method: POST
 headers:
   Authorization: Bearer {{accessToken}}
 examples: ./.resources/탐험 시작.resources/examples
-order: 4000
+order: 3000
