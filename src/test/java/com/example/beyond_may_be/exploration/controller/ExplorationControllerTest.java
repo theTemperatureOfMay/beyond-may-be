@@ -1,5 +1,6 @@
 package com.example.beyond_may_be.exploration.controller;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,6 +13,7 @@ import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
 import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
+import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.exploration.service.ExplorationService;
 import java.time.OffsetDateTime;
@@ -43,6 +45,118 @@ class ExplorationControllerTest {
   void authenticate() {
     reset(authTokenService, explorationService);
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(71L));
+  }
+
+  @Test
+  void returnsCompletedExplorations() throws Exception {
+    given(explorationService.getExplorations(71L, ExplorationStatus.COMPLETED))
+        .willReturn(
+            new ExplorationDtos.ExplorationsResponse(
+                "COMPLETED",
+                List.of(
+                    new ExplorationDtos.ExplorationSummaryResponse(
+                        44L,
+                        31L,
+                        "하루치 광주",
+                        "COMPLETED",
+                        "https://example.com/places/101.webp",
+                        3,
+                        List.of("여행자", "별밤지기", "숲길산책"),
+                        5L,
+                        5L,
+                        OffsetDateTime.parse("2026-08-15T10:00:00+09:00"),
+                        OffsetDateTime.parse("2026-08-15T18:20:00+09:00"))),
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/explorations")
+                .queryParam("status", "COMPLETED")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+        .andExpect(jsonPath("$.data.explorations[0].explorationId").value(44))
+        .andExpect(jsonPath("$.data.explorations[0].courseId").value(31))
+        .andExpect(jsonPath("$.data.explorations[0].courseTitle").value("하루치 광주"))
+        .andExpect(jsonPath("$.data.explorations[0].status").value("COMPLETED"))
+        .andExpect(
+            jsonPath("$.data.explorations[0].representativeImageUrl")
+                .value("https://example.com/places/101.webp"))
+        .andExpect(jsonPath("$.data.explorations[0].participantCount").value(3))
+        .andExpect(jsonPath("$.data.explorations[0].participantDisplayNames[1]").value("별밤지기"))
+        .andExpect(jsonPath("$.data.explorations[0].completedCoursePlaceCount").value(5))
+        .andExpect(jsonPath("$.data.explorations[0].totalCoursePlaceCount").value(5))
+        .andExpect(jsonPath("$.data.explorations[0].startedAt").value("2026-08-15T10:00:00+09:00"))
+        .andExpect(
+            jsonPath("$.data.explorations[0].completedAt").value("2026-08-15T18:20:00+09:00"))
+        .andExpect(jsonPath("$.data.totalCount").value(1))
+        .andExpect(jsonPath("$.success").value(true));
+  }
+
+  @Test
+  void rejectsMissingExplorationStatus() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/explorations").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void rejectsUnknownExplorationStatus() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/explorations")
+                .queryParam("status", "UNKNOWN")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void rejectsBeforeExplorationStatus() throws Exception {
+    given(explorationService.getExplorations(71L, ExplorationStatus.BEFORE))
+        .willThrow(new ExplorationHandler(ErrorStatus._BAD_REQUEST));
+
+    mockMvc
+        .perform(
+            get("/api/v1/explorations")
+                .queryParam("status", "BEFORE")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON400"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @Test
+  void rejectsUnauthenticatedExplorationListRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/explorations").queryParam("status", "ONGOING"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void reportsExplorationListAggregationFailure() throws Exception {
+    given(explorationService.getExplorations(71L, ExplorationStatus.COMPLETED))
+        .willThrow(new IllegalStateException("집계 실패"));
+
+    mockMvc
+        .perform(
+            get("/api/v1/explorations")
+                .queryParam("status", "COMPLETED")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.code").value("COMMON500"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @Test
+  void documentsAllowedExplorationListStatuses() throws Exception {
+    mockMvc
+        .perform(get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$.paths['/api/v1/explorations'].get.parameters[0].schema.enum")
+                .value(containsInAnyOrder("ONGOING", "COMPLETED")));
   }
 
   @Test

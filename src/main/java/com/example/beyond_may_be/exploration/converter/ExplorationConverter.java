@@ -1,5 +1,6 @@
 package com.example.beyond_may_be.exploration.converter;
 
+import com.example.beyond_may_be.course.domain.Course;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
 import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
@@ -33,6 +34,33 @@ public final class ExplorationConverter {
             request.longitude(),
             request.accuracyMeters(),
             request.recordedAt()));
+  }
+
+  public static ExplorationDtos.ExplorationSummaryResponse toExplorationSummaryResponse(
+      Exploration exploration,
+      Course course,
+      String representativeImageUrl,
+      List<ExplorationParticipant> participants,
+      long completedCoursePlaceCount,
+      long totalCoursePlaceCount) {
+    return new ExplorationDtos.ExplorationSummaryResponse(
+        exploration.getId(),
+        course.getId(),
+        course.getTitle(),
+        exploration.getStatus().name(),
+        representativeImageUrl,
+        participants.size(),
+        participants.stream().map(ExplorationParticipant::getDisplayName).toList(),
+        completedCoursePlaceCount,
+        totalCoursePlaceCount,
+        toOffsetDateTime(exploration.getStartedAt()),
+        toOffsetDateTime(exploration.getCompletedAt()));
+  }
+
+  public static ExplorationDtos.ExplorationsResponse toExplorationsResponse(
+      ExplorationStatus status, List<ExplorationDtos.ExplorationSummaryResponse> explorations) {
+    return new ExplorationDtos.ExplorationsResponse(
+        status.name(), explorations, explorations.size());
   }
 
   public static ExplorationDtos.JoinResponse toJoinResponse(

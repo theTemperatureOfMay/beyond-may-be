@@ -25,9 +25,13 @@
 탐험 시작 전은 `BEFORE`, 시작 후는 `ONGOING`으로 구분하며 진행 중 목록에는
 `ONGOING`만 표시
 
-인증된 현재 또는 과거 참여자는 `GET /api/v1/explorations/{explorationId}`로 단일
-탐험의 상태, N / M 코스 진행률과 팀원 수를 조회할 수 있다. 사용자의 진행 중 탐험 목록
-조회는 아직 구현하지 않았다.
+인증된 현재 또는 과거 참여자는 `GET /api/v1/explorations?status=ONGOING`으로 진행 중
+탐험을 최대 1개 조회한다. 응답은 코스명, `LEFT`를 제외한 팀원 수·표시 이름, 팀 기준
+코스 장소 방문 수와 전체 장소 수, 코스 순서상 첫 유효 대표 이미지와 시작 시각을 포함한다.
+주변 장소 Visit은 코스 진행률에서 제외하며 결과가 없으면 빈 배열과 `totalCount: 0`을
+반환한다. 참여 이력상 `ONGOING` 탐험이 둘 이상이면 임의로 한 건을 숨기지 않고 서버
+오류로 처리하며, 이탈 API를 구현할 때 복귀 카드 우선순위를 별도로 확정한다. 단일 탐험의
+상태와 실행 권한은 `GET /api/v1/explorations/{explorationId}`로 조회한다.
 
 #### 5.1.2 완료한 코스 조회
 
@@ -50,12 +54,14 @@
 전체 코스 장소가 팀 완료되면 자동으로 탐험을 완료한다.
 코스 생성자(OWNER)는 전체 장소를 방문하기 전에도 별도 '코스 완료' 버튼으로 탐험을 완료할 수 있다.
 
-완료된 단일 탐험도 `GET /api/v1/explorations/{explorationId}`로 조회할 수 있다. 전체
-장소 방문에 따른 자동 완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은
-Exploration과 활성 Participant를 완료하고 커밋 후
-`/topic/explorations/{explorationId}/events`에 이유
-`ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다. 완료 목록과 OWNER
-조기 완료 API·`OWNER_EARLY_COMPLETION` 생산자는 아직 구현하지 않았다
+인증된 현재 또는 과거 참여자는 `GET /api/v1/explorations?status=COMPLETED`로 완료 탐험을
+`completedAt` 내림차순 조회한다. 응답 카드와 빈 결과 규칙은 5.1.1과 같고 완료 시각을
+추가로 포함하며 기록을 기간 제한 없이 보존한다. 완료된 단일 탐험도
+`GET /api/v1/explorations/{explorationId}`로 조회할 수 있다. 전체 장소 방문에 따른 자동
+완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은 Exploration과 활성
+Participant를 완료하고 커밋 후 `/topic/explorations/{explorationId}/events`에 이유
+`ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다. OWNER 조기 완료
+API와 `OWNER_EARLY_COMPLETION` 생산자는 아직 구현하지 않았다
 ([ADR-0024](../../adr/0024-exploration-state-event-channel.md),
 [ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md)).
 

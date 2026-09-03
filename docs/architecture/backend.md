@@ -328,6 +328,12 @@ erDiagram
   `BEFORE → ONGOING` 전환에 성공한다.
 - 시작한 Participant는 `started_by_participant_id`로 기록한다.
 - 지도 이탈 시 Participant를 `LEFT`로 바꾸고 기존 방문 기록은 보존한다.
+- 인증 `GET /api/v1/explorations?status={ONGOING|COMPLETED}`는 Participant 상태와 무관한
+  사용자 참여 이력으로 탐험을 고른다. 카드의 팀원 수·표시 이름에서는 `LEFT`를 제외하지만
+  과거 Participant의 CoursePlace Visit은 팀 진행률에 포함한다. 완료 목록은
+  `completed_at` 내림차순이며 코스 장소 순서상 첫 번째 비어 있지 않은 저장 썸네일을 대표
+  이미지로 사용한다. 참여 이력상 `ONGOING`이 둘 이상이면 `COMMON500`으로 불변식 위반을
+  드러내며, 이탈 API를 구현할 때 복귀 카드 우선순위를 함께 정한다.
 
 ### `visits`, `visit_photos`
 

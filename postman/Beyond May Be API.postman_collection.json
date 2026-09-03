@@ -1717,7 +1717,7 @@
     },
     {
       "name": "팀 탐험 지도",
-      "description": "성향 조회, 공유 링크 팀 합류, 탐험 시작, 현재 팀원 목록·탐험 상태 조회와 방문 인증 API입니다.",
+      "description": "성향 조회, 공유 링크 팀 합류, 탐험 시작, 탐험 목록·현재 팀원·탐험 상태 조회와 방문 인증 API입니다.",
       "item": [
         {
           "name": "나의 성향 조회",
@@ -2021,6 +2021,132 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/explorations/44/start"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "탐험 목록 조회",
+          "description": "여행 기록의 진행 중·완료 코스 카드를 조회합니다(5.1.1, 5.1.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. 필수 query `status`는 `ONGOING` 또는 `COMPLETED`만 허용하며 요청 본문은 없습니다. 현재·과거 참여 탐험을 반환하고, 완료 목록은 `completedAt` 내림차순입니다. 팀 진행률은 CoursePlace Visit만 집계하며 대표 이미지는 코스 순서상 첫 유효 썸네일입니다. 결과가 없으면 빈 배열과 `totalCount: 0`을 반환합니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+          },
+          "response": [
+            {
+              "name": "200 - 완료 탐험 목록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"status\": \"COMPLETED\",\n    \"explorations\": [\n      {\n        \"explorationId\": 44,\n        \"courseId\": 31,\n        \"courseTitle\": \"하루치 광주\",\n        \"status\": \"COMPLETED\",\n        \"representativeImageUrl\": \"https://example.com/places/101.webp\",\n        \"participantCount\": 3,\n        \"participantDisplayNames\": [\"여행자\", \"별밤지기\", \"숲길산책\"],\n        \"completedCoursePlaceCount\": 5,\n        \"totalCoursePlaceCount\": 5,\n        \"startedAt\": \"2026-08-15T10:00:00+09:00\",\n        \"completedAt\": \"2026-08-15T18:20:00+09:00\"\n      }\n    ],\n    \"totalCount\": 1\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "200 - 빈 탐험 목록",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations?status=ONGOING"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"status\": \"ONGOING\",\n    \"explorations\": [],\n    \"totalCount\": 0\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "400 - 허용하지 않는 상태",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations?status=BEFORE"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"잘못된 요청입니다.\",\n  \"code\": \"COMMON400\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "500 - 탐험 목록 또는 진행률 집계 실패",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
               },
               "status": "Internal Server Error",
               "code": 500,

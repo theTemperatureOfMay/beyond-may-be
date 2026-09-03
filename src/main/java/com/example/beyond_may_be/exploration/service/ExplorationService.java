@@ -18,16 +18,22 @@ import com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.exploration.repository.ExplorationParticipantRepository;
 import com.example.beyond_may_be.exploration.repository.ExplorationRepository;
+import com.example.beyond_may_be.place.domain.Place;
+import com.example.beyond_may_be.place.repository.PlaceRepository;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.repository.UserRepository;
 import com.example.beyond_may_be.visit.domain.Visit;
 import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -40,13 +46,130 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ExplorationService {
 
+  private static final Comparator<ExplorationParticipant> PARTICIPANT_ORDER =
+      Comparator.comparingInt(
+              (ExplorationParticipant participant) ->
+                  participant.getRole() == ParticipantRole.OWNER ? 0 : 1)
+          .thenComparing(ExplorationParticipant::getJoinedAt);
+
   private final ExplorationRepository explorationRepository;
   private final ExplorationParticipantRepository explorationParticipantRepository;
   private final CourseRepository courseRepository;
   private final CoursePlaceRepository coursePlaceRepository;
+  private final PlaceRepository placeRepository;
   private final UserRepository userRepository;
   private final VisitRepository visitRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
+
+  @Transactional(readOnly = true)
+  public ExplorationDtos.ExplorationsResponse getExplorations(
+      Long userId, ExplorationStatus status) {
+    if (status == null || status == ExplorationStatus.BEFORE) {
+      throw new ExplorationHandler(ErrorStatus._BAD_REQUEST);
+    }
+
+    List<Exploration> explorations =
+        explorationRepository.findAllByParticipantUserIdAndStatus(userId, status);
+    // ponytail: 과거 LEFT 탐험과 새 ONGOING이 겹치면 500으로 드러낸다. 이탈 API 도입 시 카드 우선순위를 계약한다.
+    if (status == ExplorationStatus.ONGOING && explorations.size() > 1) {
+      throw new IllegalStateException("진행 중 탐험은 최대 1개여야 합니다.");
+    }
+    if (explorations.isEmpty()) {
+      return ExplorationConverter.toExplorationsResponse(status, List.of());
+    }
+
+    List<Long> explorationIds = explorations.stream().map(Exploration::getId).toList();
+    List<Long> courseIds = explorations.stream().map(Exploration::getCourseId).toList();
+    Map<Long, Exploration> explorationsById =
+        explorations.stream().collect(Collectors.toMap(Exploration::getId, Function.identity()));
+    Map<Long, Course> coursesById =
+        courseRepository.findAllById(courseIds).stream()
+            .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+    List<ExplorationParticipant> participants =
+        explorationParticipantRepository.findByExplorationIdIn(explorationIds);
+    Map<Long, List<ExplorationParticipant>> participantsByExplorationId =
+        participants.stream()
+            .collect(Collectors.groupingBy(ExplorationParticipant::getExplorationId));
+    Map<Long, Long> explorationIdByParticipantId =
+        participants.stream()
+            .collect(
+                Collectors.toMap(
+                    ExplorationParticipant::getId, ExplorationParticipant::getExplorationId));
+
+    List<CoursePlace> coursePlaces =
+        coursePlaceRepository.findByCourseIdInOrderByDayNumberAscVisitOrderAsc(courseIds);
+    Map<Long, List<CoursePlace>> coursePlacesByCourseId =
+        coursePlaces.stream().collect(Collectors.groupingBy(CoursePlace::getCourseId));
+    Map<Long, Set<Long>> coursePlaceIdsByCourseId =
+        coursePlaces.stream()
+            .collect(
+                Collectors.groupingBy(
+                    CoursePlace::getCourseId,
+                    Collectors.mapping(CoursePlace::getId, Collectors.toSet())));
+    Map<Long, Place> placesById =
+        placeRepository
+            .findAllById(coursePlaces.stream().map(CoursePlace::getPlaceId).toList())
+            .stream()
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+
+    Map<Long, Set<Long>> completedCoursePlaceIdsByExplorationId = new HashMap<>();
+    for (Visit visit :
+        visitRepository.findByParticipantIdIn(
+            participants.stream().map(ExplorationParticipant::getId).toList())) {
+      Long explorationId = explorationIdByParticipantId.get(visit.getParticipantId());
+      Exploration exploration = explorationsById.get(explorationId);
+      if (exploration != null
+          && visit.getCoursePlaceId() != null
+          && coursePlaceIdsByCourseId
+              .getOrDefault(exploration.getCourseId(), Set.of())
+              .contains(visit.getCoursePlaceId())) {
+        completedCoursePlaceIdsByExplorationId
+            .computeIfAbsent(explorationId, ignored -> new HashSet<>())
+            .add(visit.getCoursePlaceId());
+      }
+    }
+
+    List<ExplorationDtos.ExplorationSummaryResponse> responses =
+        explorations.stream()
+            .map(
+                exploration -> {
+                  Course course =
+                      Objects.requireNonNull(
+                          coursesById.get(exploration.getCourseId()), "탐험의 코스를 찾을 수 없습니다.");
+                  List<ExplorationParticipant> visibleParticipants =
+                      participantsByExplorationId
+                          .getOrDefault(exploration.getId(), List.of())
+                          .stream()
+                          .filter(participant -> participant.getStatus() != ParticipantStatus.LEFT)
+                          .sorted(PARTICIPANT_ORDER)
+                          .toList();
+                  List<CoursePlace> explorationCoursePlaces =
+                      coursePlacesByCourseId.getOrDefault(exploration.getCourseId(), List.of());
+                  String representativeImageUrl =
+                      explorationCoursePlaces.stream()
+                          .map(CoursePlace::getPlaceId)
+                          .map(placesById::get)
+                          .filter(Objects::nonNull)
+                          .map(Place::getThumbnailUrl)
+                          .filter(imageUrl -> imageUrl != null && !imageUrl.isBlank())
+                          .findFirst()
+                          .orElse(null);
+                  long completedCoursePlaceCount =
+                      completedCoursePlaceIdsByExplorationId
+                          .getOrDefault(exploration.getId(), Set.of())
+                          .size();
+                  return ExplorationConverter.toExplorationSummaryResponse(
+                      exploration,
+                      course,
+                      representativeImageUrl,
+                      visibleParticipants,
+                      completedCoursePlaceCount,
+                      explorationCoursePlaces.size());
+                })
+            .toList();
+    return ExplorationConverter.toExplorationsResponse(status, responses);
+  }
 
   public ExplorationDtos.JoinResponse join(Long courseId, Long userId) {
     Course course =
@@ -150,11 +273,7 @@ public class ExplorationService {
     List<ExplorationParticipant> participants =
         explorationParticipantRepository.findByExplorationId(explorationId).stream()
             .filter(participant -> participant.getStatus() != ParticipantStatus.LEFT)
-            .sorted(
-                Comparator.comparingInt(
-                        (ExplorationParticipant participant) ->
-                            participant.getRole() == ParticipantRole.OWNER ? 0 : 1)
-                    .thenComparing(ExplorationParticipant::getJoinedAt))
+            .sorted(PARTICIPANT_ORDER)
             .toList();
     List<Long> participantIds = participants.stream().map(ExplorationParticipant::getId).toList();
     Map<Long, Long> visitCounts =

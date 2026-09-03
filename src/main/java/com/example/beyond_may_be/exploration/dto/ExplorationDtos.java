@@ -1,5 +1,6 @@
 package com.example.beyond_may_be.exploration.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -183,6 +184,22 @@ public final class ExplorationDtos {
 
   public record ExplorationCompletedData(
       String status, OffsetDateTime completedAt, String completionReason) {}
+
+  public record ExplorationsResponse(
+      String status, List<ExplorationSummaryResponse> explorations, int totalCount) {}
+
+  public record ExplorationSummaryResponse(
+      Long explorationId,
+      Long courseId,
+      String courseTitle,
+      String status,
+      @Schema(nullable = true) String representativeImageUrl,
+      int participantCount,
+      List<String> participantDisplayNames,
+      long completedCoursePlaceCount,
+      long totalCoursePlaceCount,
+      OffsetDateTime startedAt,
+      @Schema(nullable = true) OffsetDateTime completedAt) {}
 
   public record DetailResponse(
       Long explorationId,
