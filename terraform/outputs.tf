@@ -23,3 +23,8 @@ output "github_actions_role_arn" {
 output "rds_endpoint" {
   value = module.rds.endpoint
 }
+
+output "visit_photo_bucket_name" {
+  description = "비공개 방문 사진 S3 버킷 이름"
+  value       = aws_s3_bucket.visit_photos.id
+}

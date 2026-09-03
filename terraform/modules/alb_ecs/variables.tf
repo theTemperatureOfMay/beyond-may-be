@@ -92,3 +92,13 @@ variable "tourism_api_base_url" {
 variable "tourism_popularity_api_base_url" {
   type = string
 }
+
+variable "visit_photo_bucket_name" {
+  description = "방문 사진을 저장할 비공개 S3 버킷 이름"
+  type        = string
+}
+
+variable "visit_photo_bucket_arn" {
+  description = "ECS Task Role 객체 권한을 제한할 방문 사진 S3 버킷 ARN"
+  type        = string
+}

@@ -114,7 +114,8 @@ CI와 배포 workflow에서 실행하지 않는다.
 
 ## 배포와 운영
 
-운영 환경은 AWS ALB·ECS Fargate·RDS PostgreSQL로 구성한다. `main` merge·push와
+운영 환경은 AWS ALB·ECS Fargate·RDS PostgreSQL·비공개 방문 사진 S3로 구성한다. S3는
+ECS Task Role로만 접근하며 정적 AWS 키를 애플리케이션에 넣지 않는다. `main` merge·push와
 수동 `workflow_dispatch`는 테스트 통과 후 운영 ECS 자동 배포를 시작한다. 배포 전제,
 상태 확인과 이전 버전 복구는 [AWS 배포·운영 절차](docs/operations/deployment.md)를
 따른다.

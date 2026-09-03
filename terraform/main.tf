@@ -5,6 +5,63 @@ resource "random_password" "db" {
   special = false
 }
 
+resource "aws_s3_bucket" "visit_photos" {
+  bucket_prefix = "${var.project_name}-visit-photos-"
+}
+
+resource "aws_s3_bucket_public_access_block" "visit_photos" {
+  bucket = aws_s3_bucket.visit_photos.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "visit_photos" {
+  bucket = aws_s3_bucket.visit_photos.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "visit_photos" {
+  bucket = aws_s3_bucket.visit_photos.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "visit_photos_secure_transport" {
+  statement {
+    effect    = "Deny"
+    actions   = ["s3:*"]
+    resources = [aws_s3_bucket.visit_photos.arn, "${aws_s3_bucket.visit_photos.arn}/*"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "visit_photos" {
+  bucket = aws_s3_bucket.visit_photos.id
+  policy = data.aws_iam_policy_document.visit_photos_secure_transport.json
+
+  depends_on = [aws_s3_bucket_public_access_block.visit_photos]
+}
+
 module "network" {
   source              = "./modules/network"
   name                = var.project_name
@@ -112,6 +169,8 @@ module "alb_ecs" {
   tourism_api_key_parameter_arn   = module.ssm.tourism_api_key_parameter_arn
   tourism_api_base_url            = var.tourism_api_base_url
   tourism_popularity_api_base_url = var.tourism_popularity_api_base_url
+  visit_photo_bucket_name         = aws_s3_bucket.visit_photos.id
+  visit_photo_bucket_arn          = aws_s3_bucket.visit_photos.arn
 }
 
 module "iam" {

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
@@ -24,23 +26,34 @@ import com.example.beyond_may_be.place.domain.Place;
 import com.example.beyond_may_be.place.repository.PlaceRepository;
 import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import com.example.beyond_may_be.visit.domain.Visit;
+import com.example.beyond_may_be.visit.domain.VisitPhoto;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
+import com.example.beyond_may_be.visit.repository.VisitPhotoRepository;
 import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @ExtendWith(MockitoExtension.class)
 class VisitServiceTest {
@@ -53,6 +66,269 @@ class VisitServiceTest {
   @Mock private ExplorationRepository explorationRepository;
   @Mock private ExplorationParticipantRepository explorationParticipantRepository;
   @Mock private ApplicationEventPublisher applicationEventPublisher;
+  @Mock private VisitPhotoRepository visitPhotoRepository;
+  @Mock private VisitPhotoStorage visitPhotoStorage;
+
+  @DisplayName("활성 참여자 본인은 방문 사진을 다음 표시 순서로 첨부한다.")
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("supportedImages")
+  void attachPhoto_activeVisitOwner_savesNextOrderAndReturnsSignedUrl(
+      String ignoredName, String contentType, byte[] content) {
+    Exploration exploration = exploration(ExplorationStatus.ONGOING);
+    ExplorationParticipant participant = participant(72L, 9L, ParticipantStatus.ACTIVE);
+    Visit visit =
+        Visit.builder()
+            .participantId(72L)
+            .placeId(121L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .build();
+    ReflectionTestUtils.setField(visit, "id", 9001L);
+    VisitPhoto savedPhoto =
+        VisitPhoto.builder()
+            .visitId(9001L)
+            .objectKey("visits/9001/photo.png")
+            .displayOrder(3)
+            .build();
+    ReflectionTestUtils.setField(savedPhoto, "id", 501L);
+    ReflectionTestUtils.setField(savedPhoto, "createdAt", LocalDateTime.of(2026, 8, 15, 14, 33));
+    MockMultipartFile file = new MockMultipartFile("file", "visit", contentType, content);
+    Instant expiresAt = Instant.parse("2026-08-15T06:33:00Z");
+
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
+    given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
+    given(visitPhotoRepository.findMaxDisplayOrderByVisitId(9001L)).willReturn(2);
+    given(visitPhotoRepository.saveAndFlush(any(VisitPhoto.class))).willReturn(savedPhoto);
+    given(visitPhotoStorage.createSignedGetUrl(any(String.class)))
+        .willReturn(new VisitPhotoStorage.SignedUrl("https://example.com/signed/501", expiresAt));
+
+    VisitDtos.PhotoResponse response = visitService.attachPhoto(9001L, file, 9L);
+
+    assertThat(response.visitPhotoId()).isEqualTo(501L);
+    assertThat(response.visitId()).isEqualTo(9001L);
+    assertThat(response.displayOrder()).isEqualTo(3);
+    assertThat(response.imageUrl()).isEqualTo("https://example.com/signed/501");
+    assertThat(response.urlExpiresAt())
+        .isEqualTo(OffsetDateTime.parse("2026-08-15T15:33:00+09:00"));
+    assertThat(response.uploadedAt()).isEqualTo(OffsetDateTime.parse("2026-08-15T14:33:00+09:00"));
+  }
+
+  @DisplayName("없는 방문에는 사진을 첨부할 수 없다.")
+  @Test
+  void attachPhoto_missingVisit_throwsNotFound() {
+    MockMultipartFile file = pngFile();
+    given(visitRepository.findById(9001L)).willReturn(Optional.empty());
+
+    VisitHandler exception =
+        catchThrowableOfType(VisitHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.VISIT_NOT_FOUND);
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("방문을 만든 참여자와 다른 사용자는 사진을 첨부할 수 없다.")
+  @Test
+  void attachPhoto_differentUser_throwsForbidden() {
+    Visit visit = visit(72L);
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L))
+        .willReturn(Optional.of(participant(72L, 10L, ParticipantStatus.ACTIVE)));
+
+    ExplorationHandler exception =
+        catchThrowableOfType(
+            ExplorationHandler.class, () -> visitService.attachPhoto(9001L, pngFile(), 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus._FORBIDDEN);
+    then(explorationRepository).shouldHaveNoInteractions();
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("탐험에 남아 있지 않은 참여자는 본인의 방문에도 사진을 첨부할 수 없다.")
+  @Test
+  void attachPhoto_inactiveOwner_throwsForbidden() {
+    Visit visit = visit(72L);
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L))
+        .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.LEFT)));
+    given(explorationRepository.findByIdForUpdate(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.ONGOING)));
+
+    ExplorationHandler exception =
+        catchThrowableOfType(
+            ExplorationHandler.class, () -> visitService.attachPhoto(9001L, pngFile(), 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus._FORBIDDEN);
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("S3 업로드가 실패하면 사진 메타데이터를 저장하지 않는다.")
+  @Test
+  void attachPhoto_storageUploadFails_doesNotSaveMetadata() {
+    Visit visit = visit(72L);
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L))
+        .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.ACTIVE)));
+    given(explorationRepository.findByIdForUpdate(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.ONGOING)));
+    given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
+    given(visitPhotoRepository.findMaxDisplayOrderByVisitId(9001L)).willReturn(0);
+    willThrow(new IllegalStateException("S3 업로드 실패"))
+        .given(visitPhotoStorage)
+        .upload(any(String.class), any(String.class), any(MockMultipartFile.class));
+
+    IllegalStateException exception =
+        catchThrowableOfType(
+            IllegalStateException.class, () -> visitService.attachPhoto(9001L, pngFile(), 9L));
+
+    assertThat(exception).hasMessage("S3 업로드 실패");
+    then(visitPhotoRepository).should().findMaxDisplayOrderByVisitId(9001L);
+    then(visitPhotoRepository).should(never()).saveAndFlush(any(VisitPhoto.class));
+    then(visitRepository).should(times(1)).findByIdForUpdate(9001L);
+  }
+
+  @DisplayName("비어 있는 파일은 방문과 저장소를 조회하기 전에 거부한다.")
+  @Test
+  void attachPhoto_emptyFile_throwsBadRequest() {
+    MockMultipartFile file = new MockMultipartFile("file", "empty.png", "image/png", new byte[0]);
+
+    VisitHandler exception =
+        catchThrowableOfType(VisitHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus._BAD_REQUEST);
+    then(visitRepository).shouldHaveNoInteractions();
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("사진이 10MB를 초과하면 저장 전에 413으로 거부한다.")
+  @Test
+  void attachPhoto_fileOverTenMegabytes_throwsPayloadTooLarge() {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "large.jpg", "image/jpeg", new byte[10 * 1024 * 1024 + 1]);
+
+    VisitHandler exception =
+        catchThrowableOfType(VisitHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.VISIT_PHOTO_TOO_LARGE);
+    then(visitRepository).shouldHaveNoInteractions();
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("허용된 Content-Type을 주장해도 실제 이미지 형식이 아니면 415로 거부한다.")
+  @Test
+  void attachPhoto_fakeImageContent_throwsUnsupportedMediaType() {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "fake.png", "image/png", "not-an-image".getBytes());
+
+    VisitHandler exception =
+        catchThrowableOfType(VisitHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.VISIT_PHOTO_UNSUPPORTED_TYPE);
+    then(visitRepository).shouldHaveNoInteractions();
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("본인의 방문이어도 탐험이 완료됐다면 사진 첨부를 409로 거부한다.")
+  @Test
+  void attachPhoto_completedExploration_throwsConflict() {
+    Visit visit =
+        Visit.builder()
+            .participantId(72L)
+            .placeId(121L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .build();
+    ReflectionTestUtils.setField(visit, "id", 9001L);
+    MockMultipartFile file =
+        new MockMultipartFile(
+            "file",
+            "visit.png",
+            "image/png",
+            new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L))
+        .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.COMPLETED)));
+    given(explorationRepository.findByIdForUpdate(44L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.COMPLETED)));
+
+    ExplorationHandler exception =
+        catchThrowableOfType(
+            ExplorationHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.EXPLORATION_ALREADY_COMPLETED);
+    then(visitPhotoStorage).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("사진 표시 순서 저장이 충돌하면 업로드 객체를 삭제하고 409를 반환한다.")
+  @Test
+  void attachPhoto_displayOrderConflict_deletesObjectAndThrowsConflict() {
+    Exploration exploration = exploration(ExplorationStatus.ONGOING);
+    ExplorationParticipant participant = participant(72L, 9L, ParticipantStatus.ACTIVE);
+    Visit visit =
+        Visit.builder()
+            .participantId(72L)
+            .placeId(121L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .build();
+    ReflectionTestUtils.setField(visit, "id", 9001L);
+    MockMultipartFile file =
+        new MockMultipartFile(
+            "file",
+            "visit.png",
+            "image/png",
+            new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
+    given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
+    given(visitPhotoRepository.findMaxDisplayOrderByVisitId(9001L)).willReturn(0);
+    given(visitPhotoRepository.saveAndFlush(any(VisitPhoto.class)))
+        .willThrow(new DataIntegrityViolationException("표시 순서 충돌"));
+
+    VisitHandler exception =
+        catchThrowableOfType(VisitHandler.class, () -> visitService.attachPhoto(9001L, file, 9L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.VISIT_PHOTO_ORDER_CONFLICT);
+    then(visitPhotoStorage).should().delete(any(String.class));
+  }
+
+  @DisplayName("사진 메타데이터 저장 뒤 트랜잭션이 롤백되면 업로드 객체를 삭제한다.")
+  @Test
+  void attachPhoto_transactionRollsBackAfterSave_deletesUploadedObject() {
+    Exploration exploration = exploration(ExplorationStatus.ONGOING);
+    ExplorationParticipant participant = participant(72L, 9L, ParticipantStatus.ACTIVE);
+    Visit visit = visit(72L);
+    VisitPhoto savedPhoto =
+        VisitPhoto.builder().visitId(9001L).objectKey("visits/9001/photo").displayOrder(1).build();
+    ReflectionTestUtils.setField(savedPhoto, "id", 501L);
+    ReflectionTestUtils.setField(savedPhoto, "createdAt", LocalDateTime.of(2026, 8, 15, 14, 33));
+    given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
+    given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
+    given(visitPhotoRepository.findMaxDisplayOrderByVisitId(9001L)).willReturn(0);
+    given(visitPhotoRepository.saveAndFlush(any(VisitPhoto.class))).willReturn(savedPhoto);
+    given(visitPhotoStorage.createSignedGetUrl(any(String.class)))
+        .willReturn(
+            new VisitPhotoStorage.SignedUrl(
+                "https://example.com/signed/501", Instant.parse("2026-08-15T06:33:00Z")));
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      visitService.attachPhoto(9001L, pngFile(), 9L);
+      assertThat(TransactionSynchronizationManager.getSynchronizations()).hasSize(1);
+
+      TransactionSynchronizationManager.getSynchronizations()
+          .forEach(
+              synchronization ->
+                  synchronization.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+
+      then(visitPhotoStorage).should().delete(any(String.class));
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+  }
 
   @DisplayName("주변 장소 방문은 개인별로 기록하고 기존 팀 방문에 따라 최초 여부만 바꾼다.")
   @ParameterizedTest
@@ -280,6 +556,36 @@ class VisitServiceTest {
     Exploration exploration = Exploration.builder().courseId(31L).status(status).build();
     ReflectionTestUtils.setField(exploration, "id", 44L);
     return exploration;
+  }
+
+  private Visit visit(long participantId) {
+    Visit visit =
+        Visit.builder()
+            .participantId(participantId)
+            .placeId(121L)
+            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .build();
+    ReflectionTestUtils.setField(visit, "id", 9001L);
+    return visit;
+  }
+
+  private MockMultipartFile pngFile() {
+    return new MockMultipartFile(
+        "file",
+        "visit.png",
+        "image/png",
+        new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+  }
+
+  private static Stream<Arguments> supportedImages() {
+    return Stream.of(
+        Arguments.of("JPEG", "image/jpeg", new byte[] {(byte) 0xff, (byte) 0xd8, (byte) 0xff}),
+        Arguments.of(
+            "PNG", "image/png", new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}),
+        Arguments.of(
+            "WebP",
+            "image/webp",
+            new byte[] {0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50}));
   }
 
   private ExplorationParticipant participant(long id, long userId, ParticipantStatus status) {

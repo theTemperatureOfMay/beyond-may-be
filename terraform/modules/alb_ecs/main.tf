@@ -104,6 +104,20 @@ resource "aws_iam_role" "task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
+data "aws_iam_policy_document" "task_visit_photos" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["${var.visit_photo_bucket_arn}/visits/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "task_visit_photos" {
+  name   = "${var.name}-visit-photos"
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.task_visit_photos.json
+}
+
 # --- ECS 클러스터 / 태스크 정의 / 서비스 ---
 
 resource "aws_ecs_cluster" "this" {
@@ -129,8 +143,11 @@ resource "aws_ecs_task_definition" "this" {
       ]
       environment = [
         { name = "SPRING_PROFILES_ACTIVE", value = var.spring_profiles_active },
+        { name = "AWS_REGION", value = var.aws_region },
         { name = "TOURISM_API_BASE_URL", value = var.tourism_api_base_url },
         { name = "TOURISM_POPULARITY_API_BASE_URL", value = var.tourism_popularity_api_base_url },
+        { name = "VISIT_PHOTO_BUCKET", value = var.visit_photo_bucket_name },
+        { name = "VISIT_PHOTO_URL_EXPIRATION", value = "PT1H" },
       ]
       secrets = [
         { name = "DB_URL", valueFrom = var.db_url_parameter_arn },

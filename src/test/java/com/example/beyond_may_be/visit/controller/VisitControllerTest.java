@@ -4,11 +4,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.reset;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
+import com.example.beyond_may_be.apiPayload.exception.handler.VisitHandler;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
@@ -27,7 +30,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @SpringBootTest(classes = VisitControllerTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -94,6 +99,98 @@ class VisitControllerTest {
         .andExpect(jsonPath("$.data.courseProgress.totalCoursePlaceCount").value(5))
         .andExpect(jsonPath("$.data.courseProgress.completionRate").value(40))
         .andExpect(jsonPath("$.data.explorationStatus").value("ONGOING"));
+  }
+
+  @DisplayName("방문 사진을 첨부하면 저장 결과와 서명 URL을 201로 반환한다.")
+  @Test
+  void attachPhoto_validImage_returnsCreated() throws Exception {
+    OffsetDateTime uploadedAt = OffsetDateTime.parse("2026-08-15T14:33:00+09:00");
+    OffsetDateTime urlExpiresAt = OffsetDateTime.parse("2026-08-15T15:33:00+09:00");
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.webp", "image/webp", "image".getBytes());
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willReturn(
+            new VisitDtos.PhotoResponse(
+                501L, 9001L, 1, "https://example.com/signed/501", urlExpiresAt, uploadedAt));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.message").value("생성에 성공했습니다."))
+        .andExpect(jsonPath("$.code").value("COMMON201"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.visitPhotoId").value(501))
+        .andExpect(jsonPath("$.data.visitId").value(9001))
+        .andExpect(jsonPath("$.data.displayOrder").value(1))
+        .andExpect(jsonPath("$.data.imageUrl").value("https://example.com/signed/501"))
+        .andExpect(jsonPath("$.data.urlExpiresAt").value("2026-08-15T15:33:00+09:00"))
+        .andExpect(jsonPath("$.data.uploadedAt").value("2026-08-15T14:33:00+09:00"));
+  }
+
+  @DisplayName("사진 파일이 누락되면 공통 400 응답으로 거부한다.")
+  @Test
+  void attachPhoto_missingFile_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON400"))
+        .andExpect(jsonPath("$.success").value(false));
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("multipart 제한을 넘은 사진은 공통 413 응답으로 거부한다.")
+  @Test
+  void attachPhoto_multipartLimitExceeded_returnsPayloadTooLarge() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "large.png", "image/png", new byte[] {1});
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willThrow(new MaxUploadSizeExceededException(10L * 1024 * 1024));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(jsonPath("$.code").value("VISIT413"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @DisplayName("지원하지 않는 사진 형식은 415로 거부한다.")
+  @Test
+  void attachPhoto_unsupportedImage_returnsUnsupportedMediaType() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.gif", "image/gif", new byte[] {1});
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willThrow(new VisitHandler(ErrorStatus.VISIT_PHOTO_UNSUPPORTED_TYPE));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isUnsupportedMediaType())
+        .andExpect(jsonPath("$.code").value("VISIT415"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @DisplayName("인증 없이 방문 사진을 첨부하면 거부한다.")
+  @Test
+  void attachPhoto_unauthenticated_returnsUnauthorized() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.png", "image/png", new byte[] {1});
+
+    mockMvc
+        .perform(multipart("/api/v1/visits/{visitId}/photos", 9001L).file(file))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
   }
 
   @DisplayName("GPS 정확도가 50m를 초과하면 방문 인증을 거부한다.")

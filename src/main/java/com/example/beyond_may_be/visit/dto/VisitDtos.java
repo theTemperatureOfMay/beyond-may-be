@@ -32,6 +32,14 @@ public final class VisitDtos {
       ExplorationDtos.CourseProgressResponse courseProgress,
       String explorationStatus) {}
 
+  public record PhotoResponse(
+      Long visitPhotoId,
+      Long visitId,
+      int displayOrder,
+      String imageUrl,
+      OffsetDateTime urlExpiresAt,
+      OffsetDateTime uploadedAt) {}
+
   public record VisitConfirmedEvent(
       UUID eventId,
       String eventType,

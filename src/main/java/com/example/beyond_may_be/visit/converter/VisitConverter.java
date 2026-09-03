@@ -2,7 +2,9 @@ package com.example.beyond_may_be.visit.converter;
 
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.visit.domain.Visit;
+import com.example.beyond_may_be.visit.domain.VisitPhoto;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -71,10 +73,25 @@ public final class VisitConverter {
             "COMPLETED", occurredAt, "ALL_COURSE_PLACES_VISITED"));
   }
 
+  public static VisitDtos.PhotoResponse toPhotoResponse(
+      VisitPhoto photo, String imageUrl, Instant urlExpiresAt) {
+    return new VisitDtos.PhotoResponse(
+        photo.getId(),
+        photo.getVisitId(),
+        photo.getDisplayOrder(),
+        imageUrl,
+        toOffsetDateTime(urlExpiresAt),
+        toOffsetDateTime(photo.getCreatedAt()));
+  }
+
   private static OffsetDateTime toOffsetDateTime(LocalDateTime value) {
     return value
         .atZone(ZoneId.systemDefault())
         .withZoneSameInstant(RESPONSE_ZONE)
         .toOffsetDateTime();
+  }
+
+  private static OffsetDateTime toOffsetDateTime(Instant value) {
+    return value.atZone(RESPONSE_ZONE).toOffsetDateTime();
   }
 }

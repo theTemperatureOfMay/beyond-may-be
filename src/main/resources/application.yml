@@ -3,6 +3,10 @@ spring:
     name: beyond-may-be
   profiles:
     default: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -26,6 +30,13 @@ groq:
   api-key: ${GROQ_API_KEY:}
   model: ${GROQ_MODEL:openai/gpt-oss-120b}
   timeout-seconds: ${GROQ_TIMEOUT_SECONDS:60}
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+
+visit-photo:
+  bucket: ${VISIT_PHOTO_BUCKET:}
+  url-expiration: ${VISIT_PHOTO_URL_EXPIRATION:PT1H}
 
 management:
   endpoints:
