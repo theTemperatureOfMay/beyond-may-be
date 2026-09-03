@@ -52,7 +52,7 @@
 | 방문 인증 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 사진 첨부 | `Visit`을 만든 사용자이면서 해당 `Participant`가 `ACTIVE` |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
-| 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
+| 탐험 조기 완료 | 해당 `Exploration`의 `ACTIVE OWNER Participant` |
 
 인증된 요청의 사용자·참여자 식별자는 body나 query 값이 아니라 서버가 확인한
 인증 컨텍스트와 참여 관계에서 결정한다. 공유 만료, 참여 상태, 방문 소속과 공개
@@ -362,6 +362,10 @@ erDiagram
 - Visit 저장 커밋 후 전용 `/topic/explorations/{explorationId}/visits`에 좌표·정확도·
   사진이 없는 `VISIT_CONFIRMED` JSON envelope를 최선 노력으로 전파한다. 자동 완료는
   `/events` 상태 채널에도 `EXPLORATION_COMPLETED`를 전파한다(ADR-0025).
+- 인증 `POST /api/v1/explorations/{explorationId}/complete`는 같은 Exploration 쓰기 잠금
+  안에서 `ONGOING`과 현재 `ACTIVE OWNER`를 검증하고 Exploration·활성 Participant를
+  완료한다. Visit과 사진은 유지하며 커밋 후 `/events`에
+  `completionReason=OWNER_EARLY_COMPLETION`인 `EXPLORATION_COMPLETED`를 전파한다.
 - Visit에는 사진을 선택적으로 여러 장 연결할 수 있다.
 - 인증 `POST /api/v1/visits/{visitId}/photos`는 Visit을 만든 사용자의 Participant가 현재
   `ACTIVE`이고 Exploration이 완료되지 않은 경우에 JPEG·PNG·WebP 한 장을 최대 10MB까지
@@ -406,7 +410,7 @@ AI 생성 성공
 - 링크 생성 시 3일 뒤를 `share_expires_at`으로 저장하고, 재발급 시 같은 URL의
   만료 시각만 연장한다.
 - 모든 CoursePlace에 팀 Visit이 존재하면 Exploration을 자동 완료한다.
-- `OWNER Participant`만 미방문 CoursePlace가 남아 있어도 탐험을 조기 완료할 수 있다.
+- `ACTIVE OWNER Participant`만 미방문 CoursePlace가 남아 있어도 탐험을 조기 완료할 수 있다.
 
 ### Participant
 
@@ -430,7 +434,7 @@ Exploration 완료 → COMPLETED
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
 | 비공개 Amazon S3 | 방문 인증 사진 원본. 모든 공개 접근·ACL을 차단하고 SSE-S3·HTTPS를 적용한다. ECS Task Role에는 전용 버킷 `visits/*`의 GET·PUT·DELETE만 허용하며 API는 1시간 presigned GET URL만 노출한다(ADR-0027). |
-| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계·개별 방문은 탐험·참여자·팀 방문 기록 HTTP 조회로 복구한다. 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md), [ADR-0027](../adr/0027-private-s3-visit-photo-storage.md)). |
+| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료·OWNER 조기 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계·개별 방문은 탐험·참여자·팀 방문 기록 HTTP 조회로 복구한다. 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md), [ADR-0027](../adr/0027-private-s3-visit-photo-storage.md)). |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.

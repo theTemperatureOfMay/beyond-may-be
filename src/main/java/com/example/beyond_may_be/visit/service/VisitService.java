@@ -6,6 +6,7 @@ import com.example.beyond_may_be.apiPayload.exception.handler.VisitHandler;
 import com.example.beyond_may_be.common.util.GeoDistanceCalculator;
 import com.example.beyond_may_be.course.domain.CoursePlace;
 import com.example.beyond_may_be.course.repository.CoursePlaceRepository;
+import com.example.beyond_may_be.exploration.converter.ExplorationConverter;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
 import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
@@ -191,8 +192,11 @@ public class VisitService {
             UUID.randomUUID(), response, participant.getDisplayName()));
     if (exploration.getStatus() == ExplorationStatus.COMPLETED) {
       applicationEventPublisher.publishEvent(
-          VisitConverter.toExplorationCompletedEvent(
-              UUID.randomUUID(), exploration.getId(), exploration.getCompletedAt()));
+          ExplorationConverter.toExplorationCompletedEvent(
+              UUID.randomUUID(),
+              exploration.getId(),
+              exploration.getCompletedAt(),
+              "ALL_COURSE_PLACES_VISITED"));
     }
     return response;
   }

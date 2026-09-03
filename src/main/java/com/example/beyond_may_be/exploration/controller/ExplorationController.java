@@ -39,6 +39,12 @@ public class ExplorationController {
     return ApiResponse.onSuccess(explorationService.start(explorationId, userId));
   }
 
+  @PostMapping("/explorations/{explorationId}/complete")
+  public ApiResponse<ExplorationDtos.CompleteResponse> complete(
+      @PathVariable Long explorationId, @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(explorationService.completeEarly(explorationId, userId));
+  }
+
   @GetMapping("/explorations/{explorationId}/participants")
   public ApiResponse<ExplorationDtos.ParticipantsResponse> participants(
       @PathVariable Long explorationId, @AuthenticationPrincipal Long userId) {

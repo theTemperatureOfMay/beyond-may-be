@@ -165,6 +165,14 @@ public final class ExplorationDtos {
       Long participantId,
       OffsetDateTime startedAt) {}
 
+  public record CompleteResponse(
+      Long explorationId,
+      Long courseId,
+      String status,
+      String completionReason,
+      OffsetDateTime completedAt,
+      CourseProgressResponse courseProgress) {}
+
   public record ExplorationStartedEvent(
       UUID eventId,
       String eventType,

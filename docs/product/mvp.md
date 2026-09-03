@@ -121,7 +121,7 @@
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
 | 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `구현 완료` | 인증 `GET /api/v1/explorations?status=ONGOING`이 현재·과거 참여 이력에서 진행 중 탐험을 최대 1개 반환한다. `LEFT` 제외 팀원, 팀 CoursePlace 방문 수, 전체 장소 수와 첫 유효 코스 이미지를 포함하며 빈 결과는 정상 응답한다. |
-| 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `부분 구현` | 인증 `GET /api/v1/explorations?status=COMPLETED`가 현재·과거 참여자의 완료 탐험을 `completedAt` 내림차순으로 기간 제한 없이 반환한다. 마지막 팀 코스 장소 방문의 자동 완료와 이벤트도 구현됐지만 OWNER 조기 완료 API와 `OWNER_EARLY_COMPLETION` 생산자는 아직 없다. |
+| 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `구현 완료` | 인증 `GET /api/v1/explorations?status=COMPLETED`가 현재·과거 참여자의 완료 탐험을 `completedAt` 내림차순으로 기간 제한 없이 반환한다. 마지막 팀 코스 장소 방문은 자동 완료하며, `ACTIVE OWNER`는 인증 `POST /api/v1/explorations/{explorationId}/complete`로 조기 완료할 수 있다. 두 경로 모두 Exploration·활성 Participant를 완료하고 커밋 후 각각 `ALL_COURSE_PLACES_VISITED`, `OWNER_EARLY_COMPLETION` 이유의 상태 이벤트를 발행한다. |
 | 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `구현 완료` | `POST /api/v1/visits`가 코스·주변 Place 기반 개인 방문을 저장하고, Visit 작성자인 `ACTIVE Participant`는 `POST /api/v1/visits/{visitId}/photos`로 10MB 이하 JPEG·PNG·WebP를 비공개 S3에 제한 없이 한 장씩 첨부한다. 현재·과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로 팀 전체 Visit을 최신순 조회하며 사진마다 새 1시간 presigned GET URL을 받는다. 빈 결과는 정상 응답한다(ADR-0027). |
 | 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `미구현` | 대응 조회·집계 API가 없다. |
 
@@ -150,11 +150,11 @@
   코스 조회(공개 미리보기·소유자 전용 DRAFT 조회), 코스 수정(직접 수정·AI 챗봇)과
   팀 합류, 팀원 목록, 탐험 시작과 탐험 목록·상세 상태·진행률 조회, 방문 인증과 팀 방문
   기록 조회다. 상태
-  채널은 새 참여자 합류·탐험 시작·위치 공유 설정 변경과 자동 완료를 발행한다. 방문
+  채널은 새 참여자 합류·탐험 시작·위치 공유 설정 변경과 자동·OWNER 조기 완료를 발행한다. 방문
   채널은 개인 방문과 팀 진행률을 별도로 발행한다. 옵트인 위치 채널은 `ONGOING` 탐험의
   유효 위치를 휘발 전파한다. 세 채널 모두 참여자 범위로 인가하며 사진 첨부 API는
-  비공개 S3와 ECS Task Role로 구현했다. OWNER 조기 완료, 위치 replay와 외부 broker는
-  아직 없다(ADR-0022~0027).
+  비공개 S3와 ECS Task Role로 구현했다. 위치 replay와 외부 broker는 아직 없다
+  (ADR-0022~0027).
 - 회원가입·로그인은 opaque 인증 토큰(30일 만료, DB 기반)을 발급한다.
   닉네임 요청 검증, 세션 복구 UX, 로그아웃, rate limit은 아직 없다.
 - `SecurityConfig`는 `anyRequest().authenticated()`로 전환했다 — 이전의
@@ -165,6 +165,13 @@
 
 ## 재검사 근거
 
+- 2026-09-03 기능 5.1.2 OWNER 조기 완료 API의 `ACTIVE OWNER` 인가, Exploration 잠금 기반
+  자동 완료와의 직렬화, Exploration·활성 Participant 완료 전환, Visit·사진 보존, 진행률
+  응답과 커밋 후 `OWNER_EARLY_COMPLETION` 이벤트를 기능 명세·ADR-0024·0025·코드·테스트·
+  Postman과 대조했다. 전체 413개 테스트가 실패·오류·건너뜀 없이 통과했고
+  `spotlessCheck`, 전체 `build`, Postman Collection·saved body JSON 파싱, 제품 지식·하네스
+  semantic 검사와 `git diff --check`가 통과했다. 프런트엔드 확인 모달과 운영 broker 전달은
+  확인하지 않았다.
 - 2026-09-03 팀 방문 기록 GET의 현재·과거 참여자 인가, 전체 팀·주변 장소 포함,
   `visitedAt` 내림차순, 사진 표시 순서와 요청별 presigned GET URL 재발급, 빈 결과·오류
   계약을 ADR-0025·0027, 기능 명세·코드·테스트·Postman과 대조했다. 전체 404개 테스트가

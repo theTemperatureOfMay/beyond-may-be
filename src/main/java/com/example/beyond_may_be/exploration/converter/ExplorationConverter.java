@@ -130,6 +130,37 @@ public final class ExplorationConverter {
             response.status(), response.participantId(), response.startedAt()));
   }
 
+  public static ExplorationDtos.CompleteResponse toCompleteResponse(
+      Exploration exploration,
+      String completionReason,
+      long completedCoursePlaceCount,
+      long totalCoursePlaceCount) {
+    int completionRate =
+        totalCoursePlaceCount == 0
+            ? 0
+            : (int) (completedCoursePlaceCount * 100 / totalCoursePlaceCount);
+    return new ExplorationDtos.CompleteResponse(
+        exploration.getId(),
+        exploration.getCourseId(),
+        exploration.getStatus().name(),
+        completionReason,
+        toOffsetDateTime(exploration.getCompletedAt()),
+        new ExplorationDtos.CourseProgressResponse(
+            completedCoursePlaceCount, totalCoursePlaceCount, completionRate));
+  }
+
+  public static ExplorationDtos.ExplorationCompletedEvent toExplorationCompletedEvent(
+      UUID eventId, Long explorationId, LocalDateTime completedAt, String completionReason) {
+    OffsetDateTime occurredAt = toOffsetDateTime(completedAt);
+    return new ExplorationDtos.ExplorationCompletedEvent(
+        eventId,
+        "EXPLORATION_COMPLETED",
+        explorationId,
+        occurredAt,
+        new ExplorationDtos.ExplorationCompletedData(
+            ExplorationStatus.COMPLETED.name(), occurredAt, completionReason));
+  }
+
   public static ExplorationDtos.LocationSharingResponse toLocationSharingResponse(
       ExplorationParticipant participant) {
     return new ExplorationDtos.LocationSharingResponse(

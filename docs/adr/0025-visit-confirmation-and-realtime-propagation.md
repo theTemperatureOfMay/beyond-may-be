@@ -38,8 +38,9 @@ recorded-date: 2026-08-28
   broker 실패가 커밋된 업무 상태를 되돌리지 않는다.
 - 이벤트 replay를 보장하지 않는다. 재접속 시 탐험 상세 HTTP 조회로 상태와 집계는
   복구한다. 이 결정 당시 개별 방문·핀의 완전한 복구에 필요한 Visit 조회와 사진 업로드는
-  범위에서 제외했으며, 후속 ADR-0027과 `GET /api/v1/visits`가 이를 구현했다. OWNER 조기
-  완료 API는 여전히 포함하지 않는다.
+  범위에서 제외했으며, 후속 ADR-0027과 `GET /api/v1/visits`가 이를 구현했다. 이 ADR의
+  원래 범위에서 제외한 OWNER 조기 완료는 기능 5.1.2가 같은 Exploration 잠금과 상태 이벤트
+  경계를 재사용해 구현한다.
 - 기존 Place 기반 Visit 스키마와 좌표 정밀도가 계약을 충족하므로 Flyway migration은
   추가하지 않는다.
 
@@ -60,14 +61,14 @@ recorded-date: 2026-08-28
 
 - 변경 유형: `product`, `api`, `data`, `architecture`, `security`
 - 변경한 대상: 방문 인증 Controller·DTO·Service·Repository·converter, 방문 이벤트
-  publisher와 STOMP 구독 인가, Exploration·Participant 완료 전환, 오류 코드와 관련
-  단위·통합 테스트, 탐험·여행 기록 기능 명세, 백엔드 MVP·아키텍처·제품 논의 문서와
-  Postman Collection
+  publisher와 STOMP 구독 인가, Exploration·Participant 완료 전환, 자동·OWNER 조기 완료가
+  공유하는 상태 이벤트 converter, 오류 코드와 관련 단위·통합 테스트, 탐험·여행 기록 기능
+  명세, 백엔드 MVP·아키텍처·제품 논의 문서와 Postman Collection
 - 확인했지만 변경하지 않음: Visit·VisitPhoto Entity, Flyway V1·V2·V5, 탐험 상세·참여자
   조회 API, 상태 이벤트 공통 destination과 WebSocket `CONNECT` 인증, 사용자 흐름
 - 확인하지 못함: 프런트엔드 핀 전환·`eventId` 중복 제거·재접속 복구, 실제 모바일 GPS와
   운영 reverse proxy·broker 전달
-- 미해결: OWNER 조기 완료, 다중 인스턴스 이벤트 전달
+- 미해결: 다중 인스턴스 이벤트 전달
 - 복구: 코드와 문서는 Git으로 복구할 수 있다. migration이 없어 DB rollback 절차는 없다.
 
 ### 변경 영향 검사
@@ -75,10 +76,11 @@ recorded-date: 2026-08-28
 - 검사 스킬: `change-impact-review`
 - 검사 일자: 2026-09-03
 - 검사 결과: `통과 (finding 없음)`
-- 검사 근거: 기존 방문 REST 저장·STOMP 전파 결정과 후속 팀 방문 기록 GET의 복구 경계를
-  탐험·여행 기록 명세, MVP·백엔드 아키텍처·ADR-0027, 코드·테스트·Postman과 대조했다.
-  GET 구현은 이벤트 payload나 구독 인가를 바꾸지 않는다. 전체 404개 테스트,
-  `spotlessCheck`, 전체 `build`, Postman JSON 파싱, 하네스 semantic·제품 지식 베이스와
+- 검사 근거: 기존 방문 REST 저장·STOMP 전파 결정, 후속 팀 방문 기록 GET의 복구 경계와
+  같은 Exploration 잠금을 재사용한 OWNER 조기 완료를 탐험·여행 기록 명세, MVP·백엔드
+  아키텍처·ADR-0024·0027, 코드·테스트·Postman과 대조했다. 조기 완료는 방문 저장·사진과
+  방문 이벤트 payload를 바꾸지 않는다. 전체 413개 테스트, `spotlessCheck`, 전체 `build`,
+  Postman Collection·saved body JSON 파싱, 하네스 semantic·제품 지식 베이스와
   `git diff --check`가 통과했고 명세 코드 검토 finding은 없었다.
 
 ### 관련 문서

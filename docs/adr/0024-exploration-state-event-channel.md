@@ -32,7 +32,9 @@ recorded-date: 2026-08-28
 - 이 ADR 구현으로 `PARTICIPANT_JOINED`, `EXPLORATION_STARTED`,
   `LOCATION_SHARING_CHANGED` 생산자를 연결하고 `EXPLORATION_COMPLETED` envelope와 커밋 후
   publisher를 제공한다. 후속 ADR-0025는 `ALL_COURSE_PLACES_VISITED` 자동 완료 생산자를
-  연결했으며, `OWNER_EARLY_COMPLETION` 생산자는 아직 연결하지 않는다.
+  연결했으며, 기능 5.1.2 구현은 인증
+  `POST /api/v1/explorations/{explorationId}/complete`에서
+  `OWNER_EARLY_COMPLETION` 생산자를 연결한다.
 - 이벤트 replay를 보장하지 않는다. 재접속한 클라이언트는 탐험 상세와 참여자 목록 HTTP
   API로 정본을 다시 조회하고 같은 `eventId`를 중복 반영하지 않는다.
 - 방문 인증 이벤트는 별도 `/visits` 채널로 분리하고 위치 좌표는 이 상태 채널에 포함하지
@@ -59,25 +61,26 @@ recorded-date: 2026-08-28
 
 - 변경 유형: `product`, `api`, `data`, `architecture`, `security`
 - 변경한 대상: 참여자 합류 이벤트 DTO·converter·Service, 완료 이벤트 DTO, 커밋 후 상태
-  event publisher, 동시 합류를 직렬화하는 탐험 행 잠금과 회귀 테스트, STOMP JSON·ERROR
-  통합 테스트와 관련 단위 테스트, 탐험·여행 기록 기능 명세, 백엔드 MVP 상태·아키텍처·제품
-  논의 문서와 Postman Collection
+  event publisher, 동시 합류와 OWNER 조기 완료를 직렬화하는 탐험 행 잠금과 회귀 테스트,
+  STOMP JSON·ERROR 통합 테스트와 관련 단위 테스트, 탐험·여행 기록 기능 명세, 백엔드 MVP
+  상태·아키텍처·제품 논의 문서와 Postman Collection
 - 확인했지만 변경하지 않음: STOMP endpoint·CONNECT 인증·상태 destination 구독 인가,
   기존 탐험 시작·위치 공유 설정 생산자, 탐험·참여자 HTTP 조회 계약, DB migration
 - 확인하지 못함: 프런트엔드 `eventId` 중복 제거와 재접속 복구, 운영 reverse proxy와 실제
   broker 전달 상태
-- 미해결: OWNER 조기 완료 API·이벤트 연결
+- 미해결: 다중 인스턴스 이벤트 전달
 - 복구: 코드와 문서는 Git으로 복구할 수 있다. DB 변경이 없어 데이터 복구 절차는 없다.
 
 ### 변경 영향 검사
 
 - 검사 스킬: `change-impact-review`
-- 검사 일자: 2026-08-28
+- 검사 일자: 2026-09-03
 - 검사 결과: `통과`
 - 검사 근거: ADR-0022·0023과 후속 ADR-0025·0026, 탐험·여행 기록 기능 명세, MVP·백엔드
-  아키텍처·제품 논의 문서, Postman 계약을 구현·테스트와 대조했다. 전체 332개 테스트,
-  `spotlessCheck`, 전체 `build`와 Postman JSON 파싱이 통과했고, 프런트엔드·운영 broker는
-  확인하지 못한 대상으로 위 영향 목록에 남겼다.
+  아키텍처·제품 논의 문서, OWNER 조기 완료 HTTP·이벤트와 Postman 계약을 구현·테스트와
+  대조했다. 전체 413개 테스트, `spotlessCheck`, 전체 `build`, Postman Collection·saved body
+  JSON 파싱과 하네스 semantic 검사가 통과했고, 프런트엔드·운영 broker는 확인하지 못한
+  대상으로 위 영향 목록에 남겼다.
 
 ### 관련 문서
 

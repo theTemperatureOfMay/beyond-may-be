@@ -260,6 +260,47 @@ public class ExplorationService {
     return response;
   }
 
+  public ExplorationDtos.CompleteResponse completeEarly(Long explorationId, Long userId) {
+    Exploration exploration =
+        explorationRepository
+            .findByIdForUpdate(explorationId)
+            .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+    ExplorationParticipant owner =
+        explorationParticipantRepository
+            .findByExplorationIdAndUserId(explorationId, userId)
+            .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
+    if (owner.getRole() != ParticipantRole.OWNER) {
+      throw new ExplorationHandler(ErrorStatus._FORBIDDEN);
+    }
+    if (exploration.getStatus() != ExplorationStatus.ONGOING) {
+      throw new ExplorationHandler(
+          exploration.getStatus() == ExplorationStatus.COMPLETED
+              ? ErrorStatus.EXPLORATION_ALREADY_COMPLETED
+              : ErrorStatus.EXPLORATION_NOT_ONGOING);
+    }
+    if (owner.getStatus() != ParticipantStatus.ACTIVE) {
+      throw new ExplorationHandler(ErrorStatus._FORBIDDEN);
+    }
+
+    List<ExplorationParticipant> participants =
+        explorationParticipantRepository.findByExplorationId(explorationId);
+    List<Long> participantIds = participants.stream().map(ExplorationParticipant::getId).toList();
+    long completedCoursePlaceCount = visitRepository.countDistinctCoursePlaceIds(participantIds);
+    long totalCoursePlaceCount = coursePlaceRepository.countByCourseId(exploration.getCourseId());
+    LocalDateTime completedAt = LocalDateTime.now();
+    exploration.complete(completedAt);
+    participants.forEach(ExplorationParticipant::complete);
+
+    String completionReason = "OWNER_EARLY_COMPLETION";
+    ExplorationDtos.CompleteResponse response =
+        ExplorationConverter.toCompleteResponse(
+            exploration, completionReason, completedCoursePlaceCount, totalCoursePlaceCount);
+    applicationEventPublisher.publishEvent(
+        ExplorationConverter.toExplorationCompletedEvent(
+            UUID.randomUUID(), explorationId, completedAt, completionReason));
+    return response;
+  }
+
   @Transactional(readOnly = true)
   public ExplorationDtos.ParticipantsResponse getParticipants(Long explorationId, Long userId) {
     explorationRepository

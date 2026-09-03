@@ -2037,6 +2037,180 @@
           ]
         },
         {
+          "name": "탐험 조기 완료",
+          "description": "미방문 코스 장소가 남은 진행 중 탐험을 OWNER가 확인 모달에서 확정한 뒤 조기 완료합니다(5.1.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. 현재 `ACTIVE OWNER`만 호출할 수 있으며 완료 시 Exploration과 모든 ACTIVE Participant를 COMPLETED로 전환하고 Visit·사진은 보존합니다. 커밋 후 `OWNER_EARLY_COMPLETION` 이유의 `EXPLORATION_COMPLETED` 상태 이벤트를 발행합니다.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+          },
+          "response": [
+            {
+              "name": "200 - OWNER 조기 완료 성공",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"성공입니다.\",\n  \"code\": \"COMMON200\",\n  \"data\": {\n    \"explorationId\": 44,\n    \"courseId\": 31,\n    \"status\": \"COMPLETED\",\n    \"completionReason\": \"OWNER_EARLY_COMPLETION\",\n    \"completedAt\": \"2026-08-15T18:20:00+09:00\",\n    \"courseProgress\": {\n      \"completedCoursePlaceCount\": 3,\n      \"totalCoursePlaceCount\": 5,\n      \"completionRate\": 60\n    }\n  },\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - ACTIVE OWNER가 아님",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/999999/complete"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 진행 중 탐험이 아님",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"진행 중인 탐험이 아닙니다.\",\n  \"code\": \"EXPLORATION409_4\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "409 - 이미 완료된 탐험",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"이미 완료된 탐험입니다.\",\n  \"code\": \"EXPLORATION409_2\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "500 - 완료 상태 전환 실패",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/explorations/44/complete"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"code\": \"COMMON500\",\n  \"data\": \"서버 에러, 관리자에게 문의 바랍니다.\",\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "탐험 목록 조회",
           "description": "여행 기록의 진행 중·완료 코스 카드를 조회합니다(5.1.1, 5.1.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. 필수 query `status`는 `ONGOING` 또는 `COMPLETED`만 허용하며 요청 본문은 없습니다. 현재·과거 참여 탐험을 반환하고, 완료 목록은 `completedAt` 내림차순입니다. 팀 진행률은 CoursePlace Visit만 집계하며 대표 이미지는 코스 순서상 첫 유효 썸네일입니다. 결과가 없으면 빈 배열과 `totalCount: 0`을 반환합니다.",
           "request": {

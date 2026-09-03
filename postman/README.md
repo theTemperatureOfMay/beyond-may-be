@@ -22,6 +22,7 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
   `코스 / POST {{baseUrl}}/api/v1/courses/ai-generation`,
   `팀 탐험 지도 / GET {{baseUrl}}/api/v1/explorations?status={status}`,
   `팀 탐험 지도 / GET {{baseUrl}}/api/v1/explorations/{explorationId}`,
+  `팀 탐험 지도 / POST {{baseUrl}}/api/v1/explorations/{explorationId}/complete`,
   `팀 탐험 지도 / GET {{baseUrl}}/api/v1/explorations/{explorationId}/nearby-places`,
   `팀 탐험 지도 / PATCH {{baseUrl}}/api/v1/explorations/{explorationId}/participants/me/location-sharing`,
   `팀 탐험 지도 / POST {{baseUrl}}/api/v1/visits`,

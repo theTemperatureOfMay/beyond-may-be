@@ -97,18 +97,6 @@ public final class VisitConverter {
             response.explorationStatus()));
   }
 
-  public static ExplorationDtos.ExplorationCompletedEvent toExplorationCompletedEvent(
-      UUID eventId, Long explorationId, LocalDateTime completedAt) {
-    OffsetDateTime occurredAt = toOffsetDateTime(completedAt);
-    return new ExplorationDtos.ExplorationCompletedEvent(
-        eventId,
-        "EXPLORATION_COMPLETED",
-        explorationId,
-        occurredAt,
-        new ExplorationDtos.ExplorationCompletedData(
-            "COMPLETED", occurredAt, "ALL_COURSE_PLACES_VISITED"));
-  }
-
   public static VisitDtos.PhotoResponse toPhotoResponse(
       VisitPhoto photo, String imageUrl, Instant urlExpiresAt) {
     return new VisitDtos.PhotoResponse(

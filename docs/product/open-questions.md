@@ -21,7 +21,7 @@
 | 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `POST /api/v1/visits`, GPS 정확도 50m 이하·서버 거리 100m 이하, 원본 좌표 미저장과 방문 결과·진행률 응답을 확정·구현했다. 팀 전체 개별 방문은 `GET /api/v1/visits?explorationId={explorationId}`로 복구한다(ADR-0025, ADR-0027). |
 | 4.3.3·4.4.2·5.2.1 | 참여자별 동일 장소 인증과 코스 미포함 방문 기록 | 참여자별 Place 1회, 다른 팀원의 개인 방문 허용, 주변 Place 저장·실시간 전파와 코스 진행률 제외를 구현했다. 현재·과거 참여자의 팀 방문 목록과 사진 URL 재발급도 구현했다(ADR-0025, ADR-0027). |
 | 4.4.1 | 주변 추천 노출과 REST API 계약 | `GET /api/v1/explorations/{explorationId}/nearby-places`가 현재 좌표를 받아 `ONGOING` 탐험의 `ACTIVE Participant`에게 광주·1km·코스 제외 조건의 장소를 최대 3곳 제공하도록 확정·구현했다. |
-| 5.1.2 | 전체 코스 완료 전환 | 마지막 팀 코스 장소 방문이 Exploration·활성 Participant를 자동 완료하고 `ALL_COURSE_PLACES_VISITED` 상태 이벤트를 발행하도록 구현했다(ADR-0025). OWNER 조기 완료 API와 해당 완료 이벤트 생산자 `[백엔드 확인]` |
+| 5.1.2 | 전체 코스 완료 전환 | 마지막 팀 코스 장소 방문은 Exploration·활성 Participant를 자동 완료하고 `ALL_COURSE_PLACES_VISITED` 상태 이벤트를 발행한다. `ACTIVE OWNER`의 조기 완료 API도 같은 상태를 전환하고 `OWNER_EARLY_COMPLETION` 이벤트를 발행하도록 구현했다(ADR-0024·0025). |
 | 5.2.1 | 방문 사진 업로드 계약 | Visit 작성자인 `ACTIVE Participant`만 한 장씩 첨부하며 장수 제한 없음·장당 10MB·JPEG/PNG/WebP, 비공개 S3·ECS Task Role·1시간 presigned GET URL로 확정·구현했다(ADR-0027). 고아 객체 운영 정리 주기는 `[MVP 이후 운영 정책]` |
 | 2.1.2·2.2.4·4.4.2 | 외부 장소 이미지의 저작권·이용 조건과 저장·프록시·직접 링크 방식 | `[결정 필요]` |
 | 3.1.0·3.3.1 | `DRAFT` 코스 만료·정리 주기 | `[MVP 이후 운영 정책]` |

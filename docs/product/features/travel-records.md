@@ -60,8 +60,18 @@
 `GET /api/v1/explorations/{explorationId}`로 조회할 수 있다. 전체 장소 방문에 따른 자동
 완료는 방문 저장 흐름이 수행한다. 마지막 팀 CoursePlace 방문은 Exploration과 활성
 Participant를 완료하고 커밋 후 `/topic/explorations/{explorationId}/events`에 이유
-`ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다. OWNER 조기 완료
-API와 `OWNER_EARLY_COMPLETION` 생산자는 아직 구현하지 않았다
+`ALL_COURSE_PLACES_VISITED`인 `EXPLORATION_COMPLETED`를 전파한다.
+
+미방문 CoursePlace가 남아 있으면 프런트엔드는 확인 모달에서 OWNER의 최종 확인을 받은 뒤
+요청 본문과 query 없이 인증 `POST /api/v1/explorations/{explorationId}/complete`를 호출한다.
+서버 확인 단계는 별도로 두지 않는다. 서버는 `ONGOING Exploration`의 현재 `ACTIVE OWNER`
+요청만 허용하고 Exploration 행 잠금 안에서 `completedAt`을 기록하며 모든 `ACTIVE
+Participant`를 `COMPLETED`로 전환한다. Visit과 사진은 보존한다. 응답은 탐험·코스 ID,
+`COMPLETED`, `OWNER_EARLY_COMPLETION`, 완료 시각과 완료 직전 팀 코스 진행률을 포함한다.
+완료 커밋 후 같은 상태 채널에 이유가 `OWNER_EARLY_COMPLETION`인
+`EXPLORATION_COMPLETED`를 전파한다. 탐험이 없으면 404, 현재 `ACTIVE OWNER`가 아니면
+403, `ONGOING`이 아니거나 이미 완료됐으면 409를 반환한다. 모든 CoursePlace가 이미 팀
+완료된 경우 방문 저장 흐름이 자동 완료하므로 프런트엔드는 이 API를 호출하지 않는다
 ([ADR-0024](../../adr/0024-exploration-state-event-channel.md),
 [ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md)).
 
