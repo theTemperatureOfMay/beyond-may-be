@@ -353,6 +353,12 @@ erDiagram
   확인하고 현재 또는 과거 Participant에게 모든 팀 Visit을 `visited_at` 내림차순으로
   반환한다. 비활성화된 Place의 과거 Visit도 보존된 장소 정보로 조회하며 방문이 없으면
   빈 배열과 `totalCount: 0`을 반환한다.
+- 인증 `GET /api/v1/visits/visited-places?explorationId={explorationId}`는 같은 권한과
+  Visit 원천을 재사용해 장소별 방문 수·고유 방문 참여자 수·최초 및 최근 방문 시각과
+  참여자 표시 이름을 집계한다. Place의 저장 좌표와 코스 포함 여부를 반환하고 사용자 GPS는
+  반환하지 않는다. 장소는 최근 방문 시각 내림차순, 표시 이름은 최초 방문 순서이며 방문이
+  없으면 빈 배열과 고유 장소 수 0을 반환한다. 지도 렌더링·이미지 저장과 공유는 프런트엔드
+  책임이다.
 - 팀 방문 조회의 사진은 `display_order` 오름차순이며 요청할 때마다 저장된 object key로
   새 presigned GET URL과 실제 만료 시각을 만든다. userId와 object key는 응답하지 않는다.
 - 인증 `POST /api/v1/visits`는 `ONGOING Exploration`의 `ACTIVE Participant`, 활성

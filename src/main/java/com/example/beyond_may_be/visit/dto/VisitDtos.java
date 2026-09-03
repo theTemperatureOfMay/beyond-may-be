@@ -44,6 +44,24 @@ public final class VisitDtos {
 
   public record VisitsResponse(Long explorationId, List<VisitResponse> visits, int totalCount) {}
 
+  public record VisitedPlacesResponse(
+      Long explorationId, List<VisitedPlaceResponse> visitedPlaces, int totalVisitedPlaceCount) {}
+
+  public record VisitedPlaceResponse(
+      Long placeId,
+      String name,
+      String category,
+      TravelPreferenceType travelMbtiType,
+      BigDecimal latitude,
+      BigDecimal longitude,
+      String thumbnailUrl,
+      boolean isCoursePlace,
+      int visitCount,
+      int visitedByCount,
+      OffsetDateTime firstVisitedAt,
+      OffsetDateTime lastVisitedAt,
+      List<String> participantDisplayNames) {}
+
   public record VisitResponse(
       Long visitId,
       ParticipantResponse participant,

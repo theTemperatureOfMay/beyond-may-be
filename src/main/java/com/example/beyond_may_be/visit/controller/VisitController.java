@@ -36,6 +36,13 @@ public class VisitController {
     return ApiResponse.onSuccess(visitService.getVisits(explorationId, userId));
   }
 
+  @GetMapping("/visited-places")
+  public ApiResponse<VisitDtos.VisitedPlacesResponse> getVisitedPlaces(
+      @RequestParam @Positive(message = "_BAD_REQUEST") Long explorationId,
+      @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(visitService.getVisitedPlaces(explorationId, userId));
+  }
+
   @PostMapping
   public ResponseEntity<ApiResponse<VisitDtos.ConfirmResponse>> confirm(
       @Valid @RequestBody VisitDtos.ConfirmRequest request, @AuthenticationPrincipal Long userId) {

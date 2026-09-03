@@ -27,6 +27,7 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
   `팀 탐험 지도 / PATCH {{baseUrl}}/api/v1/explorations/{explorationId}/participants/me/location-sharing`,
   `팀 탐험 지도 / POST {{baseUrl}}/api/v1/visits`,
   `팀 탐험 지도 / GET {{baseUrl}}/api/v1/visits?explorationId={explorationId}`,
+  `팀 탐험 지도 / GET {{baseUrl}}/api/v1/visits/visited-places?explorationId={explorationId}`,
   `팀 탐험 지도 / POST {{baseUrl}}/api/v1/visits/{visitId}/photos`가 있다.
 - 새 API 요청은 해당 도메인 폴더에 추가한다.
 - 토큰, 비밀번호, 실제 환경별 비밀값, 실사용자 정보는 공용 Collection에 넣지 않는다.

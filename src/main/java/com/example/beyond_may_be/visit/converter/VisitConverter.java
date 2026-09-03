@@ -23,6 +23,35 @@ public final class VisitConverter {
     return new VisitDtos.VisitsResponse(explorationId, visits, visits.size());
   }
 
+  public static VisitDtos.VisitedPlacesResponse toVisitedPlacesResponse(
+      Long explorationId, List<VisitDtos.VisitedPlaceResponse> visitedPlaces) {
+    return new VisitDtos.VisitedPlacesResponse(explorationId, visitedPlaces, visitedPlaces.size());
+  }
+
+  public static VisitDtos.VisitedPlaceResponse toVisitedPlaceResponse(
+      Place place,
+      boolean isCoursePlace,
+      int visitCount,
+      int visitedByCount,
+      LocalDateTime firstVisitedAt,
+      LocalDateTime lastVisitedAt,
+      List<String> participantDisplayNames) {
+    return new VisitDtos.VisitedPlaceResponse(
+        place.getId(),
+        place.getName(),
+        place.getCategory(),
+        place.getTravelMbtiType(),
+        place.getLatitude(),
+        place.getLongitude(),
+        place.getThumbnailUrl(),
+        isCoursePlace,
+        visitCount,
+        visitedByCount,
+        toOffsetDateTime(firstVisitedAt),
+        toOffsetDateTime(lastVisitedAt),
+        participantDisplayNames);
+  }
+
   public static VisitDtos.VisitResponse toVisitResponse(
       Visit visit,
       ExplorationParticipant participant,

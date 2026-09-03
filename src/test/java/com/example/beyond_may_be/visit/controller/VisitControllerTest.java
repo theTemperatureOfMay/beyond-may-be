@@ -18,6 +18,7 @@ import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
 import com.example.beyond_may_be.visit.service.VisitService;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -146,6 +147,97 @@ class VisitControllerTest {
   void getVisits_unauthenticated_returnsUnauthorized() throws Exception {
     mockMvc
         .perform(get("/api/v1/visits").queryParam("explorationId", "44"))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("밝힌 지도 조회는 팀 방문을 장소별 집계로 반환한다.")
+  @Test
+  void getVisitedPlaces_participant_returnsPlaceAggregates() throws Exception {
+    given(visitService.getVisitedPlaces(44L, 9L))
+        .willReturn(
+            new VisitDtos.VisitedPlacesResponse(
+                44L,
+                List.of(
+                    new VisitDtos.VisitedPlaceResponse(
+                        121L,
+                        "양림동 펭귄마을",
+                        "관광지",
+                        com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType
+                            .REMEMBERER,
+                        new BigDecimal("35.140100"),
+                        new BigDecimal("126.912300"),
+                        null,
+                        false,
+                        2,
+                        2,
+                        OffsetDateTime.parse("2026-08-15T14:32:10+09:00"),
+                        OffsetDateTime.parse("2026-08-15T15:05:40+09:00"),
+                        List.of("김감자감자", "별밤지기"))),
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/visits/visited-places")
+                .queryParam("explorationId", "44")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.explorationId").value(44))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].placeId").value(121))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].name").value("양림동 펭귄마을"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].category").value("관광지"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].travelMbtiType").value("REMEMBERER"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].latitude").value(35.1401))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].longitude").value(126.9123))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].thumbnailUrl").isEmpty())
+        .andExpect(jsonPath("$.data.visitedPlaces[0].isCoursePlace").value(false))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].visitCount").value(2))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].visitedByCount").value(2))
+        .andExpect(
+            jsonPath("$.data.visitedPlaces[0].firstVisitedAt").value("2026-08-15T14:32:10+09:00"))
+        .andExpect(
+            jsonPath("$.data.visitedPlaces[0].lastVisitedAt").value("2026-08-15T15:05:40+09:00"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].participantDisplayNames[0]").value("김감자감자"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].participantDisplayNames[1]").value("별밤지기"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].userLatitude").doesNotExist())
+        .andExpect(jsonPath("$.data.visitedPlaces[0].userLongitude").doesNotExist())
+        .andExpect(jsonPath("$.data.totalVisitedPlaceCount").value(1));
+  }
+
+  @DisplayName("탐험 ID 형식이 잘못되면 밝힌 지도 조회를 400으로 거부한다.")
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "-1", "not-a-number"})
+  void getVisitedPlaces_invalidExplorationId_returnsBadRequest(String explorationId)
+      throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/visits/visited-places")
+                .queryParam("explorationId", explorationId)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("탐험 ID가 누락되면 밝힌 지도 조회를 400으로 거부한다.")
+  @Test
+  void getVisitedPlaces_missingExplorationId_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits/visited-places").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("인증 없이 밝힌 지도를 조회하면 401로 거부한다.")
+  @Test
+  void getVisitedPlaces_unauthenticated_returnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits/visited-places").queryParam("explorationId", "44"))
         .andExpect(status().isUnauthorized());
 
     then(visitService).shouldHaveNoInteractions();

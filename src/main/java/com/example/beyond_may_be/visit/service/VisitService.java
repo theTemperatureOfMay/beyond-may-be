@@ -23,6 +23,7 @@ import com.example.beyond_may_be.visit.repository.VisitPhotoRepository;
 import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -117,6 +118,65 @@ public class VisitService {
                 })
             .toList();
     return VisitConverter.toVisitsResponse(explorationId, responses);
+  }
+
+  @Transactional(readOnly = true)
+  public VisitDtos.VisitedPlacesResponse getVisitedPlaces(Long explorationId, Long userId) {
+    explorationRepository
+        .findById(explorationId)
+        .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+    explorationParticipantRepository
+        .findByExplorationIdAndUserId(explorationId, userId)
+        .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
+
+    List<ExplorationParticipant> participants =
+        explorationParticipantRepository.findByExplorationId(explorationId);
+    Map<Long, ExplorationParticipant> participantsById =
+        participants.stream()
+            .collect(Collectors.toMap(ExplorationParticipant::getId, Function.identity()));
+    List<Visit> visits =
+        visitRepository.findByParticipantIdInOrderByVisitedAtDesc(
+            participants.stream().map(ExplorationParticipant::getId).toList());
+    if (visits.isEmpty()) {
+      return VisitConverter.toVisitedPlacesResponse(explorationId, List.of());
+    }
+
+    Map<Long, Place> placesById =
+        placeRepository
+            .findAllById(visits.stream().map(Visit::getPlaceId).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(Place::getId, Function.identity()));
+    Map<Long, List<Visit>> visitsByPlaceId =
+        visits.stream()
+            .collect(
+                Collectors.groupingBy(Visit::getPlaceId, LinkedHashMap::new, Collectors.toList()));
+    List<VisitDtos.VisitedPlaceResponse> responses =
+        visitsByPlaceId.values().stream()
+            .map(
+                placeVisits -> {
+                  Visit firstVisit = placeVisits.getLast();
+                  Visit lastVisit = placeVisits.getFirst();
+                  List<String> participantDisplayNames =
+                      placeVisits.reversed().stream()
+                          .map(
+                              visit ->
+                                  Objects.requireNonNull(
+                                          participantsById.get(visit.getParticipantId()),
+                                          "방문 참여자 정보가 없습니다.")
+                                      .getDisplayName())
+                          .toList();
+                  return VisitConverter.toVisitedPlaceResponse(
+                      Objects.requireNonNull(
+                          placesById.get(lastVisit.getPlaceId()), "방문 장소 정보가 없습니다."),
+                      placeVisits.stream().anyMatch(visit -> visit.getCoursePlaceId() != null),
+                      placeVisits.size(),
+                      (int) placeVisits.stream().map(Visit::getParticipantId).distinct().count(),
+                      firstVisit.getVisitedAt(),
+                      lastVisit.getVisitedAt(),
+                      participantDisplayNames);
+                })
+            .toList();
+    return VisitConverter.toVisitedPlacesResponse(explorationId, responses);
   }
 
   public VisitDtos.ConfirmResponse confirmVisit(VisitDtos.ConfirmRequest request, Long userId) {

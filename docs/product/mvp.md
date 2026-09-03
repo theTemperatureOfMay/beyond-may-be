@@ -123,7 +123,7 @@
 | 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `구현 완료` | 인증 `GET /api/v1/explorations?status=ONGOING`이 현재·과거 참여 이력에서 진행 중 탐험을 최대 1개 반환한다. `LEFT` 제외 팀원, 팀 CoursePlace 방문 수, 전체 장소 수와 첫 유효 코스 이미지를 포함하며 빈 결과는 정상 응답한다. |
 | 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `구현 완료` | 인증 `GET /api/v1/explorations?status=COMPLETED`가 현재·과거 참여자의 완료 탐험을 `completedAt` 내림차순으로 기간 제한 없이 반환한다. 마지막 팀 코스 장소 방문은 자동 완료하며, `ACTIVE OWNER`는 인증 `POST /api/v1/explorations/{explorationId}/complete`로 조기 완료할 수 있다. 두 경로 모두 Exploration·활성 Participant를 완료하고 커밋 후 각각 `ALL_COURSE_PLACES_VISITED`, `OWNER_EARLY_COMPLETION` 이유의 상태 이벤트를 발행한다. |
 | 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `구현 완료` | `POST /api/v1/visits`가 코스·주변 Place 기반 개인 방문을 저장하고, Visit 작성자인 `ACTIVE Participant`는 `POST /api/v1/visits/{visitId}/photos`로 10MB 이하 JPEG·PNG·WebP를 비공개 S3에 제한 없이 한 장씩 첨부한다. 현재·과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로 팀 전체 Visit을 최신순 조회하며 사진마다 새 1시간 presigned GET URL을 받는다. 빈 결과는 정상 응답한다(ADR-0027). |
-| 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `미구현` | 대응 조회·집계 API가 없다. |
+| 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `구현 완료` | 현재·과거 참여자는 인증 `GET /api/v1/visits/visited-places?explorationId={explorationId}`로 코스·주변 장소를 포함한 팀 Visit을 장소별로 집계해 최근 방문순으로 조회한다. 장소 정보·검수 좌표·코스 포함 여부·방문 수·방문 참여자 수·최초·최근 방문 시각과 표시 이름을 제공하며 빈 결과는 정상 응답한다. 사용자 GPS는 저장·반환하지 않고 지도 이미지 저장·공유는 프런트엔드 책임이다. |
 
 ## 6. 공통·예외 처리
 
@@ -148,8 +148,8 @@
 
 - 실제 기능 API는 회원가입·로그인, 추천·회차 반응, AI 코스 생성, 코스 확정,
   코스 조회(공개 미리보기·소유자 전용 DRAFT 조회), 코스 수정(직접 수정·AI 챗봇)과
-  팀 합류, 팀원 목록, 탐험 시작과 탐험 목록·상세 상태·진행률 조회, 방문 인증과 팀 방문
-  기록 조회다. 상태
+  팀 합류, 팀원 목록, 탐험 시작과 탐험 목록·상세 상태·진행률 조회, 방문 인증, 팀 방문
+  기록과 밝힌 지도 집계 조회다. 상태
   채널은 새 참여자 합류·탐험 시작·위치 공유 설정 변경과 자동·OWNER 조기 완료를 발행한다. 방문
   채널은 개인 방문과 팀 진행률을 별도로 발행한다. 옵트인 위치 채널은 `ONGOING` 탐험의
   유효 위치를 휘발 전파한다. 세 채널 모두 참여자 범위로 인가하며 사진 첨부 API는
@@ -165,6 +165,13 @@
 
 ## 재검사 근거
 
+- 2026-09-03 기능 5.2.2 밝힌 지도 조회의 현재·과거 참여자 인가, 전체 팀 Visit의 장소별
+  집계, 코스·주변 장소 포함, 최근 방문순·표시 이름 최초 방문순, Place 좌표만 반환하는
+  계약과 빈 결과·오류를 ADR-0010·0025·0027, 기능 명세·코드·테스트·Postman과 대조했다.
+  전체 423개 테스트가 실패·오류·건너뜀 없이 통과했고 `spotlessCheck`, 전체 `build`,
+  Postman Collection과 saved JSON body 102개 파싱, 제품 지식·하네스 semantic 검사와
+  `git diff --check`가 통과했다. 프런트엔드 지도 렌더링·이미지 저장과 공유, 운영 데이터의
+  실제 집계는 확인하지 않았다.
 - 2026-09-03 기능 5.1.2 OWNER 조기 완료 API의 `ACTIVE OWNER` 인가, Exploration 잠금 기반
   자동 완료와의 직렬화, Exploration·활성 Participant 완료 전환, Visit·사진 보존, 진행률
   응답과 커밋 후 `OWNER_EARLY_COMPLETION` 이벤트를 기능 명세·ADR-0024·0025·코드·테스트·
