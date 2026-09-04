@@ -150,6 +150,7 @@ resource "aws_ecs_task_definition" "this" {
         { name = "TOURISM_API_BASE_URL", value = var.tourism_api_base_url },
         { name = "TOURISM_POPULARITY_API_BASE_URL", value = var.tourism_popularity_api_base_url },
         { name = "S3_BUCKET_NAME", value = var.s3_bucket_name },
+        { name = "AWS_REGION", value = var.aws_region },
       ]
       secrets = [
         { name = "DB_URL", valueFrom = var.db_url_parameter_arn },
