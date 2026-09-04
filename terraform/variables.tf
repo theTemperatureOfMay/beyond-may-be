@@ -78,6 +78,12 @@ variable "log_retention_days" {
   default     = 7
 }
 
+variable "visit_photos_bucket_name" {
+  description = "방문 인증 사진 저장용 S3 버킷 이름. 버킷 이름은 AWS 전역에서 유일해야 하므로 기본값을 그대로 쓰지 말고 계정마다 고유 접미사를 붙여 바꾼다."
+  type        = string
+  default     = "beyond-may-be-visit-photos"
+}
+
 variable "db_master_username" {
   type    = string
   default = "beyond_may_be_admin"

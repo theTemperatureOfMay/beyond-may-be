@@ -92,3 +92,13 @@ variable "tourism_api_base_url" {
 variable "tourism_popularity_api_base_url" {
   type = string
 }
+
+variable "s3_bucket_name" {
+  description = "방문 인증 사진 저장용 S3 버킷 이름 (컨테이너 환경변수로 전달)"
+  type        = string
+}
+
+variable "s3_bucket_arn" {
+  description = "방문 인증 사진 저장용 S3 버킷 ARN (태스크 Role 정책 대상)"
+  type        = string
+}

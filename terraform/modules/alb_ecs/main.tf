@@ -104,6 +104,24 @@ resource "aws_iam_role" "task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
+data "aws_iam_policy_document" "task_s3" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject",
+    ]
+    resources = ["${var.s3_bucket_arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "task_s3" {
+  name   = "${var.name}-s3"
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.task_s3.json
+}
+
 # --- ECS 클러스터 / 태스크 정의 / 서비스 ---
 
 resource "aws_ecs_cluster" "this" {
@@ -131,6 +149,7 @@ resource "aws_ecs_task_definition" "this" {
         { name = "SPRING_PROFILES_ACTIVE", value = var.spring_profiles_active },
         { name = "TOURISM_API_BASE_URL", value = var.tourism_api_base_url },
         { name = "TOURISM_POPULARITY_API_BASE_URL", value = var.tourism_popularity_api_base_url },
+        { name = "S3_BUCKET_NAME", value = var.s3_bucket_name },
       ]
       secrets = [
         { name = "DB_URL", valueFrom = var.db_url_parameter_arn },
