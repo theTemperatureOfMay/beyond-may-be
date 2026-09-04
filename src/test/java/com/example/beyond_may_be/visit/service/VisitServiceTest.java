@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -219,33 +220,33 @@ class VisitServiceTest {
             .participantId(74L)
             .placeId(101L)
             .coursePlaceId(301L)
-            .visitedAt(LocalDateTime.of(2026, 8, 15, 16, 10, 20))
+            .visitedAt(toRuntimeLocalTime("2026-08-15T16:10:20+09:00"))
             .build();
     Visit latestNearbyVisit =
         Visit.builder()
             .participantId(73L)
             .placeId(121L)
-            .visitedAt(LocalDateTime.of(2026, 8, 15, 15, 5, 40))
+            .visitedAt(toRuntimeLocalTime("2026-08-15T15:05:40+09:00"))
             .build();
     Visit firstNearbyVisit =
         Visit.builder()
             .participantId(72L)
             .placeId(121L)
-            .visitedAt(LocalDateTime.of(2026, 8, 15, 14, 32, 10))
+            .visitedAt(toRuntimeLocalTime("2026-08-15T14:32:10+09:00"))
             .build();
     Visit middleCourseVisit =
         Visit.builder()
             .participantId(73L)
             .placeId(101L)
             .coursePlaceId(301L)
-            .visitedAt(LocalDateTime.of(2026, 8, 15, 13, 0))
+            .visitedAt(toRuntimeLocalTime("2026-08-15T13:00:00+09:00"))
             .build();
     Visit firstCourseVisit =
         Visit.builder()
             .participantId(72L)
             .placeId(101L)
             .coursePlaceId(301L)
-            .visitedAt(LocalDateTime.of(2026, 8, 15, 11, 20))
+            .visitedAt(toRuntimeLocalTime("2026-08-15T11:20:00+09:00"))
             .build();
     Place coursePlace = place(101L, "35.146600", "126.919900");
     ReflectionTestUtils.setField(coursePlace, "name", "국립아시아문화전당");
@@ -373,7 +374,8 @@ class VisitServiceTest {
             .displayOrder(3)
             .build();
     ReflectionTestUtils.setField(savedPhoto, "id", 501L);
-    ReflectionTestUtils.setField(savedPhoto, "createdAt", LocalDateTime.of(2026, 8, 15, 14, 33));
+    ReflectionTestUtils.setField(
+        savedPhoto, "createdAt", toRuntimeLocalTime("2026-08-15T14:33:00+09:00"));
     MockMultipartFile file = new MockMultipartFile("file", "visit", contentType, content);
     Instant expiresAt = Instant.parse("2026-08-15T06:33:00Z");
 
@@ -850,6 +852,10 @@ class VisitServiceTest {
             .build();
     ReflectionTestUtils.setField(visit, "id", 9001L);
     return visit;
+  }
+
+  private static LocalDateTime toRuntimeLocalTime(String value) {
+    return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
   }
 
   private MockMultipartFile pngFile() {
