@@ -1,0 +1,33 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+  method: PATCH
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "enabled": true
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "explorationId": 44,
+          "participantId": 72,
+          "locationSharingEnabled": true,
+          "updatedAt": "2026-08-15T21:20:00+09:00"
+        },
+        "success": true
+      }
+order: 1000

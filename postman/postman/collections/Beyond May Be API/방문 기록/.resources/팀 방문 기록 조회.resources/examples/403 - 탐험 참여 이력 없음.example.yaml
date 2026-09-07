@@ -1,0 +1,23 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits?explorationId=44"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    explorationId: "44"
+response:
+  statusCode: 403
+  statusText: Forbidden
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "금지된 요청입니다.",
+        "code": "COMMON403",
+        "data": null,
+        "success": false
+      }
+order: 5000

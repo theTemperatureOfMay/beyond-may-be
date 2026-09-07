@@ -1,0 +1,24 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/nearby-places?latitude=35.146600&longitude=126.919900"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    latitude: "35.146600"
+    longitude: "126.919900"
+response:
+  statusCode: 403
+  statusText: Forbidden
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "해당 탐험의 활성 참여자가 아닙니다.",
+        "code": "EXPLORATION403",
+        "data": null,
+        "success": false
+      }
+order: 3000

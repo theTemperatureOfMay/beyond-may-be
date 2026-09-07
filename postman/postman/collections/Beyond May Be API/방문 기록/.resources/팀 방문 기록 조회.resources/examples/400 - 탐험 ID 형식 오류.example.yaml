@@ -1,0 +1,23 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits?explorationId=0"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    explorationId: "0"
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "잘못된 요청입니다.",
+        "code": "COMMON400",
+        "data": null,
+        "success": false
+      }
+order: 3000

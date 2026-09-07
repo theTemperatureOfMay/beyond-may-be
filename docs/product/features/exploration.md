@@ -187,8 +187,10 @@ payload에는 탐험 범위의 `participantId`, `displayName`, 좌표·정확도
 userId를 노출하지 않는다. 좌표 이벤트는 화면용 휘발 상태로 replay하지 않으며
 `LOCATION_SHARING_CHANGED(enabled=false)`를 받으면 해당 마커를 제거한다.
 
-방문 인증은 전용 채널로 전파하고 전체 코스 장소 방문이 만든 자동 완료는
-`EXPLORATION_COMPLETED` 생산자까지 연결한다. OWNER 조기 완료 생산자는 아직 없다
+방문 인증은 전용 채널로 전파한다. 전체 코스 장소 방문이 만든 자동 완료와 인증
+`POST /api/v1/explorations/{explorationId}/complete`가 만든 OWNER 조기 완료는 각각
+`ALL_COURSE_PLACES_VISITED`, `OWNER_EARLY_COMPLETION` 이유의
+`EXPLORATION_COMPLETED` 생산자까지 연결한다
 ([ADR-0023](../../adr/0023-location-sharing-opt-in-and-state-event.md),
 [ADR-0024](../../adr/0024-exploration-state-event-channel.md),
 [ADR-0025](../../adr/0025-visit-confirmation-and-realtime-propagation.md),
@@ -230,8 +232,8 @@ CoursePlace는 서버가 결정하며 검증 좌표·정확도는 저장하지 �
 `participantId`, `displayName`, `placeId`, nullable `coursePlaceId`, `visitedAt`,
 `teamFirstVisit`, `courseProgress`, `explorationStatus`만 포함하고 좌표·정확도·사진은
 포함하지 않는다. 같은 탐험의 현재 `ACTIVE Participant`만 구독할 수 있다. replay는
-보장하지 않으며 탐험 집계는 HTTP 상세로 복구한다. 개별 방문·핀 복구용 Visit 조회 API는
-이번 범위에서 제외했다.
+보장하지 않으며 탐험 집계는 HTTP 상세로, 개별 방문·핀은 현재 또는 과거 참여자의
+`GET /api/v1/visits?explorationId={explorationId}`로 복구한다.
 
 팀 장소 완료는 최초 인증으로 전환하고, 개인 방문 기록은 참여자별로 각각 저장한다.
 코스에 없는 주변 Place도 `coursePlaceId=null`로 저장·전파하지만 코스 진행률은 바꾸지

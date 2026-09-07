@@ -4,21 +4,29 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.reset;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
+import com.example.beyond_may_be.apiPayload.exception.handler.VisitHandler;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.visit.dto.VisitDtos;
 import com.example.beyond_may_be.visit.service.VisitService;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -27,7 +35,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @SpringBootTest(classes = VisitControllerTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -41,6 +51,196 @@ class VisitControllerTest {
   void setUp() {
     reset(authTokenService, visitService);
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(9L));
+  }
+
+  @DisplayName("탐험의 팀 방문 기록을 중첩된 장소와 사진 정보로 반환한다.")
+  @Test
+  void getVisits_participant_returnsTeamVisits() throws Exception {
+    given(visitService.getVisits(44L, 9L))
+        .willReturn(
+            new VisitDtos.VisitsResponse(
+                44L,
+                List.of(
+                    new VisitDtos.VisitResponse(
+                        9001L,
+                        new VisitDtos.ParticipantResponse(72L, "김감자감자"),
+                        new VisitDtos.PlaceResponse(
+                            121L,
+                            "양림동 펭귄마을",
+                            "관광지",
+                            com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType
+                                .REMEMBERER,
+                            List.of("골목", "역사"),
+                            "광주광역시 남구 천변좌로446번길 7",
+                            null),
+                        null,
+                        false,
+                        OffsetDateTime.parse("2026-08-15T14:32:10+09:00"),
+                        List.of(
+                            new VisitDtos.VisitPhotoResponse(
+                                501L,
+                                1,
+                                "https://example.com/signed/501",
+                                OffsetDateTime.parse("2026-08-15T15:32:10+09:00"))))),
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/visits")
+                .queryParam("explorationId", "44")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.explorationId").value(44))
+        .andExpect(jsonPath("$.data.visits[0].visitId").value(9001))
+        .andExpect(jsonPath("$.data.visits[0].participant.participantId").value(72))
+        .andExpect(jsonPath("$.data.visits[0].participant.displayName").value("김감자감자"))
+        .andExpect(jsonPath("$.data.visits[0].participant.userId").doesNotExist())
+        .andExpect(jsonPath("$.data.visits[0].place.placeId").value(121))
+        .andExpect(jsonPath("$.data.visits[0].place.name").value("양림동 펭귄마을"))
+        .andExpect(jsonPath("$.data.visits[0].place.category").value("관광지"))
+        .andExpect(jsonPath("$.data.visits[0].place.travelMbtiType").value("REMEMBERER"))
+        .andExpect(jsonPath("$.data.visits[0].place.tags[0]").value("골목"))
+        .andExpect(jsonPath("$.data.visits[0].place.address").value("광주광역시 남구 천변좌로446번길 7"))
+        .andExpect(jsonPath("$.data.visits[0].place.thumbnailUrl").isEmpty())
+        .andExpect(jsonPath("$.data.visits[0].coursePlaceId").isEmpty())
+        .andExpect(jsonPath("$.data.visits[0].isCoursePlace").value(false))
+        .andExpect(jsonPath("$.data.visits[0].visitedAt").value("2026-08-15T14:32:10+09:00"))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].visitPhotoId").value(501))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].displayOrder").value(1))
+        .andExpect(
+            jsonPath("$.data.visits[0].photos[0].imageUrl").value("https://example.com/signed/501"))
+        .andExpect(
+            jsonPath("$.data.visits[0].photos[0].urlExpiresAt").value("2026-08-15T15:32:10+09:00"))
+        .andExpect(jsonPath("$.data.visits[0].photos[0].objectKey").doesNotExist())
+        .andExpect(jsonPath("$.data.totalCount").value(1));
+  }
+
+  @DisplayName("탐험 ID 형식이 잘못되면 팀 방문 기록 조회를 400으로 거부한다.")
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "-1", "not-a-number"})
+  void getVisits_invalidExplorationId_returnsBadRequest(String explorationId) throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/visits")
+                .queryParam("explorationId", explorationId)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("탐험 ID가 누락되면 팀 방문 기록 조회를 400으로 거부한다.")
+  @Test
+  void getVisits_missingExplorationId_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("인증 없이 팀 방문 기록을 조회하면 401로 거부한다.")
+  @Test
+  void getVisits_unauthenticated_returnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits").queryParam("explorationId", "44"))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("밝힌 지도 조회는 팀 방문을 장소별 집계로 반환한다.")
+  @Test
+  void getVisitedPlaces_participant_returnsPlaceAggregates() throws Exception {
+    given(visitService.getVisitedPlaces(44L, 9L))
+        .willReturn(
+            new VisitDtos.VisitedPlacesResponse(
+                44L,
+                List.of(
+                    new VisitDtos.VisitedPlaceResponse(
+                        121L,
+                        "양림동 펭귄마을",
+                        "관광지",
+                        com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType
+                            .REMEMBERER,
+                        new BigDecimal("35.140100"),
+                        new BigDecimal("126.912300"),
+                        null,
+                        false,
+                        2,
+                        2,
+                        OffsetDateTime.parse("2026-08-15T14:32:10+09:00"),
+                        OffsetDateTime.parse("2026-08-15T15:05:40+09:00"),
+                        List.of("김감자감자", "별밤지기"))),
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/visits/visited-places")
+                .queryParam("explorationId", "44")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.explorationId").value(44))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].placeId").value(121))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].name").value("양림동 펭귄마을"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].category").value("관광지"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].travelMbtiType").value("REMEMBERER"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].latitude").value(35.1401))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].longitude").value(126.9123))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].thumbnailUrl").isEmpty())
+        .andExpect(jsonPath("$.data.visitedPlaces[0].isCoursePlace").value(false))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].visitCount").value(2))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].visitedByCount").value(2))
+        .andExpect(
+            jsonPath("$.data.visitedPlaces[0].firstVisitedAt").value("2026-08-15T14:32:10+09:00"))
+        .andExpect(
+            jsonPath("$.data.visitedPlaces[0].lastVisitedAt").value("2026-08-15T15:05:40+09:00"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].participantDisplayNames[0]").value("김감자감자"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].participantDisplayNames[1]").value("별밤지기"))
+        .andExpect(jsonPath("$.data.visitedPlaces[0].userLatitude").doesNotExist())
+        .andExpect(jsonPath("$.data.visitedPlaces[0].userLongitude").doesNotExist())
+        .andExpect(jsonPath("$.data.totalVisitedPlaceCount").value(1));
+  }
+
+  @DisplayName("탐험 ID 형식이 잘못되면 밝힌 지도 조회를 400으로 거부한다.")
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "-1", "not-a-number"})
+  void getVisitedPlaces_invalidExplorationId_returnsBadRequest(String explorationId)
+      throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/visits/visited-places")
+                .queryParam("explorationId", explorationId)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("탐험 ID가 누락되면 밝힌 지도 조회를 400으로 거부한다.")
+  @Test
+  void getVisitedPlaces_missingExplorationId_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits/visited-places").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest());
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("인증 없이 밝힌 지도를 조회하면 401로 거부한다.")
+  @Test
+  void getVisitedPlaces_unauthenticated_returnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/visits/visited-places").queryParam("explorationId", "44"))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
   }
 
   @DisplayName("방문 인증에 성공하면 생성된 방문과 팀 진행 상태를 201로 반환한다.")
@@ -94,6 +294,98 @@ class VisitControllerTest {
         .andExpect(jsonPath("$.data.courseProgress.totalCoursePlaceCount").value(5))
         .andExpect(jsonPath("$.data.courseProgress.completionRate").value(40))
         .andExpect(jsonPath("$.data.explorationStatus").value("ONGOING"));
+  }
+
+  @DisplayName("방문 사진을 첨부하면 저장 결과와 서명 URL을 201로 반환한다.")
+  @Test
+  void attachPhoto_validImage_returnsCreated() throws Exception {
+    OffsetDateTime uploadedAt = OffsetDateTime.parse("2026-08-15T14:33:00+09:00");
+    OffsetDateTime urlExpiresAt = OffsetDateTime.parse("2026-08-15T15:33:00+09:00");
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.webp", "image/webp", "image".getBytes());
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willReturn(
+            new VisitDtos.PhotoResponse(
+                501L, 9001L, 1, "https://example.com/signed/501", urlExpiresAt, uploadedAt));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.message").value("생성에 성공했습니다."))
+        .andExpect(jsonPath("$.code").value("COMMON201"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.visitPhotoId").value(501))
+        .andExpect(jsonPath("$.data.visitId").value(9001))
+        .andExpect(jsonPath("$.data.displayOrder").value(1))
+        .andExpect(jsonPath("$.data.imageUrl").value("https://example.com/signed/501"))
+        .andExpect(jsonPath("$.data.urlExpiresAt").value("2026-08-15T15:33:00+09:00"))
+        .andExpect(jsonPath("$.data.uploadedAt").value("2026-08-15T14:33:00+09:00"));
+  }
+
+  @DisplayName("사진 파일이 누락되면 공통 400 응답으로 거부한다.")
+  @Test
+  void attachPhoto_missingFile_returnsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON400"))
+        .andExpect(jsonPath("$.success").value(false));
+
+    then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("multipart 제한을 넘은 사진은 공통 413 응답으로 거부한다.")
+  @Test
+  void attachPhoto_multipartLimitExceeded_returnsPayloadTooLarge() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "large.png", "image/png", new byte[] {1});
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willThrow(new MaxUploadSizeExceededException(10L * 1024 * 1024));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(jsonPath("$.code").value("VISIT413"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @DisplayName("지원하지 않는 사진 형식은 415로 거부한다.")
+  @Test
+  void attachPhoto_unsupportedImage_returnsUnsupportedMediaType() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.gif", "image/gif", new byte[] {1});
+    given(visitService.attachPhoto(9001L, file, 9L))
+        .willThrow(new VisitHandler(ErrorStatus.VISIT_PHOTO_UNSUPPORTED_TYPE));
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+                .file(file)
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isUnsupportedMediaType())
+        .andExpect(jsonPath("$.code").value("VISIT415"))
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @DisplayName("인증 없이 방문 사진을 첨부하면 거부한다.")
+  @Test
+  void attachPhoto_unauthenticated_returnsUnauthorized() throws Exception {
+    MockMultipartFile file =
+        new MockMultipartFile("file", "visit.png", "image/png", new byte[] {1});
+
+    mockMvc
+        .perform(multipart("/api/v1/visits/{visitId}/photos", 9001L).file(file))
+        .andExpect(status().isUnauthorized());
+
+    then(visitService).shouldHaveNoInteractions();
   }
 
   @DisplayName("GPS 정확도가 50m를 초과하면 방문 인증을 거부한다.")

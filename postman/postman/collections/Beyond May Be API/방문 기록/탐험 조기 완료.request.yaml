@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations/44/complete"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/탐험 조기 완료.resources/examples
+order: 2000

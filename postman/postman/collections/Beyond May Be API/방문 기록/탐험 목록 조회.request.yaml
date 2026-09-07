@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  status: COMPLETED
+examples: ./.resources/탐험 목록 조회.resources/examples
+order: 1000

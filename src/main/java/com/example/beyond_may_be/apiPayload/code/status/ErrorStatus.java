@@ -53,8 +53,13 @@ public enum ErrorStatus implements BaseErrorCode {
       HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
 
   // Visit
+  VISIT_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "방문 기록을 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),
+  VISIT_PHOTO_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "VISIT413", "방문 사진은 10MB를 초과할 수 없습니다."),
+  VISIT_PHOTO_UNSUPPORTED_TYPE(
+      HttpStatus.UNSUPPORTED_MEDIA_TYPE, "VISIT415", "JPEG, PNG 또는 WebP 형식의 방문 사진만 첨부할 수 있습니다."),
   VISIT_ALREADY_EXISTS(HttpStatus.CONFLICT, "VISIT409", "이미 방문 인증한 장소입니다."),
+  VISIT_PHOTO_ORDER_CONFLICT(HttpStatus.CONFLICT, "VISIT409_2", "방문 사진 표시 순서가 충돌했습니다. 다시 시도해주세요."),
 
   // Recommendation
   RECOMMENDATION_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "RECOMMENDATION400", "여행 기간이 올바르지 않습니다."),

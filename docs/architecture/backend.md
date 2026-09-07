@@ -49,9 +49,10 @@
 | 탐험 시작·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 실시간 위치 전송·구독 | `ONGOING Exploration`의 `ACTIVE Participant` |
 | 팀원 조회 | 해당 `Exploration`의 `LEFT`가 아닌 `Participant` |
-| 방문 인증·사진 첨부 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 방문 인증 | 해당 `Exploration`의 `ACTIVE Participant` |
+| 사진 첨부 | `Visit`을 만든 사용자이면서 해당 `Participant`가 `ACTIVE` |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
-| 탐험 조기 완료 | 해당 `Exploration`의 `OWNER Participant` |
+| 탐험 조기 완료 | 해당 `Exploration`의 `ACTIVE OWNER Participant` |
 
 인증된 요청의 사용자·참여자 식별자는 body나 query 값이 아니라 서버가 확인한
 인증 컨텍스트와 참여 관계에서 결정한다. 공유 만료, 참여 상태, 방문 소속과 공개
@@ -328,6 +329,12 @@ erDiagram
   `BEFORE → ONGOING` 전환에 성공한다.
 - 시작한 Participant는 `started_by_participant_id`로 기록한다.
 - 지도 이탈 시 Participant를 `LEFT`로 바꾸고 기존 방문 기록은 보존한다.
+- 인증 `GET /api/v1/explorations?status={ONGOING|COMPLETED}`는 Participant 상태와 무관한
+  사용자 참여 이력으로 탐험을 고른다. 카드의 팀원 수·표시 이름에서는 `LEFT`를 제외하지만
+  과거 Participant의 CoursePlace Visit은 팀 진행률에 포함한다. 완료 목록은
+  `completed_at` 내림차순이며 코스 장소 순서상 첫 번째 비어 있지 않은 저장 썸네일을 대표
+  이미지로 사용한다. 참여 이력상 `ONGOING`이 둘 이상이면 `COMMON500`으로 불변식 위반을
+  드러내며, 이탈 API를 구현할 때 복귀 카드 우선순위를 함께 정한다.
 
 ### `visits`, `visit_photos`
 
@@ -342,6 +349,18 @@ erDiagram
 - 팀 방문 기록과 팀 누적 밝힌 지도는 해당 Exploration의 모든 Participant Visit을
   합쳐 계산한다. CoursePlace 문맥이 없는 주변 장소 Visit도 두 조회에는 포함하지만
   코스 완료율에서는 제외한다.
+- 인증 `GET /api/v1/visits?explorationId={explorationId}`는 Exploration 존재를 먼저
+  확인하고 현재 또는 과거 Participant에게 모든 팀 Visit을 `visited_at` 내림차순으로
+  반환한다. 비활성화된 Place의 과거 Visit도 보존된 장소 정보로 조회하며 방문이 없으면
+  빈 배열과 `totalCount: 0`을 반환한다.
+- 인증 `GET /api/v1/visits/visited-places?explorationId={explorationId}`는 같은 권한과
+  Visit 원천을 재사용해 장소별 방문 수·고유 방문 참여자 수·최초 및 최근 방문 시각과
+  참여자 표시 이름을 집계한다. Place의 저장 좌표와 코스 포함 여부를 반환하고 사용자 GPS는
+  반환하지 않는다. 장소는 최근 방문 시각 내림차순, 표시 이름은 최초 방문 순서이며 방문이
+  없으면 빈 배열과 고유 장소 수 0을 반환한다. 지도 렌더링·이미지 저장과 공유는 프런트엔드
+  책임이다.
+- 팀 방문 조회의 사진은 `display_order` 오름차순이며 요청할 때마다 저장된 object key로
+  새 presigned GET URL과 실제 만료 시각을 만든다. userId와 object key는 응답하지 않는다.
 - 인증 `POST /api/v1/visits`는 `ONGOING Exploration`의 `ACTIVE Participant`, 활성
   Place, GPS 정확도 50m 이하와 반올림 전 거리 100m 이하를 검증한다. Exploration 쓰기
   잠금 안에서 개인 중복·팀 최초 방문·진행률을 계산하고 마지막 팀 CoursePlace 방문이면
@@ -349,8 +368,18 @@ erDiagram
 - Visit 저장 커밋 후 전용 `/topic/explorations/{explorationId}/visits`에 좌표·정확도·
   사진이 없는 `VISIT_CONFIRMED` JSON envelope를 최선 노력으로 전파한다. 자동 완료는
   `/events` 상태 채널에도 `EXPLORATION_COMPLETED`를 전파한다(ADR-0025).
+- 인증 `POST /api/v1/explorations/{explorationId}/complete`는 같은 Exploration 쓰기 잠금
+  안에서 `ONGOING`과 현재 `ACTIVE OWNER`를 검증하고 Exploration·활성 Participant를
+  완료한다. Visit과 사진은 유지하며 커밋 후 `/events`에
+  `completionReason=OWNER_EARLY_COMPLETION`인 `EXPLORATION_COMPLETED`를 전파한다.
 - Visit에는 사진을 선택적으로 여러 장 연결할 수 있다.
-- 사진 파일은 객체 저장소, DB에는 비공개 `object_key`와 표시 순서를 저장한다.
+- 인증 `POST /api/v1/visits/{visitId}/photos`는 Visit을 만든 사용자의 Participant가 현재
+  `ACTIVE`이고 Exploration이 완료되지 않은 경우에 JPEG·PNG·WebP 한 장을 최대 10MB까지
+  받는다. 장수 제한은 없다.
+- 사진 파일은 전용 비공개 S3, DB에는 `object_key`와 표시 순서만 저장한다. 외부 응답은
+  object key 대신 기본 1시간 presigned GET URL과 실제 만료 시각을 반환한다.
+- 같은 Visit 행을 잠근 뒤 다음 표시 순서를 배정하며 DB의 유일 제약으로 중복을 최종
+  차단한다.
 - `(visit_id, display_order)`는 유일하다.
 
 방문 대상과 조회 파생 규칙은
@@ -387,7 +416,7 @@ AI 생성 성공
 - 링크 생성 시 3일 뒤를 `share_expires_at`으로 저장하고, 재발급 시 같은 URL의
   만료 시각만 연장한다.
 - 모든 CoursePlace에 팀 Visit이 존재하면 Exploration을 자동 완료한다.
-- `OWNER Participant`만 미방문 CoursePlace가 남아 있어도 탐험을 조기 완료할 수 있다.
+- `ACTIVE OWNER Participant`만 미방문 CoursePlace가 남아 있어도 탐험을 조기 완료할 수 있다.
 
 ### Participant
 
@@ -410,8 +439,8 @@ Exploration 완료 → COMPLETED
 | Groq API | 추천 후보 순위와 선택 장소의 날짜별 방문 순서를 strict JSON Schema로 제안. 서버 검증 실패 시 규칙 기반 결과로 전체 대체 |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
 | TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
-| 객체 저장소 | 방문 인증 사진 원본 |
-| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계는 탐험·참여자 HTTP 조회로 복구한다. 개별 방문 복구 조회와 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md)). |
+| 비공개 Amazon S3 | 방문 인증 사진 원본. 모든 공개 접근·ACL을 차단하고 SSE-S3·HTTPS를 적용한다. ECS Task Role에는 전용 버킷 `visits/*`의 GET·PUT·DELETE만 허용하며 API는 1시간 presigned GET URL만 노출한다(ADR-0027). |
+| 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료·OWNER 조기 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계·개별 방문은 탐험·참여자·팀 방문 기록 HTTP 조회로 복구한다. 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md), [ADR-0027](../adr/0027-private-s3-visit-photo-storage.md)). |
 
 AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재시도하지 않는다. MVP는
 서버 영속 멱등성 키를 두지 않으므로 네트워크 중복까지 보장하지 않는다.
@@ -432,9 +461,11 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 ## 운영 배포 구조
 
 백엔드는 AWS ALB 뒤의 ECS Fargate에서 실행하고 RDS PostgreSQL을 서버 데이터 정본으로
-사용한다. GitHub Actions는 OIDC로 AWS 역할을 맡아 `main` 변경 후 새 컨테이너 이미지를
-자동 배포한다. 구조와 승인 결정은
-[ADR-0011](../adr/0011-aws-main-continuous-deployment.md), 상태 확인과 복구는
+사용한다. 방문 사진 원본은 비공개 S3에 두고 애플리케이션은 정적 키 없이 ECS Task
+Role로 접근한다. GitHub Actions는 OIDC로 AWS 역할을 맡아 `main` 변경 후 새 컨테이너
+이미지를 자동 배포한다. 구조와 승인 결정은
+[ADR-0011](../adr/0011-aws-main-continuous-deployment.md)과
+[ADR-0027](../adr/0027-private-s3-visit-photo-storage.md), 상태 확인과 복구는
 [AWS 배포·운영 절차](../operations/deployment.md)를 따른다.
 
 ## 현재 구현과 스키마 변경

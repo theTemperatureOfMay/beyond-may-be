@@ -1,0 +1,36 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/nearby-places?latitude=35.146600&longitude=126.919900"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    latitude: "35.146600"
+    longitude: "126.919900"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "places": [
+            {
+              "placeId": 121,
+              "name": "국립아시아문화전당",
+              "category": "박물관",
+              "latitude": 35.146702,
+              "longitude": 126.919998,
+              "distanceMeters": 15,
+              "thumbnailUrl": "https://example.com/places/121.webp"
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

@@ -23,6 +23,8 @@ public interface ExplorationParticipantRepository
 
   List<ExplorationParticipant> findByExplorationId(Long explorationId);
 
+  List<ExplorationParticipant> findByExplorationIdIn(List<Long> explorationIds);
+
   @Query(
       "SELECT COUNT(p) > 0 FROM ExplorationParticipant p, Exploration e "
           + "WHERE e.id = p.explorationId "

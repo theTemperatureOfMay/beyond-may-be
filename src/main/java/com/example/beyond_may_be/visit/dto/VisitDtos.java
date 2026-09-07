@@ -1,12 +1,14 @@
 package com.example.beyond_may_be.visit.dto;
 
 import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
+import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public final class VisitDtos {
@@ -31,6 +33,57 @@ public final class VisitDtos {
       boolean teamFirstVisit,
       ExplorationDtos.CourseProgressResponse courseProgress,
       String explorationStatus) {}
+
+  public record PhotoResponse(
+      Long visitPhotoId,
+      Long visitId,
+      int displayOrder,
+      String imageUrl,
+      OffsetDateTime urlExpiresAt,
+      OffsetDateTime uploadedAt) {}
+
+  public record VisitsResponse(Long explorationId, List<VisitResponse> visits, int totalCount) {}
+
+  public record VisitedPlacesResponse(
+      Long explorationId, List<VisitedPlaceResponse> visitedPlaces, int totalVisitedPlaceCount) {}
+
+  public record VisitedPlaceResponse(
+      Long placeId,
+      String name,
+      String category,
+      TravelPreferenceType travelMbtiType,
+      BigDecimal latitude,
+      BigDecimal longitude,
+      String thumbnailUrl,
+      boolean isCoursePlace,
+      int visitCount,
+      int visitedByCount,
+      OffsetDateTime firstVisitedAt,
+      OffsetDateTime lastVisitedAt,
+      List<String> participantDisplayNames) {}
+
+  public record VisitResponse(
+      Long visitId,
+      ParticipantResponse participant,
+      PlaceResponse place,
+      Long coursePlaceId,
+      boolean isCoursePlace,
+      OffsetDateTime visitedAt,
+      List<VisitPhotoResponse> photos) {}
+
+  public record ParticipantResponse(Long participantId, String displayName) {}
+
+  public record PlaceResponse(
+      Long placeId,
+      String name,
+      String category,
+      TravelPreferenceType travelMbtiType,
+      List<String> tags,
+      String address,
+      String thumbnailUrl) {}
+
+  public record VisitPhotoResponse(
+      Long visitPhotoId, int displayOrder, String imageUrl, OffsetDateTime urlExpiresAt) {}
 
   public record VisitConfirmedEvent(
       UUID eventId,

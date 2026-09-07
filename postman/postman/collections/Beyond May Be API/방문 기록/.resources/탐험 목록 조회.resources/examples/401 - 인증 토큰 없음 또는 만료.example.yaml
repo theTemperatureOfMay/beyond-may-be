@@ -1,0 +1,13 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+  method: GET
+  queryParams:
+    status: COMPLETED
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  body:
+    type: text
+    content: ""
+order: 4000

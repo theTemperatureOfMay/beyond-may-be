@@ -1,9 +1,13 @@
 # Terraform 인프라
 
-`beyond-may-be` 백엔드를 AWS(ECS Fargate + RDS PostgreSQL + ALB)에 배포하기 위한
+`beyond-may-be` 백엔드를 AWS(ECS Fargate + RDS PostgreSQL + ALB + 비공개 S3)에 배포하기 위한
 Terraform 구성이다. 구조와 자동 배포 결정은
 [ADR-0011](../docs/adr/0011-aws-main-continuous-deployment.md), 배포 상태 확인과 복구는
 [AWS 배포·운영 절차](../docs/operations/deployment.md)를 따른다.
+
+방문 사진 버킷은 공개 접근과 ACL을 모두 차단하고 SSE-S3·HTTPS를 적용한다. 애플리케이션
+컨테이너에는 access key를 넣지 않으며 ECS Task Role이 해당 버킷 `visits/*`의
+GET·PUT·DELETE만 수행한다([ADR-0027](../docs/adr/0027-private-s3-visit-photo-storage.md)).
 
 ## 사전 준비 (사람이 직접)
 
@@ -72,7 +76,8 @@ terraform apply
 
 적용 후 `alb_dns_name` 출력값으로 서비스에 접속하고, `github_actions_role_arn` 출력값을
 GitHub 저장소 Settings → Secrets and variables → Actions에 `AWS_ROLE_ARN`으로
-등록한다 (`.github/workflows/deploy.yml`이 이 값을 사용한다).
+등록한다 (`.github/workflows/deploy.yml`이 이 값을 사용한다). `visit_photo_bucket_name`은
+애플리케이션에 자동 전달되는 방문 사진 버킷을 확인할 때 사용한다.
 
 ## 주의
 
@@ -81,3 +86,5 @@ GitHub 저장소 Settings → Secrets and variables → Actions에 `AWS_ROLE_ARN
 - 첫 `apply`는 `image_tag = "latest"` 기준으로 ECS 태스크 정의를 만든다. 실제 이미지가
   아직 ECR에 없다면 첫 서비스 기동은 실패한 채로 있다가, `deploy.yml`이 처음으로
   이미지를 푸시하고 서비스를 갱신하면 정상화된다.
+- 방문 사진 버킷은 기존 객체를 자동 삭제하지 않는다. 인프라 제거가 필요해도 사진 보존과
+  복구 여부를 먼저 결정한 뒤 별도 승인으로 버킷을 비운다.

@@ -1,5 +1,6 @@
 package com.example.beyond_may_be.exploration.converter;
 
+import com.example.beyond_may_be.course.domain.Course;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
 import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
@@ -33,6 +34,33 @@ public final class ExplorationConverter {
             request.longitude(),
             request.accuracyMeters(),
             request.recordedAt()));
+  }
+
+  public static ExplorationDtos.ExplorationSummaryResponse toExplorationSummaryResponse(
+      Exploration exploration,
+      Course course,
+      String representativeImageUrl,
+      List<ExplorationParticipant> participants,
+      long completedCoursePlaceCount,
+      long totalCoursePlaceCount) {
+    return new ExplorationDtos.ExplorationSummaryResponse(
+        exploration.getId(),
+        course.getId(),
+        course.getTitle(),
+        exploration.getStatus().name(),
+        representativeImageUrl,
+        participants.size(),
+        participants.stream().map(ExplorationParticipant::getDisplayName).toList(),
+        completedCoursePlaceCount,
+        totalCoursePlaceCount,
+        toOffsetDateTime(exploration.getStartedAt()),
+        toOffsetDateTime(exploration.getCompletedAt()));
+  }
+
+  public static ExplorationDtos.ExplorationsResponse toExplorationsResponse(
+      ExplorationStatus status, List<ExplorationDtos.ExplorationSummaryResponse> explorations) {
+    return new ExplorationDtos.ExplorationsResponse(
+        status.name(), explorations, explorations.size());
   }
 
   public static ExplorationDtos.JoinResponse toJoinResponse(
@@ -100,6 +128,37 @@ public final class ExplorationConverter {
         response.startedAt(),
         new ExplorationDtos.ExplorationStartedData(
             response.status(), response.participantId(), response.startedAt()));
+  }
+
+  public static ExplorationDtos.CompleteResponse toCompleteResponse(
+      Exploration exploration,
+      String completionReason,
+      long completedCoursePlaceCount,
+      long totalCoursePlaceCount) {
+    int completionRate =
+        totalCoursePlaceCount == 0
+            ? 0
+            : (int) (completedCoursePlaceCount * 100 / totalCoursePlaceCount);
+    return new ExplorationDtos.CompleteResponse(
+        exploration.getId(),
+        exploration.getCourseId(),
+        exploration.getStatus().name(),
+        completionReason,
+        toOffsetDateTime(exploration.getCompletedAt()),
+        new ExplorationDtos.CourseProgressResponse(
+            completedCoursePlaceCount, totalCoursePlaceCount, completionRate));
+  }
+
+  public static ExplorationDtos.ExplorationCompletedEvent toExplorationCompletedEvent(
+      UUID eventId, Long explorationId, LocalDateTime completedAt, String completionReason) {
+    OffsetDateTime occurredAt = toOffsetDateTime(completedAt);
+    return new ExplorationDtos.ExplorationCompletedEvent(
+        eventId,
+        "EXPLORATION_COMPLETED",
+        explorationId,
+        occurredAt,
+        new ExplorationDtos.ExplorationCompletedData(
+            ExplorationStatus.COMPLETED.name(), occurredAt, completionReason));
   }
 
   public static ExplorationDtos.LocationSharingResponse toLocationSharingResponse(

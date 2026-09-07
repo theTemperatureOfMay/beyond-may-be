@@ -1,0 +1,58 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits/visited-places?explorationId=44"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    explorationId: "44"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "explorationId": 44,
+          "visitedPlaces": [
+            {
+              "placeId": 101,
+              "name": "국립아시아문화전당",
+              "category": "문화시설",
+              "travelMbtiType": "ARTIST",
+              "latitude": 35.1466,
+              "longitude": 126.9199,
+              "thumbnailUrl": "https://example.com/places/101.webp",
+              "isCoursePlace": true,
+              "visitCount": 3,
+              "visitedByCount": 3,
+              "firstVisitedAt": "2026-08-15T11:20:00+09:00",
+              "lastVisitedAt": "2026-08-15T16:10:20+09:00",
+              "participantDisplayNames": ["여행자", "별밤지기", "숲길산책"]
+            },
+            {
+              "placeId": 121,
+              "name": "양림동 펭귄마을",
+              "category": "관광지",
+              "travelMbtiType": "REMEMBERER",
+              "latitude": 35.1401,
+              "longitude": 126.9123,
+              "thumbnailUrl": null,
+              "isCoursePlace": false,
+              "visitCount": 2,
+              "visitedByCount": 2,
+              "firstVisitedAt": "2026-08-15T14:32:10+09:00",
+              "lastVisitedAt": "2026-08-15T15:05:40+09:00",
+              "participantDisplayNames": ["김감자감자", "별밤지기"]
+            }
+          ],
+          "totalVisitedPlaceCount": 2
+        },
+        "success": true
+      }
+order: 1000

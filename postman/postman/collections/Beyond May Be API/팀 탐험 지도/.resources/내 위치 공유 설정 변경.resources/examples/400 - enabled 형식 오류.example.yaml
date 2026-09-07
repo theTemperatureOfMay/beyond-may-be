@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+  method: PATCH
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "enabled": "true"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "잘못된 요청입니다.",
+        "code": "COMMON400",
+        "data": {
+          "request_body": "잘못된 요청입니다."
+        },
+        "success": false
+      }
+order: 2000

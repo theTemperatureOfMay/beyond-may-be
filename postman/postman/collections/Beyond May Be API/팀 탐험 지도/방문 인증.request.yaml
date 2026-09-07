@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/visits"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "explorationId": 44,
+      "placeId": 121,
+      "latitude": 35.1402,
+      "longitude": 126.9124,
+      "accuracyMeters": 18.5
+    }
+examples: ./.resources/방문 인증.resources/examples
+order: 10000

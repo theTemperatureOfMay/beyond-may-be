@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/visits/9001/photos"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: formdata
+  content:
+    - type: file
+      key: file
+      src: []
+examples: ./.resources/방문 사진 첨부.resources/examples
+order: 4000

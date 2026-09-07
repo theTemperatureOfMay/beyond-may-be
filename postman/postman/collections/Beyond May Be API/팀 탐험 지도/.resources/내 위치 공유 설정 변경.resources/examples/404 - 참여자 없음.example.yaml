@@ -1,0 +1,28 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+  method: PATCH
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "enabled": true
+      }
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "탐험 참여자를 찾을 수 없습니다.",
+        "code": "EXPLORATION404_2",
+        "data": null,
+        "success": false
+      }
+order: 6000

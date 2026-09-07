@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/join"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "생성에 성공했습니다.",
+        "code": "COMMON201",
+        "data": {
+          "explorationId": 1,
+          "participantId": 2,
+          "role": "MEMBER",
+          "status": "ACTIVE",
+          "displayName": "여행자 (2)",
+          "locationSharingEnabled": false,
+          "joinedAt": "2026-08-15T21:15:00+09:00",
+          "alreadyJoined": false
+        },
+        "success": true
+      }
+order: 1000

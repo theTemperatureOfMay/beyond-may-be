@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
@@ -87,6 +89,25 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
     return handleExceptionInternalArgs(
         e, HttpHeaders.EMPTY, ErrorStatus.valueOf("_BAD_REQUEST"), request, errors);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleMissingServletRequestPart(
+      MissingServletRequestPartException e,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest request) {
+    return handleExceptionInternalConstraint(e, ErrorStatus._BAD_REQUEST, headers, request);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+      MaxUploadSizeExceededException e,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest request) {
+    return handleExceptionInternalConstraint(
+        e, ErrorStatus.VISIT_PHOTO_TOO_LARGE, headers, request);
   }
 
   @ExceptionHandler

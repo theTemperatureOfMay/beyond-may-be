@@ -12,5 +12,7 @@ public interface CoursePlaceRepository extends JpaRepository<CoursePlace, Long> 
 
   List<CoursePlace> findByCourseIdOrderByDayNumberAscVisitOrderAsc(Long courseId);
 
+  List<CoursePlace> findByCourseIdInOrderByDayNumberAscVisitOrderAsc(List<Long> courseIds);
+
   void deleteByCourseId(Long courseId);
 }

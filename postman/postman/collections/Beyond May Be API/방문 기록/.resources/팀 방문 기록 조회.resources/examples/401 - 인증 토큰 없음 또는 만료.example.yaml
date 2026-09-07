@@ -1,0 +1,13 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits?explorationId=44"
+  method: GET
+  queryParams:
+    explorationId: "44"
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  body:
+    type: text
+    content: ""
+order: 4000

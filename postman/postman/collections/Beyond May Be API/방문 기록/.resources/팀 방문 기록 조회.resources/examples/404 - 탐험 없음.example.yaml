@@ -1,0 +1,23 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits?explorationId=999999"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+  queryParams:
+    explorationId: "999999"
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "탐험을 찾을 수 없습니다.",
+        "code": "EXPLORATION404",
+        "data": null,
+        "success": false
+      }
+order: 6000

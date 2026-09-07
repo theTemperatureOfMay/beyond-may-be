@@ -1,7 +1,7 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/explorations/1/members"
+url: "{{baseUrl}}/api/v1/explorations/44/participants"
 method: GET
 headers:
   Authorization: Bearer {{accessToken}}
 examples: ./.resources/팀원 목록 조회.resources/examples
-order: 3000
+order: 6000
