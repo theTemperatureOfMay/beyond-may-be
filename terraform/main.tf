@@ -120,6 +120,11 @@ module "ecr" {
   name   = var.project_name
 }
 
+module "s3" {
+  source = "./modules/s3"
+  name   = var.visit_photos_bucket_name
+}
+
 module "rds" {
   source                     = "./modules/rds"
   name                       = var.project_name
@@ -169,8 +174,9 @@ module "alb_ecs" {
   tourism_api_key_parameter_arn   = module.ssm.tourism_api_key_parameter_arn
   tourism_api_base_url            = var.tourism_api_base_url
   tourism_popularity_api_base_url = var.tourism_popularity_api_base_url
-  visit_photo_bucket_name         = aws_s3_bucket.visit_photos.id
-  visit_photo_bucket_arn          = aws_s3_bucket.visit_photos.arn
+
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_arn  = module.s3.bucket_arn
 }
 
 module "iam" {
