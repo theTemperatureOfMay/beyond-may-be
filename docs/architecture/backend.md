@@ -49,6 +49,7 @@
 | 탐험 시작·주변 장소 추천 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 실시간 위치 전송·구독 | `ONGOING Exploration`의 `ACTIVE Participant` |
 | 팀원 조회 | 해당 `Exploration`의 `LEFT`가 아닌 `Participant` |
+| 코스별 탐험 ID·탐험 상세 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
 | 방문 인증 | 해당 `Exploration`의 `ACTIVE Participant` |
 | 사진 첨부 | `Visit`을 만든 사용자이면서 해당 `Participant`가 `ACTIVE` |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |

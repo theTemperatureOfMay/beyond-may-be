@@ -17,6 +17,10 @@ public final class ExplorationConverter {
 
   private ExplorationConverter() {}
 
+  public static ExplorationDtos.IdResponse toIdResponse(Exploration exploration) {
+    return new ExplorationDtos.IdResponse(exploration.getId());
+  }
+
   public static ExplorationDtos.LocationUpdatedEvent toLocationUpdatedEvent(
       UUID eventId,
       OffsetDateTime occurredAt,

@@ -19,6 +19,8 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 public final class ExplorationDtos {
   private ExplorationDtos() {}
 
+  public record IdResponse(Long explorationId) {}
+
   public record LocationUpdateRequest(
       @NotNull
           @DecimalMin("-90.0")

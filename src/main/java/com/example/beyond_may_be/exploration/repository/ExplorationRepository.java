@@ -13,6 +13,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ExplorationRepository extends JpaRepository<Exploration, Long> {
+  Optional<Exploration> findByCourseId(Long courseId);
+
   @Query(
       "SELECT e FROM Exploration e, ExplorationParticipant p "
           + "WHERE p.explorationId = e.id "

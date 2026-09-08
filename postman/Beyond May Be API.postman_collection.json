@@ -1130,6 +1130,108 @@
           ]
         },
         {
+          "name": "코스별 탐험 ID 조회",
+          "description": "코스 ID만 알고 있는 현재 또는 과거 참여자가 연결된 탐험 ID를 조회합니다(4.2.1). 인증 필요: Authorization: Bearer {{accessToken}}. Path variable courseId; query와 요청 본문은 없습니다. 탐험 상태·참여 상태(LEFT·COMPLETED 포함)·공유 링크 만료에 관계없이 조회합니다. 미인증은 401, 해당 탐험의 참여 기록이 없으면 403, 연결된 탐험이 없으면(없는 코스·미확정 코스 포함) 404를 반환합니다. 데이터나 참여 상태를 변경하지 않습니다.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/31/exploration"
+          },
+          "response": [
+            {
+              "name": "200 - 탐험 ID",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/31/exploration"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\r\n  \"message\": \"성공입니다.\",\r\n  \"code\": \"COMMON200\",\r\n  \"data\": {\r\n    \"explorationId\": 44\r\n  },\r\n  \"success\": true\r\n}"
+            },
+            {
+              "name": "401 - 인증 토큰 없음 또는 만료",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/courses/31/exploration"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "403 - 탐험 참여자가 아님",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/31/exploration"
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"금지된 요청입니다.\",\n  \"code\": \"COMMON403\",\n  \"data\": null,\n  \"success\": false\n}"
+            },
+            {
+              "name": "404 - 탐험 없음",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/courses/999999/exploration"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"탐험을 찾을 수 없습니다.\",\n  \"code\": \"EXPLORATION404\",\n  \"data\": null,\n  \"success\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "코스(확정) 조회",
           "description": "공유 링크로 접속했을 때 확정 코스 데이터를 조회합니다(4.1.1·4.2.1). 인증이 필요 없습니다(비로그인 사용자도 미리보기 가능) — architecture/backend.md의 '유효한 공유 코스 미리보기 | 비인증 허용'과 일치. 확정되지 않은 코스는 404, 공유 링크가 만료됐으면 410을 반환합니다. Path variable `courseId`.",
           "request": {

@@ -28,6 +28,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,6 +46,53 @@ class ExplorationDetailServiceTest {
   @Mock private CoursePlaceRepository coursePlaceRepository;
   @Mock private UserRepository userRepository;
   @Mock private VisitRepository visitRepository;
+
+  @DisplayName("현재 또는 과거 참여자는 코스 ID로 탐험 ID를 조회한다.")
+  @ParameterizedTest
+  @EnumSource(ParticipantStatus.class)
+  void getIdByCourseId_participant_returnsExplorationId(ParticipantStatus status) {
+    given(explorationRepository.findByCourseId(31L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.BEFORE)));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 2L))
+        .willReturn(Optional.of(participant(72L, 2L, ParticipantRole.MEMBER, status)));
+
+    assertThat(explorationService.getIdByCourseId(31L, 2L).explorationId()).isEqualTo(44L);
+  }
+
+  @DisplayName("시작 전·진행 중·완료 탐험 모두 코스 ID로 조회한다.")
+  @ParameterizedTest
+  @EnumSource(ExplorationStatus.class)
+  void getIdByCourseId_anyExplorationStatus_returnsExplorationId(ExplorationStatus status) {
+    given(explorationRepository.findByCourseId(31L)).willReturn(Optional.of(exploration(status)));
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 2L))
+        .willReturn(
+            Optional.of(participant(72L, 2L, ParticipantRole.OWNER, ParticipantStatus.COMPLETED)));
+
+    assertThat(explorationService.getIdByCourseId(31L, 2L).explorationId()).isEqualTo(44L);
+  }
+
+  @DisplayName("코스에 연결된 탐험이 없으면 404 오류를 반환한다.")
+  @Test
+  void getIdByCourseId_missingExploration_throwsNotFound() {
+    ExplorationHandler exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            ExplorationHandler.class, () -> explorationService.getIdByCourseId(31L, 2L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.EXPLORATION_NOT_FOUND);
+  }
+
+  @DisplayName("코스에 연결된 탐험의 참여자가 아니면 403 오류를 반환한다.")
+  @Test
+  void getIdByCourseId_nonParticipant_throwsForbidden() {
+    given(explorationRepository.findByCourseId(31L))
+        .willReturn(Optional.of(exploration(ExplorationStatus.BEFORE)));
+
+    ExplorationHandler exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            ExplorationHandler.class, () -> explorationService.getIdByCourseId(31L, 2L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus._FORBIDDEN);
+  }
 
   private OffsetDateTime toSeoulTime(LocalDateTime value) {
     return value
