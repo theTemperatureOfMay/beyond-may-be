@@ -57,6 +57,29 @@ public class CourseController {
     return ApiResponse.onSuccess(courseService.getCourseDetail(courseId));
   }
 
+  @Operation(
+      summary = "코스별 탐험 ID 조회",
+      description = "인증된 현재 또는 과거 참여자가 코스에 연결된 탐험 ID를 조회합니다. 공유 링크 만료와 탐험 상태에 관계없이 조회할 수 있습니다.")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "탐험 ID"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "401",
+        description = "인증 필요"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "403",
+        description = "탐험 참여자가 아님"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "코스에 연결된 탐험 없음")
+  })
+  @GetMapping("/{courseId}/exploration")
+  public ApiResponse<ExplorationDtos.IdResponse> getExplorationId(
+      @PathVariable Long courseId, @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(explorationService.getIdByCourseId(courseId, userId));
+  }
+
   @Operation(summary = "탐험 합류", description = "최초 합류는 201, 기존 참여자의 재요청 및 재합류는 200을 반환합니다.")
   @ApiResponses({
     @io.swagger.v3.oas.annotations.responses.ApiResponse(

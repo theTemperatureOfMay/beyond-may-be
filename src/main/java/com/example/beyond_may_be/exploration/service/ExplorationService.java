@@ -62,6 +62,18 @@ public class ExplorationService {
   private final ApplicationEventPublisher applicationEventPublisher;
 
   @Transactional(readOnly = true)
+  public ExplorationDtos.IdResponse getIdByCourseId(Long courseId, Long userId) {
+    Exploration exploration =
+        explorationRepository
+            .findByCourseId(courseId)
+            .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+    explorationParticipantRepository
+        .findByExplorationIdAndUserId(exploration.getId(), userId)
+        .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
+    return ExplorationConverter.toIdResponse(exploration);
+  }
+
+  @Transactional(readOnly = true)
   public ExplorationDtos.ExplorationsResponse getExplorations(
       Long userId, ExplorationStatus status) {
     if (status == null || status == ExplorationStatus.BEFORE) {

@@ -35,6 +35,21 @@ class ExplorationRepositoryTest {
   @Autowired private ExplorationParticipantRepository explorationParticipantRepository;
   @Autowired private PlatformTransactionManager transactionManager;
 
+  @DisplayName("코스 ID에 연결된 탐험을 조회하고 없으면 빈 결과를 반환한다.")
+  @Test
+  void findByCourseId_returnsOnlyMatchingExploration() {
+    Exploration matching =
+        explorationRepository.saveAndFlush(
+            Exploration.builder().courseId(999995L).status(ExplorationStatus.BEFORE).build());
+    explorationRepository.saveAndFlush(
+        Exploration.builder().courseId(999996L).status(ExplorationStatus.COMPLETED).build());
+
+    assertThat(explorationRepository.findByCourseId(999995L))
+        .map(Exploration::getId)
+        .contains(matching.getId());
+    assertThat(explorationRepository.findByCourseId(999997L)).isEmpty();
+  }
+
   @DisplayName("현재 또는 과거 참여자의 완료 탐험을 완료 시각 내림차순으로 조회한다.")
   @Test
   void findAllByParticipantUserIdAndStatus_returnsMembershipHistoryInCompletionOrder() {

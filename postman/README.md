@@ -20,6 +20,7 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
   `장소 선택 / GET {{baseUrl}}/api/v1/recommendations`,
   `장소 선택 / POST {{baseUrl}}/api/v1/recommendations/{batchNumber}/reactions`,
   `코스 / POST {{baseUrl}}/api/v1/courses/ai-generation`,
+  `코스 / GET {{baseUrl}}/api/v1/courses/{courseId}/exploration`,
   `방문 기록 / GET {{baseUrl}}/api/v1/explorations?status={status}`,
   `팀 탐험 지도 / GET {{baseUrl}}/api/v1/explorations/{explorationId}`,
   `방문 기록 / POST {{baseUrl}}/api/v1/explorations/{explorationId}/complete`,

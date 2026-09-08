@@ -4,16 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
+import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.course.dto.CourseDtos;
 import com.example.beyond_may_be.course.service.CourseService;
+import com.example.beyond_may_be.exploration.dto.ExplorationDtos;
 import com.example.beyond_may_be.exploration.service.ExplorationService;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -40,11 +44,75 @@ class CourseControllerTest {
   @Autowired private AuthTokenService authTokenService;
   @Autowired private CourseService courseService;
   @Autowired private CourseController courseController;
+  @Autowired private ExplorationService explorationService;
 
   @BeforeEach
   void authenticate() {
-    reset(authTokenService, courseService);
+    reset(authTokenService, courseService, explorationService);
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(1L));
+  }
+
+  @Test
+  void returnsExplorationIdByCourseId() throws Exception {
+    given(explorationService.getIdByCourseId(31L, 1L))
+        .willReturn(new ExplorationDtos.IdResponse(44L));
+
+    mockMvc
+        .perform(
+            get("/api/v1/courses/31/exploration").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value("COMMON200"))
+        .andExpect(jsonPath("$.data.explorationId").value(44))
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.success").value(true));
+  }
+
+  @Test
+  void rejectsUnauthenticatedExplorationIdLookup() throws Exception {
+    mockMvc.perform(get("/api/v1/courses/31/exploration")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void rejectsExplorationIdLookupByNonParticipant() throws Exception {
+    given(explorationService.getIdByCourseId(31L, 1L))
+        .willThrow(new ExplorationHandler(ErrorStatus._FORBIDDEN));
+
+    mockMvc
+        .perform(
+            get("/api/v1/courses/31/exploration").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("COMMON403"));
+  }
+
+  @Test
+  void returnsNotFoundWhenCourseHasNoExploration() throws Exception {
+    given(explorationService.getIdByCourseId(31L, 1L))
+        .willThrow(new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+
+    mockMvc
+        .perform(
+            get("/api/v1/courses/31/exploration").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("EXPLORATION404"));
+  }
+
+  @Test
+  void documentsExplorationIdLookup() throws Exception {
+    mockMvc
+        .perform(get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$.paths['/api/v1/courses/{courseId}/exploration'].get.responses['200']")
+                .exists())
+        .andExpect(
+            jsonPath("$.paths['/api/v1/courses/{courseId}/exploration'].get.responses['401']")
+                .exists())
+        .andExpect(
+            jsonPath("$.paths['/api/v1/courses/{courseId}/exploration'].get.responses['403']")
+                .exists())
+        .andExpect(
+            jsonPath("$.paths['/api/v1/courses/{courseId}/exploration'].get.responses['404']")
+                .exists());
   }
 
   @Test
