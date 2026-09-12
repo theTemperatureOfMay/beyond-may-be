@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/places/recommendations?type=THINKER"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  type: THINKER
+examples: ./.resources/MBTI 유형별 장소 추천.resources/examples
+order: 2000

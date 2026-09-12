@@ -1,0 +1,73 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/places/5"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "courseId": 1,
+          "title": "광주 여행",
+          "status": "DRAFT",
+          "travelSchedule": "DAY_TRIP",
+          "startDate": "2026-08-20",
+          "endDate": "2026-08-20",
+          "startTime": "09:00:00",
+          "places": [
+            {
+              "placeId": 1,
+              "name": "장소1",
+              "category": "카페",
+              "travelMbtiType": "THINKER",
+              "summary": "카페 · 잠깐 쉬어가기",
+              "address": "광주",
+              "latitude": 35.15,
+              "longitude": 126.85,
+              "dayNumber": 1,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 30,
+              "travelModeFromPrevious": null
+            },
+            {
+              "placeId": 5,
+              "name": "양림동 카페",
+              "category": "카페",
+              "travelMbtiType": "FOODIE",
+              "summary": "카페 · 로컬 미식",
+              "address": "광주 남구",
+              "latitude": 35.14,
+              "longitude": 126.91,
+              "dayNumber": 1,
+              "visitOrder": 2,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": "WALK"
+            },
+            {
+              "placeId": 2,
+              "name": "장소2",
+              "category": "카페",
+              "travelMbtiType": "THINKER",
+              "summary": "카페 · 잠깐 쉬어가기",
+              "address": "광주",
+              "latitude": 35.15,
+              "longitude": 126.85,
+              "dayNumber": 1,
+              "visitOrder": 3,
+              "estimatedStayMinutes": 45,
+              "travelModeFromPrevious": "WALK"
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

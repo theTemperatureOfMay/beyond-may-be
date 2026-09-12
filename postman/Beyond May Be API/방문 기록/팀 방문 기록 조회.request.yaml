@@ -1,0 +1,8 @@
+$kind: http-request
+description: "한 탐험의 전체 팀 방문 기록을 조회합니다(5.2.1). 인증 필요: Authorization: Bearer {{accessToken}}. 필수 query explorationId는 양의 int64이며 현재 또는 과거 참여자만 조회할 수 있습니다. 코스·주변 장소 Visit을 visitedAt 내림차순으로 반환하고 사진은 displayOrder 오름차순입니다. 사진마다 비공개 S3 object key로 새 presigned GET URL을 발급하며 userId와 object key는 노출하지 않습니다. 방문이 없으면 빈 배열과 totalCount 0을 반환합니다."
+url: "{{baseUrl}}/api/v1/visits?explorationId=44"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/팀 방문 기록 조회.resources/examples
+order: 3000

@@ -1,0 +1,8 @@
+$kind: http-request
+description: "코스 챗봇이 추천한 장소를 코스에 추가하면서 Groq에게 기존 코스 전체 + 새 장소를 다시 보내 거리·동선을 고려해 전체 순서를 재배치합니다. 미리보기 단계 없이 즉시 저장됩니다. `Course.aiRevisionCount`(3.2.1 텍스트 요청용 2회 제한)와는 무관하며 소비하지 않습니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`, `placeId`. 요청 본문은 없습니다."
+url: "{{baseUrl}}/api/v1/courses/1/places/5"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/코스 챗봇 - 추천 장소 추가.resources/examples
+order: 9000

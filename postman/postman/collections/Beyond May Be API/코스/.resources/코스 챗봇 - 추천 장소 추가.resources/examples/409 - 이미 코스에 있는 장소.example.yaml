@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/places/1"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "중복된 장소가 포함되어 있습니다.",
+        "code": "COURSE400_2",
+        "data": null,
+        "success": false
+      }
+order: 2000

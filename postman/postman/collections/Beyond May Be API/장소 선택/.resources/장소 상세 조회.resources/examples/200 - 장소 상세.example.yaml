@@ -1,0 +1,33 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/places/101"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "placeId": 101,
+          "name": "국립아시아문화전당",
+          "category": "전시",
+          "travelMbtiType": "ARTIST",
+          "tags": ["전시", "문화"],
+          "address": "광주광역시 동구 문화전당로 38",
+          "latitude": 35.146600,
+          "longitude": 126.919900,
+          "businessHours": "평일 10:00-18:00",
+          "description": "검수된 상세 설명",
+          "thumbnailUrl": "https://example.com/places/101.webp"
+        },
+        "success": true
+      }
+order: 1000

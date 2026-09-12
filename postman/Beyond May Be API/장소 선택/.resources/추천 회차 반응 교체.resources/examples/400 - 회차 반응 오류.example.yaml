@@ -1,0 +1,29 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/recommendations/1/reactions"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "likedPlaceIds": [101, 101],
+        "dislikedPlaceIds": [102, 103, 104, 105, 107]
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "추천 회차 반응이 올바르지 않습니다.",
+        "code": "RECOMMENDATION400_2",
+        "data": null,
+        "success": false
+      }
+order: 2000

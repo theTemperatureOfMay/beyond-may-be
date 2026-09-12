@@ -1,0 +1,49 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/recommendations/1/reactions"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "likedPlaceIds": [101, 103, 107],
+        "dislikedPlaceIds": [102, 104, 105]
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "recommendationId": 12,
+          "batchNumber": 1,
+          "selectedPlaceCount": 3,
+          "minimumSelectionCount": 5,
+          "selectionReady": false,
+          "hasNextBatch": true,
+          "nextBatch": {
+            "batchNumber": 2,
+            "places": [
+              {
+                "placeId": 121,
+                "name": "양림동 펭귄마을",
+                "category": "관광지",
+                "tags": ["골목", "역사"],
+                "summary": "검수된 장소 소개 문구",
+                "thumbnailUrl": null
+              }
+            ]
+          }
+        },
+        "success": true
+      }
+order: 1000

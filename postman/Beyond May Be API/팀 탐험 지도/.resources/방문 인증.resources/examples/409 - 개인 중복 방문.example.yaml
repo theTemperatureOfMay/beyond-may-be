@@ -1,0 +1,32 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "explorationId": 44,
+        "placeId": 121,
+        "latitude": 35.1402,
+        "longitude": 126.9124,
+        "accuracyMeters": 18.5
+      }
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "이미 방문 인증한 장소입니다.",
+        "code": "VISIT409",
+        "data": null,
+        "success": false
+      }
+order: 5000

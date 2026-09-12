@@ -1,0 +1,45 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/draft"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "courseId": 1,
+          "title": "광주 여행",
+          "status": "DRAFT",
+          "travelSchedule": "DAY_TRIP",
+          "startDate": "2026-08-20",
+          "endDate": "2026-08-20",
+          "startTime": "09:00:00",
+          "places": [
+            {
+              "placeId": 1,
+              "name": "테스트 장소",
+              "category": "카페",
+              "travelMbtiType": "THINKER",
+              "summary": "조용한 로컬 카페",
+              "address": "광주 동구 테스트로 1",
+              "latitude": 35.1595,
+              "longitude": 126.8526,
+              "dayNumber": 1,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": null
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

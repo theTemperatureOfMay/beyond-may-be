@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/chat"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "message": "야경 명소 넣어줘"
+    }
+examples: ./.resources/코스 챗봇 - 수정 요청.resources/examples
+order: 6000

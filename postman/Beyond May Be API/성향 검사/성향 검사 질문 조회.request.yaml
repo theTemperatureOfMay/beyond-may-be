@@ -1,0 +1,6 @@
+$kind: http-request
+description: 성향 검사 질문 21개를 선택지·유형별 가중치와 함께 한 번에 반환합니다. 인증이 필요 없습니다 (로그인 전 접근).
+url: "{{baseUrl}}/api/v1/preference-tests/questions"
+method: GET
+examples: ./.resources/성향 검사 질문 조회.resources/examples
+order: 1000

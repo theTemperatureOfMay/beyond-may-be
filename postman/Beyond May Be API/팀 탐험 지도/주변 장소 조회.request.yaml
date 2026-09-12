@@ -1,0 +1,8 @@
+$kind: http-request
+description: "진행 중 탐험의 ACTIVE 참여자가 현재 좌표 1km 안의 광주 주변 장소를 거리순으로 최대 3곳 조회합니다(4.4.1). 인증 필요: `Authorization: Bearer {{accessToken}}`. Query `latitude`는 -90~90, `longitude`는 -180~180입니다. TourAPI의 유효 장소는 내부 Place로 저장·재사용하고 현재 코스 장소는 제외합니다. 외부 키·호출·응답·유효 후보가 없으면 저장된 활성 장소를 같은 조건으로 조회하며, 후보가 없으면 빈 `places`를 정상 반환합니다."
+url: "{{baseUrl}}/api/v1/explorations/44/nearby-places?latitude=35.146600&longitude=126.919900"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/주변 장소 조회.resources/examples
+order: 7000

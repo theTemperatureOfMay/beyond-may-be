@@ -1,0 +1,56 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/chat/apply"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "places": [
+          { "placeId": 3, "dayNumber": 1, "visitOrder": 1 },
+          { "placeId": 1, "dayNumber": 1, "visitOrder": 2 },
+          { "placeId": 2, "dayNumber": 1, "visitOrder": 3 }
+        ]
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "courseId": 1,
+          "title": "광주 여행",
+          "status": "DRAFT",
+          "travelSchedule": "DAY_TRIP",
+          "startDate": "2026-08-20",
+          "endDate": "2026-08-20",
+          "startTime": "09:00:00",
+          "places": [
+            {
+              "placeId": 3,
+              "name": "장소3",
+              "category": "야경 명소",
+              "travelMbtiType": "ARTIST",
+              "summary": "야경 · 저녁 산책",
+              "address": "광주",
+              "latitude": 35.15,
+              "longitude": 126.85,
+              "dayNumber": 1,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": null
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

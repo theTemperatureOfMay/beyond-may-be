@@ -1,0 +1,64 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/preference-tests/questions"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "questions": [
+            {
+              "questionId": 1,
+              "content": "여행 첫날, 광주에 도착하면 가장 먼저 가고 싶은 곳은?",
+              "options": [
+                {
+                  "optionId": 1,
+                  "displayOrder": 1,
+                  "content": "한글 이름이 예쁜 동네 책방",
+                  "thinkerWeight": 1,
+                  "foodieWeight": 0,
+                  "artistWeight": 0,
+                  "remembererWeight": 0
+                },
+                {
+                  "optionId": 2,
+                  "displayOrder": 2,
+                  "content": "SNS에서 본 그 빵집 줄서기",
+                  "thinkerWeight": 0,
+                  "foodieWeight": 1,
+                  "artistWeight": 0,
+                  "remembererWeight": 0
+                },
+                {
+                  "optionId": 3,
+                  "displayOrder": 3,
+                  "content": "국립아시아문화전당 전시",
+                  "thinkerWeight": 0,
+                  "foodieWeight": 0,
+                  "artistWeight": 1,
+                  "remembererWeight": 0
+                },
+                {
+                  "optionId": 4,
+                  "displayOrder": 4,
+                  "content": "옛 전남도청 앞 광장",
+                  "thinkerWeight": 0,
+                  "foodieWeight": 0,
+                  "artistWeight": 0,
+                  "remembererWeight": 1
+                }
+              ]
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

@@ -1,0 +1,8 @@
+$kind: http-request
+description: "DRAFT 코스를 확정합니다(3.3.1). 코스 소유자만 호출할 수 있고, 다른 BEFORE·ONGOING 탐험의 ACTIVE Participant가 없을 때 Exploration(BEFORE)과 소유자 Participant(OWNER, ACTIVE)를 함께 생성하며 공유 링크 만료 시각(3일 뒤)을 설정합니다. 이미 활성 참여가 있으면 409 EXPLORATION409를 반환합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다."
+url: "{{baseUrl}}/api/v1/courses/1/confirm"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/코스 확정.resources/examples
+order: 2000

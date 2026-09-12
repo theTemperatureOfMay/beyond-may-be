@@ -1,0 +1,25 @@
+$kind: http-request
+description: 닉네임과 식별 코드로 로그인합니다. 인증이 필요 없습니다. 닉네임/식별 코드가 일치하지 않으면 계정 열거 방지를 위해 어느 쪽이 틀렸는지 구분하지 않는 통합 오류를 반환합니다. 응답의 `token`은 test 스크립트가 `accessToken` 컬렉션 변수에 자동으로 저장합니다(회원가입과 동일).
+url: "{{baseUrl}}/api/v1/users/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nickname": "여행자",
+      "identificationCode": 42
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        const body = pm.response.json();
+        if (body.data && body.data.token) {
+          pm.collectionVariables.set('accessToken', body.data.token);
+        }
+      }
+    language: text/javascript
+examples: ./.resources/로그인.resources/examples
+order: 2000

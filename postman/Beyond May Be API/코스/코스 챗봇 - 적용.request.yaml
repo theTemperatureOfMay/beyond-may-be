@@ -1,0 +1,19 @@
+$kind: http-request
+description: "'코스 챗봇 - 수정 요청' 응답의 `proposedPlaces`를 그대로 다시 보내 코스에 실제로 반영합니다(3.2.1 '이 코스로 변경'). 검증 규칙은 '코스 수정 (직접)'과 동일합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`."
+url: "{{baseUrl}}/api/v1/courses/1/chat/apply"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "places": [
+        { "placeId": 3, "dayNumber": 1, "visitOrder": 1 },
+        { "placeId": 1, "dayNumber": 1, "visitOrder": 2 },
+        { "placeId": 2, "dayNumber": 1, "visitOrder": 3 }
+      ]
+    }
+examples: ./.resources/코스 챗봇 - 적용.resources/examples
+order: 8000

@@ -1,0 +1,15 @@
+$kind: http-request
+description: "자유 텍스트로 AI에게 코스 수정을 요청합니다(3.2.1). Groq 응답에 따라 수정된 코스 미리보기(`COURSE_REVISION`) 또는 장소 추천(`ADD_RECOMMENDATION`)을 돌려주며, 이 시점에는 코스가 저장되지 않습니다 — 미리보기를 반영하려면 '코스 챗봇 - 적용'을, 추천 장소를 코스에 넣으려면 '코스 수정 (직접)'을 호출해야 합니다. `ADD_RECOMMENDATION`은 활성 상태인 실제 `places` 레코드 중에서만 추천하도록 강제되며 응답에 실제 `placeId`가 포함됩니다. Course별 최대 2회까지만 요청할 수 있습니다. 메시지는 최대 150자입니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`."
+url: "{{baseUrl}}/api/v1/courses/1/chat"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "message": "야경 명소 넣어줘"
+    }
+examples: ./.resources/코스 챗봇 - 수정 요청.resources/examples
+order: 7000

@@ -1,0 +1,8 @@
+$kind: http-request
+description: "기존 탐험에서 나갑니다(6.4.1). 인증과 explorationId가 필요하며 본문은 없습니다. Participant를 LEFT로 바꾸고 위치 공유를 끄며 참여·방문·사진은 보존합니다. OWNER가 나가면 가장 먼저 합류한 ACTIVE 팀원에게 소유권을 이전합니다(동률은 participantId 순). 빈 팀은 활성 ownerParticipantId가 null이며 이후 첫 합류·재합류자가 OWNER가 됩니다. 반복 이탈은 기존 leftAt으로 200을 반환합니다. 이탈 성공 후 새 코스의 join을 호출하며 새 합류 실패 시 이탈은 유지됩니다. 커밋 후 LOCATION_SHARING_CHANGED(false)와 PARTICIPANT_LEFT를 발행합니다. 비참여자는 403, 탐험 없음은 404, 완료된 탐험의 새 이탈은 EXPLORATION409_2입니다."
+url: "{{baseUrl}}/api/v1/explorations/44/leave"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/탐험 이탈.resources/examples
+order: 2500

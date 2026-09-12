@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/complete"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "진행 중인 탐험이 아닙니다.",
+        "code": "EXPLORATION409_4",
+        "data": null,
+        "success": false
+      }
+order: 5000

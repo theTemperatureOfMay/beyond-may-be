@@ -1,0 +1,48 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "explorationId": 44,
+        "placeId": 121,
+        "latitude": 35.1402,
+        "longitude": 126.9124,
+        "accuracyMeters": 18.5
+      }
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "생성에 성공했습니다.",
+        "code": "COMMON201",
+        "data": {
+          "visitId": 9001,
+          "explorationId": 44,
+          "participantId": 72,
+          "placeId": 121,
+          "coursePlaceId": null,
+          "isCoursePlace": false,
+          "visitedAt": "2026-08-15T14:32:10+09:00",
+          "distanceMeters": 37,
+          "teamFirstVisit": true,
+          "courseProgress": {
+            "completedCoursePlaceCount": 2,
+            "totalCoursePlaceCount": 5,
+            "completionRate": 40
+          },
+          "explorationStatus": "ONGOING"
+        },
+        "success": true
+      }
+order: 1000

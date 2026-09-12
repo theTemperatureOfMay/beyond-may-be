@@ -1,0 +1,8 @@
+$kind: http-request
+description: "여행 성향 유형(THINKER/FOODIE/ARTIST/REMEMBERER)에 해당하는 활성 장소 중 최대 6곳을 무작위로 반환합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. Query parameter `type`."
+url: "{{baseUrl}}/api/v1/places/recommendations?type=THINKER"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/MBTI 유형별 장소 추천.resources/examples
+order: 2000

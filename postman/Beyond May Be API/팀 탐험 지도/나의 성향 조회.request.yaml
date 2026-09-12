@@ -1,0 +1,8 @@
+$kind: http-request
+description: "로그인한 사용자의 최종 성향 유형과 유형별 점수(선택 횟수)를 조회합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. path/query 파라미터 없음 — 토큰의 주인 기준으로 본인 것만 조회됩니다."
+url: "{{baseUrl}}/api/v1/users/me/preference"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/나의 성향 조회.resources/examples
+order: 1000

@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/places/5"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/코스 챗봇 - 추천 장소 추가.resources/examples
+order: 8000

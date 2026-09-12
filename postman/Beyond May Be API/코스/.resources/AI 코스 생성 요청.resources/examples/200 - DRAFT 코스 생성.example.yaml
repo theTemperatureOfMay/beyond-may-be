@@ -1,0 +1,101 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/ai-generation"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "courseId": 10,
+          "title": "광주 여행",
+          "status": "DRAFT",
+          "travelSchedule": "ONE_NIGHT_TWO_DAYS",
+          "startDate": "2099-08-20",
+          "endDate": "2099-08-21",
+          "startTime": "07:00:00",
+          "places": [
+            {
+              "placeId": 101,
+              "name": "국립아시아문화전당",
+              "category": "문화시설",
+              "travelMbtiType": "ARTIST",
+              "summary": "전시 · 복합문화공간",
+              "address": "광주광역시 동구 문화전당로 38",
+              "latitude": 35.1466,
+              "longitude": 126.9199,
+              "dayNumber": 1,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": null
+            },
+            {
+              "placeId": 102,
+              "name": "동명동 식당",
+              "category": "음식",
+              "travelMbtiType": "FOODIE",
+              "summary": "맛집 · 로컬 미식",
+              "address": "광주광역시 동구 동명동",
+              "latitude": 35.1502,
+              "longitude": 126.9231,
+              "dayNumber": 1,
+              "visitOrder": 2,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": "WALK"
+            },
+            {
+              "placeId": 103,
+              "name": "광주천 산책로",
+              "category": "자연",
+              "travelMbtiType": "THINKER",
+              "summary": "자연 · 산책로",
+              "address": "광주광역시 동구",
+              "latitude": 35.1541,
+              "longitude": 126.9154,
+              "dayNumber": 1,
+              "visitOrder": 3,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": "WALK"
+            },
+            {
+              "placeId": 104,
+              "name": "양림동 역사문화마을",
+              "category": "역사",
+              "travelMbtiType": "REMEMBERER",
+              "summary": "역사 · 근대골목 산책",
+              "address": "광주광역시 남구 양림동",
+              "latitude": 35.1405,
+              "longitude": 126.9147,
+              "dayNumber": 2,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": null
+            },
+            {
+              "placeId": 105,
+              "name": "양림동 식당",
+              "category": "음식",
+              "travelMbtiType": "FOODIE",
+              "summary": "맛집 · 로컬 미식",
+              "address": "광주광역시 남구 양림동",
+              "latitude": 35.1398,
+              "longitude": 126.9129,
+              "dayNumber": 2,
+              "visitOrder": 2,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": "WALK"
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

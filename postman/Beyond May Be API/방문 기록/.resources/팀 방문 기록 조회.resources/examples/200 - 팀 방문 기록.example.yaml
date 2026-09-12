@@ -1,0 +1,73 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits?explorationId=44"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "explorationId": 44,
+          "visits": [
+            {
+              "visitId": 9002,
+              "participant": {
+                "participantId": 70,
+                "displayName": "여행자"
+              },
+              "place": {
+                "placeId": 101,
+                "name": "국립아시아문화전당",
+                "category": "문화시설",
+                "travelMbtiType": "ARTIST",
+                "tags": ["전시", "문화"],
+                "address": "광주광역시 동구 문화전당로 38",
+                "thumbnailUrl": "https://example.com/places/101.webp"
+              },
+              "coursePlaceId": 301,
+              "isCoursePlace": true,
+              "visitedAt": "2026-08-15T15:05:40+09:00",
+              "photos": [
+                {
+                  "visitPhotoId": 503,
+                  "displayOrder": 1,
+                  "imageUrl": "https://example.com/signed/503",
+                  "urlExpiresAt": "2026-08-15T16:05:40+09:00"
+                }
+              ]
+            },
+            {
+              "visitId": 9001,
+              "participant": {
+                "participantId": 72,
+                "displayName": "김감자감자"
+              },
+              "place": {
+                "placeId": 121,
+                "name": "양림동 펭귄마을",
+                "category": "관광지",
+                "travelMbtiType": "REMEMBERER",
+                "tags": ["골목", "역사"],
+                "address": "광주광역시 남구 천변좌로446번길 7",
+                "thumbnailUrl": null
+              },
+              "coursePlaceId": null,
+              "isCoursePlace": false,
+              "visitedAt": "2026-08-15T14:32:10+09:00",
+              "photos": []
+            }
+          ],
+          "totalCount": 2
+        },
+        "success": true
+      }
+order: 1000

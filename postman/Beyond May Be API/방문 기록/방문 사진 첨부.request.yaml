@@ -1,0 +1,14 @@
+$kind: http-request
+description: "방문 기록을 만든 ACTIVE 참여자 본인이 사진 한 장을 첨부합니다(5.2.1). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `visitId`; multipart `file`은 필수이며 JPEG·PNG·WebP, 장당 10MB 이하만 허용합니다. 호출 횟수 제한은 없고 서버가 다음 표시 순서를 배정합니다. 원본은 비공개 S3에 저장하며 응답은 object key 대신 기본 1시간 유효한 presigned GET URL을 반환합니다. 파일 누락 400, 타인 또는 비활성 참여자 403, Visit 없음 404, 완료 탐험·순서 충돌 409, 10MB 초과 413, 지원하지 않는 형식 415입니다."
+url: "{{baseUrl}}/api/v1/visits/9001/photos"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: formdata
+  content:
+    - type: file
+      key: file
+      src: []
+examples: ./.resources/방문 사진 첨부.resources/examples
+order: 4000

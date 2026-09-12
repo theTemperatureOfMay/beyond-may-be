@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/places"
+  method: PUT
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "places": [
+          { "placeId": 1, "dayNumber": 1, "visitOrder": 1 }
+        ]
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "여행 기간에 필요한 최소 장소 수를 충족하지 않습니다.",
+        "code": "COURSE400",
+        "data": null,
+        "success": false
+      }
+order: 2000

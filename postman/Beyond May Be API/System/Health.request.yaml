@@ -1,0 +1,6 @@
+$kind: http-request
+description: 운영 상태 확인용 endpoint입니다. 인증, 요청 헤더, 쿼리 파라미터, 요청 본문이 필요하지 않습니다. 정상 상태는 200과 `UP`, 장애 상태는 503과 `DOWN`을 반환합니다.
+url: "{{baseUrl}}/actuator/health"
+method: GET
+examples: ./.resources/Health.resources/examples
+order: 1000

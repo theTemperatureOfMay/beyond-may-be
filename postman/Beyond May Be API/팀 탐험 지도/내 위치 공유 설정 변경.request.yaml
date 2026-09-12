@@ -1,0 +1,15 @@
+$kind: http-request
+description: "현재 사용자의 위치 공유 동의를 변경합니다(4.3.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; body는 boolean `enabled`만 허용합니다. BEFORE·ONGOING 탐험의 ACTIVE 참여자만 변경할 수 있고 같은 값은 저장 시각과 이벤트를 바꾸지 않습니다. 실제 변경 커밋 후 `/topic/explorations/{explorationId}/events`에 좌표 없는 `LOCATION_SHARING_CHANGED`를 발행합니다."
+url: "{{baseUrl}}/api/v1/explorations/44/participants/me/location-sharing"
+method: PATCH
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "enabled": true
+    }
+examples: ./.resources/내 위치 공유 설정 변경.resources/examples
+order: 5000

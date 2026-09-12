@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/draft"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/DRAFT 코스 조회.resources/examples
+order: 4000

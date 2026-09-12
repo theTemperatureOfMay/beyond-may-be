@@ -4,10 +4,10 @@ workspace:
 
 localResources:
   collections:
-    - ../Beyond May Be API.postman_collection.json
+    - ../Beyond May Be API
 
 # Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
 
 cloudResources:
   collections:
-    ../postman/collections/Beyond May Be API: 54fe6fd5-c604-4826-8c17-59a37eda1f2a
+    ../postman/collections/Beyond May Be API: 5ee9629a-8a8e-41f5-b357-025a0388b05a

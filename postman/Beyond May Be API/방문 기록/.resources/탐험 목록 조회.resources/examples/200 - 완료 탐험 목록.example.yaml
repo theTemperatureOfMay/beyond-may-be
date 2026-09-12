@@ -1,0 +1,39 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations?status=COMPLETED"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "status": "COMPLETED",
+          "explorations": [
+            {
+              "explorationId": 44,
+              "courseId": 31,
+              "courseTitle": "하루치 광주",
+              "status": "COMPLETED",
+              "representativeImageUrl": "https://example.com/places/101.webp",
+              "participantCount": 3,
+              "participantDisplayNames": ["여행자", "별밤지기", "숲길산책"],
+              "completedCoursePlaceCount": 5,
+              "totalCoursePlaceCount": 5,
+              "startedAt": "2026-08-15T10:00:00+09:00",
+              "completedAt": "2026-08-15T18:20:00+09:00"
+            }
+          ],
+          "totalCount": 1
+        },
+        "success": true
+      }
+order: 1000
