@@ -174,6 +174,26 @@
 이탈해도 기존 참여와 방문 기록은 보존
 파괴적 동작, 확인 필요
 
+##### API 계약
+
+- join과 confirm의 `409 EXPLORATION409`는 `data: { "activeExplorationId": 44 }`로
+  현재 사용자의 `BEFORE`·`ONGOING` 활성 탐험 ID를 반환한다. 프런트는 이 ID로 기존 지도를 연다.
+- 확인 다이얼로그 승인 후 인증 `POST /api/v1/explorations/{explorationId}/leave`를 호출한다.
+  본문은 없고, `200`의 data는 `explorationId`, `participantId`, `status: LEFT`, `leftAt`,
+  `ownerParticipantId`(남은 활성 소유자가 없으면 null)다.
+- 이탈은 해당 Participant를 `LEFT`로 바꾸고 이탈 시각을 기록하며 위치 공유를 끈다.
+  참여·방문·사진은 삭제하지 않는다. 반복 요청은 기존 이탈 시각으로 200을 반환한다.
+- OWNER가 나가면 남은 ACTIVE 팀원 중 합류 시각이 가장 빠른 사람에게 OWNER를 이전한다.
+  시각이 같으면 participantId가 작은 사람을 선택한다. 이전 OWNER는 MEMBER가 되며,
+  재합류해도 소유권을 회수하지 않는다. Course 작성자와 최초 시작자 기록은 유지한다.
+- 남은 팀원이 없으면 LEFT OWNER를 유지한다. 이후 첫 신규 합류 또는 재합류자가 OWNER가
+  되며, 이전 OWNER가 다른 사람이라면 MEMBER로 바뀐다.
+- 비참여자는 403, 탐험 없음은 404, 완료된 탐험의 아직 이탈하지 않은 참여자는
+  `409 EXPLORATION409_2`를 반환한다. 인증 없이는 401이다.
+- 이탈 성공 후 새 코스의 join을 호출한다. 두 요청은 하나의 트랜잭션이 아니므로 새 합류가
+  실패하면 이탈 상태를 유지하고 오류를 안내한다. 자동으로 이전 탐험에 복귀하지 않는다.
+- 진행 중 목록에는 ACTIVE 참여만 표시하고 완료 목록과 과거 방문 기록은 보존한다.
+
 ### 6.5 공통 UI 요소
 
 #### 6.5.1 스크롤 인디케이터 (TAB ▼)

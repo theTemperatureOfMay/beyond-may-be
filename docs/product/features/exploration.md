@@ -179,12 +179,20 @@ boolean `enabled`를 보내 기본값 `false`인 자신의 동의 설정만 바�
 `LOCATION_SHARING_CHANGED` envelope(`eventId`, `explorationId`, `occurredAt`,
 `data: { participantId, enabled }`)를 최선 노력으로 전파하며 해당 탐험의
 `ACTIVE Participant`만 이 채널을 구독할 수 있다.
-이 상태 채널은 JSON envelope로 `PARTICIPANT_JOINED`, `EXPLORATION_STARTED`,
+이 상태 채널은 JSON envelope로 `PARTICIPANT_JOINED`, `PARTICIPANT_LEFT`, `EXPLORATION_STARTED`,
 `LOCATION_SHARING_CHANGED`, `EXPLORATION_COMPLETED` 계약을 사용한다. 상태 변경 커밋
 후 최선 노력으로 전파하며 replay를 보장하지 않으므로 재접속 시 탐험 상세와 참여자
 목록 HTTP API에서 정본을 다시 조회한다. 클라이언트는 같은 `eventId`를 중복 반영하지
 않는다. 위치 좌표는 이 채널에 포함하지 않고 방문 이벤트는 별도 `/visits` 채널로
 분리한다.
+
+`POST /api/v1/explorations/{explorationId}/leave`의 이탈 커밋 후
+`LOCATION_SHARING_CHANGED(enabled=false)`와 `PARTICIPANT_LEFT`를 전파한다.
+`PARTICIPANT_LEFT.data`는 `participantId`, 남은 ACTIVE `participantCount`,
+`ownerParticipantId`(없으면 null)를 포함한다. 팀원 목록·소유자 권한은 HTTP 재조회로 복구한다.
+기존 실시간 구독도 송신 직전 LEFT 참여를 차단하며, 위치 메시지는 ACTIVE 참여자에게만 보낸다.
+완료 상태 이벤트가 전달되도록 events·visits의 기존 구독은 COMPLETED 참여자에게도 전송한다.
+이탈과 소유권 이전 상세는 [6.4.1](common-policies.md#641-중복-참여-차단)을 따른다.
 
 옵트인 팀원 좌표는 별도
 `SUBSCRIBE /topic/explorations/{explorationId}/locations`에서 `LOCATION_UPDATED`

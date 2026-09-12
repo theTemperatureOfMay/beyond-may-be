@@ -120,7 +120,7 @@
 
 | ID | 소기능 | 백엔드 책임 | 우선순위 | 상태 | 근거·비고 |
 |---|---|---|---|---|---|
-| 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `구현 완료` | 인증 `GET /api/v1/explorations?status=ONGOING`이 현재·과거 참여 이력에서 진행 중 탐험을 최대 1개 반환한다. `LEFT` 제외 팀원, 팀 CoursePlace 방문 수, 전체 장소 수와 첫 유효 코스 이미지를 포함하며 빈 결과는 정상 응답한다. |
+| 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `구현 완료` | 인증 `GET /api/v1/explorations?status=ONGOING`이 현재 ACTIVE 참여에서 진행 중 탐험을 최대 1개 반환하며 이탈한 탐험은 제외한다. `LEFT` 제외 팀원, 팀 CoursePlace 방문 수, 전체 장소 수와 첫 유효 코스 이미지를 포함하며 빈 결과는 정상 응답한다. |
 | 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `구현 완료` | 인증 `GET /api/v1/explorations?status=COMPLETED`가 현재·과거 참여자의 완료 탐험을 `completedAt` 내림차순으로 기간 제한 없이 반환한다. 마지막 팀 코스 장소 방문은 자동 완료하며, `ACTIVE OWNER`는 인증 `POST /api/v1/explorations/{explorationId}/complete`로 조기 완료할 수 있다. 두 경로 모두 Exploration·활성 Participant를 완료하고 커밋 후 각각 `ALL_COURSE_PLACES_VISITED`, `OWNER_EARLY_COMPLETION` 이유의 상태 이벤트를 발행한다. |
 | 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `구현 완료` | `POST /api/v1/visits`가 코스·주변 Place 기반 개인 방문을 저장하고, Visit 작성자인 `ACTIVE Participant`는 `POST /api/v1/visits/{visitId}/photos`로 10MB 이하 JPEG·PNG·WebP를 비공개 S3에 제한 없이 한 장씩 첨부한다. 현재·과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로 팀 전체 Visit을 최신순 조회하며 사진마다 새 1시간 presigned GET URL을 받는다. 빈 결과는 정상 응답한다(ADR-0027). |
 | 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `구현 완료` | 현재·과거 참여자는 인증 `GET /api/v1/visits/visited-places?explorationId={explorationId}`로 코스·주변 장소를 포함한 팀 Visit을 장소별로 집계해 최근 방문순으로 조회한다. 장소 정보·검수 좌표·코스 포함 여부·방문 수·방문 참여자 수·최초·최근 방문 시각과 표시 이름을 제공하며 빈 결과는 정상 응답한다. 사용자 GPS는 저장·반환하지 않고 지도 이미지 저장·공유는 프런트엔드 책임이다. |
@@ -135,7 +135,7 @@
 | 6.1.4 | 만료된 링크 | Course 공유 만료 시각 저장·검증과 410 응답 | 일반 | `구현 완료` | `CourseService.confirm`이 공유 만료 시각을 저장하고 `CourseService.getCourseDetail`과 `ExplorationService.join`이 만료를 검증해 `SHARE_LINK_EXPIRED`(410)를 반환한다. URL 문자열은 저장하지 않는다. |
 | 6.1.5 | 세션 만료 | 세션 토큰 검증과 401 응답 | 일반 | `구현 완료` | `AuthTokenService`가 30일 만료 토큰을 발급하고 만료·무효 토큰을 거부하며 `TokenAuthenticationFilter`와 `SecurityConfig`가 보호 경로에 `401 Unauthorized`를 반환한다. |
 | 6.3.1 | 공통 빈 상태 | 정상 0건 응답과 기능별 대체 경로 계약 | 일반 | `동작` | 추천 생성 API가 활성 후보 0건을 오류가 아닌 `200 OK`와 빈 `places`로 반환하며, 빈 1회차 반응도 새 회차를 만들지 않는다. 서비스 테스트가 두 계약을 검증한다. |
-| 6.4.1 | 중복 참여 차단 | BEFORE·ONGOING 활성 참여 1개 제한, 기록을 보존하는 기존 이탈과 신규 합류 | 일반 | `부분 구현` | `ExplorationService.join`이 다른 활성 탐험 참여를 409로 차단하고 같은 탐험의 `LEFT` 참여 기록을 재활성화한다. 기존 탐험 이탈 API와 이탈 후 신규 합류 흐름은 아직 없다. |
+| 6.4.1 | 중복 참여 차단 | BEFORE·ONGOING 활성 참여 1개 제한, 기록을 보존하는 기존 이탈과 신규 합류 | 일반 | `구현 완료` | join·confirm의 `409 EXPLORATION409`에 `data.activeExplorationId`를 반환한다. `POST /api/v1/explorations/{explorationId}/leave`는 기록을 보존하며 LEFT·위치 공유 해제·OWNER 승계를 수행한다. 이탈 성공 후 새 join을 호출하며 반복 이탈은 200이다. 진행 중 목록은 ACTIVE 참여만 포함한다. 소유권·실패·빈 팀 정책은 기능 6.4.1을 따른다. |
 | 6.5.1 | 스크롤 인디케이터 | 대상 아님 | 일반 | `대상 아님` | 프런트엔드 UI와 접근성 책임이다. |
 | 6.5.2 | 로딩 표시 | 대상 아님 | 일반 | `대상 아님` | 프런트엔드 로딩 상태와 취소 UI 책임이다. |
 | 6.5.3 | 토스트 | 대상 아님 | 일반 | `대상 아님` | 프런트엔드 피드백 UI 책임이다. |
