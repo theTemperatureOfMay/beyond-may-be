@@ -329,13 +329,20 @@ erDiagram
 - 같은 Exploration의 활성 Participant는 탐험을 시작할 수 있으며 최초 요청만
   `BEFORE → ONGOING` 전환에 성공한다.
 - 시작한 Participant는 `started_by_participant_id`로 기록한다.
-- 지도 이탈 시 Participant를 `LEFT`로 바꾸고 기존 방문 기록은 보존한다.
-- 인증 `GET /api/v1/explorations?status={ONGOING|COMPLETED}`는 Participant 상태와 무관한
-  사용자 참여 이력으로 탐험을 고른다. 카드의 팀원 수·표시 이름에서는 `LEFT`를 제외하지만
+- `POST /api/v1/explorations/{explorationId}/leave`는 Participant를 `LEFT`로 바꾸고
+  위치 공유를 끄며 기존 방문·사진을 보존한다. OWNER 이탈 시 가장 먼저 합류한 ACTIVE
+  팀원(동률은 participantId 순)에게 역할을 이전하며 Course 작성자는 바꾸지 않는다.
+  빈 팀은 LEFT OWNER를 유지하다 첫 합류·재합류 시 활성 소유자를 정한다.
+- join·confirm의 `EXPLORATION409`는 `data.activeExplorationId`를 포함한다.
+  이탈 성공 후 새 join을 별도로 호출하며 신규 합류 실패 시 이탈을 자동 취소하지 않는다.
+- 인증 `GET /api/v1/explorations?status={ONGOING|COMPLETED}`는 ONGOING에 ACTIVE 참여만,
+  COMPLETED에 과거 참여까지 포함한다. 카드의 팀원 수·표시 이름에서는 `LEFT`를 제외하지만
   과거 Participant의 CoursePlace Visit은 팀 진행률에 포함한다. 완료 목록은
   `completed_at` 내림차순이며 코스 장소 순서상 첫 번째 비어 있지 않은 저장 썸네일을 대표
-  이미지로 사용한다. 참여 이력상 `ONGOING`이 둘 이상이면 `COMMON500`으로 불변식 위반을
-  드러내며, 이탈 API를 구현할 때 복귀 카드 우선순위를 함께 정한다.
+  이미지로 사용한다. ACTIVE 참여의 `ONGOING`이 둘 이상이면 `COMMON500`으로 불변식 위반을
+  드러낸다. 시작·이탈은 탐험 행을 먼저 잠가 권한 변경과 상태 전환을 직렬화한다.
+  이탈은 사용자·참여자 행도 잠그고, 이탈 커밋 후 LOCATION_SHARING_CHANGED(false)와
+  PARTICIPANT_LEFT를 전파한다. 기존 STOMP 구독에도 송신 직전 참여 상태를 확인해 LEFT를 차단한다.
 
 ### `visits`, `visit_photos`
 

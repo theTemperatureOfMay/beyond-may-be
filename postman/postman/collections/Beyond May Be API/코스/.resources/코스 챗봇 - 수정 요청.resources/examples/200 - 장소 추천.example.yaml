@@ -1,0 +1,45 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/chat"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "message": "카페 한 곳 추가"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "type": "ADD_RECOMMENDATION",
+          "message": "조용한 로컬 카페를 추천해요",
+          "proposedPlaces": [],
+          "recommendations": [
+            {
+              "placeId": 5,
+              "name": "양림동 카페",
+              "category": "카페",
+              "travelMbtiType": "FOODIE",
+              "address": "광주 남구",
+              "latitude": 35.14,
+              "longitude": 126.91,
+              "reason": "조용한 로컬 카페입니다"
+            }
+          ],
+          "remainingRevisions": 1
+        },
+        "success": true
+      }
+order: 2000

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/recommendations/1/reactions"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "likedPlaceIds": [101, 103, 107],
+      "dislikedPlaceIds": [102, 104, 105]
+    }
+examples: ./.resources/추천 회차 반응 교체.resources/examples
+order: 6000

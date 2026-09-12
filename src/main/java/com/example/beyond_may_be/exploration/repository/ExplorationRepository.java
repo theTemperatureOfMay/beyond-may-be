@@ -20,6 +20,8 @@ public interface ExplorationRepository extends JpaRepository<Exploration, Long> 
           + "WHERE p.explorationId = e.id "
           + "AND p.userId = :userId "
           + "AND e.status = :status "
+          + "AND (e.status <> com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING "
+          + "OR p.status = com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus.ACTIVE) "
           + "ORDER BY e.completedAt DESC")
   List<Exploration> findAllByParticipantUserIdAndStatus(
       @Param("userId") Long userId, @Param("status") ExplorationStatus status);

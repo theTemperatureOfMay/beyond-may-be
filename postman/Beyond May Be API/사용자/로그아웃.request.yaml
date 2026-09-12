@@ -1,0 +1,8 @@
+$kind: http-request
+description: "현재 인증 토큰을 폐기합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. 요청 본문은 없습니다."
+url: "{{baseUrl}}/api/v1/users/logout"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/로그아웃.resources/examples
+order: 3000

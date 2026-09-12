@@ -1,0 +1,8 @@
+$kind: http-request
+description: "미확정(DRAFT) 코스를 소유자 본인만 조회합니다(3.2 코스 수정 화면 진입용). 공개 미리보기용 '코스(확정) 조회'와 달리 인증이 필요하고 CONFIRMED 코스는 대상이 아닙니다(ADR-0013). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`."
+url: "{{baseUrl}}/api/v1/courses/1/draft"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/DRAFT 코스 조회.resources/examples
+order: 5000

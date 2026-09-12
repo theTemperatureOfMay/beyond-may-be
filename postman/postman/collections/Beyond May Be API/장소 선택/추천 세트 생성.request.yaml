@@ -13,4 +13,4 @@ body:
       "endDate": "2099-08-21"
     }
 examples: ./.resources/추천 세트 생성.resources/examples
-order: 1000
+order: 4000

@@ -1,0 +1,8 @@
+$kind: http-request
+description: "코스 ID만 알고 있는 현재 또는 과거 참여자가 연결된 탐험 ID를 조회합니다(4.2.1). 인증 필요: Authorization: Bearer {{accessToken}}. Path variable courseId; query와 요청 본문은 없습니다. 탐험 상태·참여 상태(LEFT·COMPLETED 포함)·공유 링크 만료에 관계없이 조회합니다. 미인증은 401, 해당 탐험의 참여 기록이 없으면 403, 연결된 탐험이 없으면(없는 코스·미확정 코스 포함) 404를 반환합니다. 데이터나 참여 상태를 변경하지 않습니다."
+url: "{{baseUrl}}/api/v1/courses/31/exploration"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/코스별 탐험 ID 조회.resources/examples
+order: 3000

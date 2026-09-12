@@ -1,0 +1,8 @@
+$kind: http-request
+description: 인증 사용자가 활성 장소의 카탈로그 상세를 조회합니다. 저장된 설명·운영시간을 우선 사용하고 비어 있는 필드만 TourAPI로 동기 보강해 저장한 뒤 같은 응답에 포함합니다. 정상 응답에 값이 없거나 조회 식별자가 없으면 `상세 설명 정보 없음`·`운영시간 정보 없음`을 저장해 재호출을 막습니다. TourAPI 통신·응답 오류는 빈 값을 유지하고 503 PLACE503으로 반환해 다음 요청에서 재시도합니다. 방문 여부와 버튼 활성 상태는 이 응답에 포함하지 않습니다.
+url: "{{baseUrl}}/api/v1/places/101"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/장소 상세 조회.resources/examples
+order: 1000

@@ -5,8 +5,12 @@ import com.example.beyond_may_be.common.security.StompAuthenticationInterceptor;
 import com.example.beyond_may_be.common.websocket.StompContractErrorHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -36,5 +40,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   public void configureClientInboundChannel(ChannelRegistration registration) {
     registration.interceptors(
         stompAuthenticationInterceptor, explorationLocationMessageInterceptor);
+  }
+
+  @Override
+  public void configureClientOutboundChannel(ChannelRegistration registration) {
+    registration.interceptors(
+        new ExecutorChannelInterceptor() {
+          @Override
+          public Message<?> beforeHandle(
+              Message<?> message, MessageChannel channel, MessageHandler handler) {
+            return stompAuthenticationInterceptor.filterOutbound(message);
+          }
+        });
   }
 }

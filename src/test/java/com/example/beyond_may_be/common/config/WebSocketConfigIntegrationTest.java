@@ -74,6 +74,46 @@ class WebSocketConfigIntegrationTest {
   @Autowired private ExplorationStateEventPublisher eventPublisher;
   @Autowired private SimpleBrokerMessageHandler brokerMessageHandler;
   @Autowired private StompContractErrorHandler stompContractErrorHandler;
+  @Autowired private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"events", "visits", "locations"})
+  void existingSubscriptionStopsReceivingAfterLeave(String topic) throws Exception {
+    given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(7L));
+    var participant = activeParticipant();
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 7L))
+        .willReturn(Optional.of(participant));
+    var headers = new StompHeaders();
+    headers.add(HttpHeaders.AUTHORIZATION, "Bearer valid-token");
+    var session = connect(headers).get(5, TimeUnit.SECONDS);
+    String destination = "/topic/explorations/44/" + topic;
+    var received = new java.util.concurrent.LinkedBlockingQueue<String>();
+    session.subscribe(
+        destination,
+        new StompFrameHandler() {
+          @Override
+          public Type getPayloadType(StompHeaders ignored) {
+            return byte[].class;
+          }
+
+          @Override
+          public void handleFrame(StompHeaders ignored, Object payload) {
+            received.add(new String((byte[]) payload, StandardCharsets.UTF_8));
+          }
+        });
+    awaitSubscription(destination);
+    messagingTemplate.convertAndSend(destination, "before-leave");
+    assertThat(received.poll(5, TimeUnit.SECONDS)).isEqualTo("before-leave");
+    org.mockito.Mockito.clearInvocations(explorationParticipantRepository);
+
+    participant.leave(LocalDateTime.now());
+    messagingTemplate.convertAndSend(destination, "after-leave");
+
+    org.mockito.Mockito.verify(explorationParticipantRepository, timeout(5000))
+        .findByExplorationIdAndUserId(44L, 7L);
+    assertThat(received.poll(300, TimeUnit.MILLISECONDS)).isNull();
+    session.disconnect();
+  }
 
   @AfterEach
   void stopClient() {

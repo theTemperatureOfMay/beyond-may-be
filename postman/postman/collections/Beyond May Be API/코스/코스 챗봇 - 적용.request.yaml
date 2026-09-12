@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/chat/apply"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "places": [
+        { "placeId": 3, "dayNumber": 1, "visitOrder": 1 },
+        { "placeId": 1, "dayNumber": 1, "visitOrder": 2 },
+        { "placeId": 2, "dayNumber": 1, "visitOrder": 3 }
+      ]
+    }
+examples: ./.resources/코스 챗봇 - 적용.resources/examples
+order: 7000

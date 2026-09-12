@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/draft"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 403
+  statusText: Forbidden
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "코스 소유자만 수행할 수 있습니다.",
+        "code": "COURSE403",
+        "data": null,
+        "success": false
+      }
+order: 2000

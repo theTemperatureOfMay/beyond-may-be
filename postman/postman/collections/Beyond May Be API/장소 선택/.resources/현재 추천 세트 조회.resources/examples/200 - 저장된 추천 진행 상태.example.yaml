@@ -1,0 +1,64 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/recommendations"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "recommendationId": 12,
+          "travelSchedule": "ONE_NIGHT_TWO_DAYS",
+          "startDate": "2099-08-20",
+          "endDate": "2099-08-21",
+          "batchSize": 20,
+          "minimumSelectionCount": 5,
+          "selectedPlaceCount": 3,
+          "selectionReady": false,
+          "batches": [
+            {
+              "batchNumber": 1,
+              "places": [
+                {
+                  "placeId": 101,
+                  "name": "국립아시아문화전당",
+                  "category": "문화시설",
+                  "tags": ["전시", "문화"],
+                  "summary": "검수된 장소 소개 문구",
+                  "thumbnailUrl": null
+                }
+              ],
+              "likedPlaceIds": [101],
+              "dislikedPlaceIds": [],
+              "completed": true
+            },
+            {
+              "batchNumber": 2,
+              "places": [
+                {
+                  "placeId": 121,
+                  "name": "양림동 펭귄마을",
+                  "category": "관광지",
+                  "tags": ["골목", "역사"],
+                  "summary": null,
+                  "thumbnailUrl": "https://example.com/places/121.webp"
+                }
+              ],
+              "likedPlaceIds": [],
+              "dislikedPlaceIds": [],
+              "completed": false
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

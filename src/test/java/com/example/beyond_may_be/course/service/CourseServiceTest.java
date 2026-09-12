@@ -368,7 +368,8 @@ class CourseServiceTest {
     given(courseRepository.findById(10L)).willReturn(Optional.of(course));
     given(userRepository.findByIdForUpdate(1L))
         .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(1).build()));
-    given(explorationParticipantRepository.existsActiveParticipation(1L)).willReturn(true);
+    given(explorationParticipantRepository.findActiveExplorationId(1L))
+        .willReturn(Optional.of(44L));
 
     ExplorationHandler exception =
         assertThrows(ExplorationHandler.class, () -> courseService.confirm(10L, 1L));
@@ -376,7 +377,7 @@ class CourseServiceTest {
     assertThat(exception.getCode()).isEqualTo(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
     org.mockito.InOrder locks = Mockito.inOrder(userRepository, explorationParticipantRepository);
     locks.verify(userRepository).findByIdForUpdate(1L);
-    locks.verify(explorationParticipantRepository).existsActiveParticipation(1L);
+    locks.verify(explorationParticipantRepository).findActiveExplorationId(1L);
     Mockito.verify(explorationRepository, Mockito.never()).save(any());
   }
 

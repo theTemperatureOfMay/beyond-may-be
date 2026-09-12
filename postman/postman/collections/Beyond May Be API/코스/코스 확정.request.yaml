@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/courses/1/confirm"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/코스 확정.resources/examples
+order: 2000

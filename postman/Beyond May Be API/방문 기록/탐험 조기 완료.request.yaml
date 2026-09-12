@@ -1,0 +1,8 @@
+$kind: http-request
+description: "미방문 코스 장소가 남은 진행 중 탐험을 OWNER가 확인 모달에서 확정한 뒤 조기 완료합니다(5.1.2). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. 현재 `ACTIVE OWNER`만 호출할 수 있으며 완료 시 Exploration과 모든 ACTIVE Participant를 COMPLETED로 전환하고 Visit·사진은 보존합니다. 커밋 후 `OWNER_EARLY_COMPLETION` 이유의 `EXPLORATION_COMPLETED` 상태 이벤트를 발행합니다."
+url: "{{baseUrl}}/api/v1/explorations/44/complete"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/탐험 조기 완료.resources/examples
+order: 2000

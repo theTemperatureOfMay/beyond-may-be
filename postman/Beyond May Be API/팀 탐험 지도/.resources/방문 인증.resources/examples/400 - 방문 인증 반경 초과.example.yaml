@@ -1,0 +1,32 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "explorationId": 44,
+        "placeId": 121,
+        "latitude": 35.1502,
+        "longitude": 126.9124,
+        "accuracyMeters": 18.5
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "인증 반경을 벗어났습니다.",
+        "code": "VISIT400",
+        "data": null,
+        "success": false
+      }
+order: 2000

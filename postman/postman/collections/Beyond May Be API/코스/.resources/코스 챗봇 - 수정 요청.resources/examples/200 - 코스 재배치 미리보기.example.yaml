@@ -1,0 +1,49 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/chat"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "message": "야경 명소 넣어줘"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "type": "COURSE_REVISION",
+          "message": "야경 명소를 마지막 순서로 옮겼어요",
+          "proposedPlaces": [
+            {
+              "placeId": 3,
+              "name": "장소3",
+              "category": "야경 명소",
+              "travelMbtiType": "ARTIST",
+              "summary": "야경 · 저녁 산책",
+              "address": "광주",
+              "latitude": 35.15,
+              "longitude": 126.85,
+              "dayNumber": 1,
+              "visitOrder": 1,
+              "estimatedStayMinutes": 60,
+              "travelModeFromPrevious": null
+            }
+          ],
+          "recommendations": [],
+          "remainingRevisions": 1
+        },
+        "success": true
+      }
+order: 1000

@@ -82,6 +82,16 @@ public class ExplorationParticipant extends BaseEntity {
     this.leftAt = null;
   }
 
+  public void leave(LocalDateTime leftAt) {
+    this.status = ParticipantStatus.LEFT;
+    this.leftAt = leftAt;
+    this.locationSharingEnabled = false;
+  }
+
+  public void changeRole(ParticipantRole role) {
+    this.role = role;
+  }
+
   public boolean changeLocationSharing(boolean enabled) {
     if (locationSharingEnabled == enabled) {
       return false;

@@ -1,0 +1,8 @@
+$kind: http-request
+description: "현재 또는 과거 참여자가 탐험 상태, 팀 인원·고유 방문 장소 수, 코스 진행률과 현재 참여자의 실행 권한을 조회합니다(4.2, 4.3, 5.1). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `explorationId`; query와 요청 본문은 없습니다. `LEFT`는 `participantCount`에서 제외하지만 기존 방문은 집계하며, 코스 진행률은 `coursePlaceId` 문맥이 있는 방문만 사용합니다. 이 GET은 완료 상태를 변경하지 않습니다."
+url: "{{baseUrl}}/api/v1/explorations/44"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/탐험 상태 조회.resources/examples
+order: 6000

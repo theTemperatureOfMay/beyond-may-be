@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/places/999999"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "선택한 장소를 찾을 수 없습니다.",
+        "code": "COURSE404_2",
+        "data": null,
+        "success": false
+      }
+order: 3000

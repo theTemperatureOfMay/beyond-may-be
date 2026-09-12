@@ -1,0 +1,8 @@
+$kind: http-request
+description: 인증 사용자의 현재 추천 세트에 저장된 좋아요 장소와 여행 기간으로 DRAFT 코스를 생성합니다. body는 받지 않습니다. Groq가 선택 장소의 날짜별 순서를 제안하며 서버가 정확한 ID·일수·균형을 검증합니다. 호출·검증 실패 시 최근접 거리와 FOODIE 점심·저녁 슬롯 fallback을 사용합니다. 최소 장소 미달은 COURSE400, 현재 추천 없음은 RECOMMENDATION404, 생성 중 선택 변경은 RECOMMENDATION409_2, 전체 60초 초과는 COURSE503_2입니다.
+url: "{{baseUrl}}/api/v1/courses/ai-generation"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/AI 코스 생성 요청.resources/examples
+order: 1000

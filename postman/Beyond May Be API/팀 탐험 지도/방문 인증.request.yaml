@@ -1,0 +1,19 @@
+$kind: http-request
+description: "진행 중 탐험의 ACTIVE 참여자가 현재 GPS로 장소 방문을 인증합니다(4.3.3, 4.3.4). 인증 필요: `Authorization: Bearer {{accessToken}}`. body의 GPS 정확도는 50m 이하, 서버가 Place 좌표로 다시 계산한 거리는 100m 이하여야 합니다. 같은 참여자의 같은 Place는 한 번만 저장하지만 다른 팀원의 선행 방문은 개인 인증을 막지 않습니다. 코스 미포함 Place는 `coursePlaceId: null`로 저장하고 코스 진행률에서 제외합니다. 커밋 후 `/topic/explorations/{explorationId}/visits`에 좌표·사진 없는 `VISIT_CONFIRMED` JSON 이벤트를 전파하며 마지막 코스 장소면 자동 완료 상태 이벤트도 발행합니다."
+url: "{{baseUrl}}/api/v1/visits"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "explorationId": 44,
+      "placeId": 121,
+      "latitude": 35.1402,
+      "longitude": 126.9124,
+      "accuracyMeters": 18.5
+    }
+examples: ./.resources/방문 인증.resources/examples
+order: 8000

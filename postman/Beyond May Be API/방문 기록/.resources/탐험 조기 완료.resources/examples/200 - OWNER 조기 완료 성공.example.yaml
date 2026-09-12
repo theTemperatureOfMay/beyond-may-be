@@ -1,0 +1,32 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations/44/complete"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "explorationId": 44,
+          "courseId": 31,
+          "status": "COMPLETED",
+          "completionReason": "OWNER_EARLY_COMPLETION",
+          "completedAt": "2026-08-15T18:20:00+09:00",
+          "courseProgress": {
+            "completedCoursePlaceCount": 3,
+            "totalCoursePlaceCount": 5,
+            "completionRate": 60
+          }
+        },
+        "success": true
+      }
+order: 1000

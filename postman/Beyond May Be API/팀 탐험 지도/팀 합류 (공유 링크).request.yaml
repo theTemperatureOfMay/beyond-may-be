@@ -1,0 +1,8 @@
+$kind: http-request
+description: "공유 링크로 확정된 코스의 팀에 합류합니다(4.1.1). 최초 합류는 201, 같은 탐험 재진입은 새 행을 만들지 않고 200과 `alreadyJoined: true`를 반환합니다. 새 Participant 행을 생성한 합류만 커밋 후 상태 채널에 `PARTICIPANT_JOINED`를 발행합니다. 공유 만료(3일)가 지났으면 410, 다른 탐험에 이미 활성 참여 중이거나 탐험이 완료됐으면 409를 반환합니다(6.4.1 중복 참여 차단). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`. 요청 본문은 없습니다."
+url: "{{baseUrl}}/api/v1/courses/1/join"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/팀 합류 (공유 링크).resources/examples
+order: 2000

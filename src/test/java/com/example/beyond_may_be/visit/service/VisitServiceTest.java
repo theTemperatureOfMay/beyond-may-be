@@ -380,6 +380,8 @@ class VisitServiceTest {
     Instant expiresAt = Instant.parse("2026-08-15T06:33:00Z");
 
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
     given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
@@ -417,8 +419,8 @@ class VisitServiceTest {
   void attachPhoto_differentUser_throwsForbidden() {
     Visit visit = visit(72L);
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
-    given(explorationParticipantRepository.findById(72L))
-        .willReturn(Optional.of(participant(72L, 10L, ParticipantStatus.ACTIVE)));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.empty());
 
     ExplorationHandler exception =
         catchThrowableOfType(
@@ -434,6 +436,8 @@ class VisitServiceTest {
   void attachPhoto_inactiveOwner_throwsForbidden() {
     Visit visit = visit(72L);
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L))
         .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.LEFT)));
     given(explorationRepository.findByIdForUpdate(44L))
@@ -444,6 +448,11 @@ class VisitServiceTest {
             ExplorationHandler.class, () -> visitService.attachPhoto(9001L, pngFile(), 9L));
 
     assertThat(exception.getCode()).isEqualTo(ErrorStatus._FORBIDDEN);
+    // 이탈이 먼저 커밋되면 탐험 잠금 뒤 읽은 현재 참여 상태로 거부해야 한다.
+    var authorizationOrder =
+        org.mockito.Mockito.inOrder(explorationRepository, explorationParticipantRepository);
+    authorizationOrder.verify(explorationRepository).findByIdForUpdate(44L);
+    authorizationOrder.verify(explorationParticipantRepository).findById(72L);
     then(visitPhotoStorage).shouldHaveNoInteractions();
   }
 
@@ -452,6 +461,8 @@ class VisitServiceTest {
   void attachPhoto_storageUploadFails_doesNotSaveMetadata() {
     Visit visit = visit(72L);
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L))
         .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.ACTIVE)));
     given(explorationRepository.findByIdForUpdate(44L))
@@ -531,6 +542,8 @@ class VisitServiceTest {
             new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
 
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L))
         .willReturn(Optional.of(participant(72L, 9L, ParticipantStatus.COMPLETED)));
     given(explorationRepository.findByIdForUpdate(44L))
@@ -564,6 +577,8 @@ class VisitServiceTest {
             new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
 
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
     given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));
@@ -589,6 +604,8 @@ class VisitServiceTest {
     ReflectionTestUtils.setField(savedPhoto, "id", 501L);
     ReflectionTestUtils.setField(savedPhoto, "createdAt", LocalDateTime.of(2026, 8, 15, 14, 33));
     given(visitRepository.findById(9001L)).willReturn(Optional.of(visit));
+    given(explorationParticipantRepository.findExplorationIdByIdAndUserId(72L, 9L))
+        .willReturn(Optional.of(44L));
     given(explorationParticipantRepository.findById(72L)).willReturn(Optional.of(participant));
     given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(visitRepository.findByIdForUpdate(9001L)).willReturn(Optional.of(visit));

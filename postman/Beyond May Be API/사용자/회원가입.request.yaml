@@ -1,0 +1,28 @@
+$kind: http-request
+description: "닉네임으로 회원가입합니다. 성향 검사를 마쳤다면 유형별 점수 4개를 함께 보내 preferenceType을 계산·저장할 수 있습니다. 점수 4개는 모두 선택값이며, 전부 생략하면 preferenceType은 null입니다. 인증이 필요 없습니다. 응답의 `token`은 이후 인증이 필요한 모든 요청의 `Authorization: Bearer {{accessToken}}` 헤더에 쓰입니다 — 이 요청을 실행하면 test 스크립트가 `accessToken` 컬렉션 변수에 자동으로 저장합니다."
+url: "{{baseUrl}}/api/v1/users/sign-up"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nickname": "여행자",
+      "thinkerScore": 3,
+      "foodieScore": 5,
+      "artistScore": 9,
+      "remembererScore": 2
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        const body = pm.response.json();
+        if (body.data && body.data.token) {
+          pm.collectionVariables.set('accessToken', body.data.token);
+        }
+      }
+    language: text/javascript
+examples: ./.resources/회원가입.resources/examples
+order: 1000

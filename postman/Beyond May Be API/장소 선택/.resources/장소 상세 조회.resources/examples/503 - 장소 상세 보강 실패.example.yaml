@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/places/101"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 503
+  statusText: Service Unavailable
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "장소 상세정보를 일시적으로 불러오지 못했습니다.",
+        "code": "PLACE503",
+        "data": null,
+        "success": false
+      }
+order: 4000

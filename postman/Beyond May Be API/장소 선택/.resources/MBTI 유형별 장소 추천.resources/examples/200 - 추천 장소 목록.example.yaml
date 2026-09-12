@@ -1,0 +1,37 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/places/recommendations?type=THINKER"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "places": [
+            {
+              "placeId": 1,
+              "name": "장소1",
+              "category": "카페",
+              "travelMbtiType": "THINKER",
+              "tags": ["조용함", "역사"],
+              "address": "광주 동구 테스트로 1",
+              "latitude": 35.1595,
+              "longitude": 126.8526,
+              "businessHours": "09:00-18:00",
+              "description": "설명",
+              "thumbnailUrl": null
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

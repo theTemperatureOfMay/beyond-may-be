@@ -1,0 +1,37 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/users/sign-up"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "nickname": "여행자",
+        "thinkerScore": 3,
+        "foodieScore": 5,
+        "artistScore": 9,
+        "remembererScore": 2
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "userId": 1,
+          "nickname": "여행자",
+          "identificationCode": 42,
+          "preferenceType": "ARTIST",
+          "token": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        },
+        "success": true
+      }
+order: 1000

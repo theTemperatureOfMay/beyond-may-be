@@ -21,6 +21,25 @@ public final class ExplorationDtos {
 
   public record IdResponse(Long explorationId) {}
 
+  public record ActiveExplorationResponse(Long activeExplorationId) {}
+
+  public record LeaveResponse(
+      Long explorationId,
+      Long participantId,
+      String status,
+      OffsetDateTime leftAt,
+      @Schema(nullable = true) Long ownerParticipantId) {}
+
+  public record ParticipantLeftEvent(
+      UUID eventId,
+      String eventType,
+      Long explorationId,
+      OffsetDateTime occurredAt,
+      ParticipantLeftData data) {}
+
+  public record ParticipantLeftData(
+      Long participantId, int participantCount, @Schema(nullable = true) Long ownerParticipantId) {}
+
   public record LocationUpdateRequest(
       @NotNull
           @DecimalMin("-90.0")

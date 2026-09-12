@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/places/101"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/장소 상세 조회.resources/examples
+order: 1000

@@ -1,0 +1,19 @@
+$kind: http-request
+description: "DRAFT 코스의 장소 순서를 직접 변경·삭제·추가합니다(3.2.2). 요청 places 배열이 그 코스의 최종 상태 전체를 대체합니다 — 제외된 장소는 삭제로 취급됩니다. 코스에 없던 새 placeId도 실제 `places` 테이블에 존재하면 추가할 수 있습니다(신규 추가 장소의 estimatedStayMinutes는 기본값 60분, 존재하지 않으면 404). 여행 기간별 최소 장소 수 미만이면 거부됩니다. 되돌리기(↺) 이력은 프런트엔드가 로컬로 관리합니다(ADR-0013). 인증 필요: `Authorization: Bearer {{accessToken}}`. Path variable `courseId`."
+url: "{{baseUrl}}/api/v1/courses/1/places"
+method: PUT
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "places": [
+        { "placeId": 3, "dayNumber": 1, "visitOrder": 1 },
+        { "placeId": 1, "dayNumber": 1, "visitOrder": 2 },
+        { "placeId": 2, "dayNumber": 1, "visitOrder": 3 }
+      ]
+    }
+examples: ./.resources/코스 수정 (직접).resources/examples
+order: 6000

@@ -46,6 +46,37 @@ class StompAuthenticationInterceptorTest {
   @Mock private ExplorationLocationService explorationLocationService;
 
   @ParameterizedTest
+  @ValueSource(strings = {"events", "visits", "locations"})
+  void outboundDropsMessagesAfterParticipantLeaves(String topic) {
+    given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(7L));
+    var connect = StompHeaderAccessor.create(StompCommand.CONNECT);
+    connect.setSessionId("session-7");
+    connect.setNativeHeader(HttpHeaders.AUTHORIZATION, "Bearer valid-token");
+    connect.setLeaveMutable(true);
+    interceptor.preSend(
+        MessageBuilder.createMessage(new byte[0], connect.getMessageHeaders()),
+        mock(MessageChannel.class));
+    var participant =
+        ExplorationParticipant.builder()
+            .explorationId(44L)
+            .userId(7L)
+            .status(ParticipantStatus.ACTIVE)
+            .role(ParticipantRole.MEMBER)
+            .build();
+    given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 7L))
+        .willReturn(Optional.of(participant));
+    var outbound = StompHeaderAccessor.create(StompCommand.MESSAGE);
+    outbound.setSessionId("session-7");
+    outbound.setDestination("/topic/explorations/44/" + topic);
+    var message = MessageBuilder.createMessage(new byte[0], outbound.getMessageHeaders());
+    assertThat(interceptor.filterOutbound(message)).isSameAs(message);
+
+    participant.leave(LocalDateTime.now());
+
+    assertThat(interceptor.filterOutbound(message)).isNull();
+  }
+
+  @ParameterizedTest
   @EnumSource(
       value = StompCommand.class,
       names = {"CONNECT", "STOMP"})

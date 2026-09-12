@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits/9001/photos"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 415
+  statusText: Unsupported Media Type
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "JPEG, PNG 또는 WebP 형식의 방문 사진만 첨부할 수 있습니다.",
+        "code": "VISIT415",
+        "data": null,
+        "success": false
+      }
+order: 4000

@@ -35,6 +35,35 @@ class ExplorationRepositoryTest {
   @Autowired private ExplorationParticipantRepository explorationParticipantRepository;
   @Autowired private PlatformTransactionManager transactionManager;
 
+  @Test
+  void ongoingListExcludesLeftExplorationAndActiveIdIncludesBefore() {
+    var left =
+        explorationRepository.save(
+            Exploration.builder().courseId(999981L).status(ExplorationStatus.ONGOING).build());
+    var active =
+        explorationRepository.save(
+            Exploration.builder().courseId(999982L).status(ExplorationStatus.ONGOING).build());
+    var before =
+        explorationRepository.save(
+            Exploration.builder().courseId(999983L).status(ExplorationStatus.BEFORE).build());
+    explorationParticipantRepository.saveAllAndFlush(
+        List.of(
+            participant(left.getId(), 81L, ParticipantStatus.LEFT),
+            participant(active.getId(), 81L, ParticipantStatus.ACTIVE),
+            participant(before.getId(), 82L, ParticipantStatus.ACTIVE)));
+
+    assertThat(
+            explorationRepository.findAllByParticipantUserIdAndStatus(
+                81L, ExplorationStatus.ONGOING))
+        .extracting(Exploration::getId)
+        .containsExactly(active.getId());
+    assertThat(explorationParticipantRepository.findActiveExplorationId(81L))
+        .contains(active.getId());
+    assertThat(explorationParticipantRepository.findActiveExplorationId(82L))
+        .contains(before.getId());
+    assertThat(explorationParticipantRepository.findActiveExplorationId(83L)).isEmpty();
+  }
+
   @DisplayName("코스 ID에 연결된 탐험을 조회하고 없으면 빈 결과를 반환한다.")
   @Test
   void findByCourseId_returnsOnlyMatchingExploration() {

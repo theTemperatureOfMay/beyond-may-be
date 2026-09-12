@@ -28,6 +28,10 @@ import org.springframework.web.context.request.async.WebAsyncTask;
 public class CourseController {
 
   private static final long COURSE_GENERATION_TIMEOUT_MILLIS = 60_000L;
+  private static final String ACTIVE_EXPLORATION_ERROR =
+      """
+      {"message":"이미 다른 탐험에 참여 중입니다.","code":"EXPLORATION409","data":{"activeExplorationId":44},"success":false}
+      """;
 
   private final CourseService courseService;
   private final ExplorationService explorationService;
@@ -47,6 +51,21 @@ public class CourseController {
   }
 
   @PostMapping("/{courseId}/confirm")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "코스 확정 성공"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "409",
+        description = "다른 활성 탐험 참여 중(EXPLORATION409) 또는 이미 확정된 코스(COURSE409)",
+        content =
+            @io.swagger.v3.oas.annotations.media.Content(
+                mediaType = "application/json",
+                examples =
+                    @io.swagger.v3.oas.annotations.media.ExampleObject(
+                        name = "다른 활성 탐험 참여 중",
+                        value = ACTIVE_EXPLORATION_ERROR)))
+  })
   public ApiResponse<CourseDtos.ConfirmResponse> confirm(
       @PathVariable Long courseId, @AuthenticationPrincipal Long userId) {
     return ApiResponse.onSuccess(courseService.confirm(courseId, userId));
@@ -87,7 +106,22 @@ public class CourseController {
         description = "기존 참여자의 재요청 또는 재합류"),
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "201",
-        description = "최초 합류")
+        description = "최초 합류"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "409",
+        description = "다른 활성 탐험 참여 중(EXPLORATION409) 또는 완료된 탐험(EXPLORATION409_2)",
+        content =
+            @io.swagger.v3.oas.annotations.media.Content(
+                mediaType = "application/json",
+                examples = {
+                  @io.swagger.v3.oas.annotations.media.ExampleObject(
+                      name = "다른 활성 탐험 참여 중",
+                      value = ACTIVE_EXPLORATION_ERROR),
+                  @io.swagger.v3.oas.annotations.media.ExampleObject(
+                      name = "완료된 탐험",
+                      value =
+                          "{\"message\":\"이미 완료된 탐험입니다.\",\"code\":\"EXPLORATION409_2\",\"data\":null,\"success\":false}")
+                }))
   })
   @PostMapping("/{courseId}/join")
   public ResponseEntity<ApiResponse<ExplorationDtos.JoinResponse>> join(

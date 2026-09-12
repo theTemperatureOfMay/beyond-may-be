@@ -1,0 +1,28 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses/1/chat"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "message": "한 번 더 바꿔줘"
+      }
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "AI 코스 수정 요청 횟수를 모두 사용했습니다. 직접 수정을 이용해주세요.",
+        "code": "COURSE409_2",
+        "data": null,
+        "success": false
+      }
+order: 3000

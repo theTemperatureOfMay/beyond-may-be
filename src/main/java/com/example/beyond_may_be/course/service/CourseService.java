@@ -14,6 +14,7 @@ import com.example.beyond_may_be.course.domain.enums.TravelSchedule;
 import com.example.beyond_may_be.course.dto.CourseDtos;
 import com.example.beyond_may_be.course.repository.CoursePlaceRepository;
 import com.example.beyond_may_be.course.repository.CourseRepository;
+import com.example.beyond_may_be.exploration.converter.ExplorationConverter;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.exploration.domain.ExplorationParticipant;
 import com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus;
@@ -559,9 +560,14 @@ public class CourseService {
         userRepository
             .findByIdForUpdate(userId)
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
-    if (explorationParticipantRepository.existsActiveParticipation(userId)) {
-      throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
-    }
+    explorationParticipantRepository
+        .findActiveExplorationId(userId)
+        .ifPresent(
+            activeExplorationId -> {
+              throw new ExplorationHandler(
+                  ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION,
+                  ExplorationConverter.toActiveExplorationResponse(activeExplorationId));
+            });
 
     LocalDateTime now = LocalDateTime.now();
     course.confirm(now, now.plusDays(SHARE_LINK_VALID_DAYS));

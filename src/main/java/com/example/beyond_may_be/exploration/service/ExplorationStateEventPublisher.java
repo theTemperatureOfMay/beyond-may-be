@@ -22,6 +22,15 @@ public class ExplorationStateEventPublisher {
   private final SimpMessagingTemplate messagingTemplate;
 
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void publish(ExplorationDtos.ParticipantLeftEvent event) {
+    try {
+      send(event.explorationId(), event);
+    } catch (RuntimeException exception) {
+      log.warn("참여자 이탈 상태 이벤트 전파에 실패했습니다. explorationId={}", event.explorationId(), exception);
+    }
+  }
+
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void publish(ExplorationDtos.ParticipantJoinedEvent event) {
     try {
       send(event.explorationId(), event);
