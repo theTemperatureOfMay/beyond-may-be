@@ -48,6 +48,9 @@ recorded-date: 2026-08-28
 }
 ```
 
+- 이탈 시 공유를 끄고 커밋 후 `LOCATION_SHARING_CHANGED(false)`를 발행해 모든 연결의
+  위치 기준점과 화면 마커를 제거한다. 기존 구독도 송신 직전 참여 상태를 확인하며
+  LEFT·COMPLETED 참여자에게 위치를 보내지 않는다.
 - payload에는 탐험 범위의 `participantId`와 `displayName`만 넣고 userId를 노출하지
   않는다. 메시지 `Content-Type`은 `application/json`이다.
 - 좌표와 연결별 마지막 위치는 PostgreSQL에 저장하지 않고 과거 이벤트를 replay하지
@@ -112,6 +115,13 @@ recorded-date: 2026-08-28
   않았다.
 
 ### 관련 문서
+
+이탈 확장(2026-09-12): 변경 대상은 이탈 Service, 기존 구독의 송신 권한 검사,
+WebSocketConfig·STOMP 테스트, 기능·아키텍처·ADR-0024다. 위치 입력·좌표 형식·10m/50m
+필터·DB 비저장·CONNECT 인증·스킬·하네스 규칙은 유지한다. 프런트 마커 제거와 운영
+전달은 확인하지 못하며, 기존 다중 인스턴스 전달은 미해결이다.
+`change-impact-review` 검사 결과: 통과. 전체 459개 테스트(실패·건너뜀 0), 실제 WebSocket 기존 구독 차단, spotlessCheck와 문서 상대 링크를 검증했다. 코드·문서는 Git 복구 가능하며 migration은 없다.
+
 
 - [ADR-0022](0022-authenticated-stomp-transport-foundation.md)
 - [ADR-0023](0023-location-sharing-opt-in-and-state-event.md)

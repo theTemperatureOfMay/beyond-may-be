@@ -20,6 +20,7 @@ recorded-date: 2026-08-28
   `explorationId`, `occurredAt`, `data`를 갖는 envelope를 사용한다.
 - 이벤트 유형과 `data`는 다음과 같다.
   - `PARTICIPANT_JOINED`: `participantId`, `displayName`, `role`, `participantCount`
+  - `PARTICIPANT_LEFT`: `participantId`, `participantCount`, `ownerParticipantId`(활성 소유자가 없으면 null)
   - `EXPLORATION_STARTED`: `status`, `startedByParticipantId`, `startedAt`
   - `LOCATION_SHARING_CHANGED`: `participantId`, `enabled`
   - `EXPLORATION_COMPLETED`: `status`, `completedAt`, `completionReason`
@@ -29,6 +30,11 @@ recorded-date: 2026-08-28
   경고 로그로 남기고 이미 커밋된 상태를 되돌리지 않는다.
 - 새 Participant 행을 생성한 합류만 `PARTICIPANT_JOINED`를 발행한다. 기존 `ACTIVE`
   참여자의 재진입과 `LEFT` 참여자의 재활성화에는 발행하지 않는다.
+- 이탈 API는 커밋 후 `LOCATION_SHARING_CHANGED(enabled=false)`와 `PARTICIPANT_LEFT`를
+  발행한다. OWNER 이전은 같은 트랜잭션에서 처리하고 이벤트에는 이전 후 활성 소유자 ID를 담는다.
+  반복 이탈에는 이벤트를 발행하지 않는다. 자세한 이탈·승계 규칙은 기능 6.4.1을 따른다.
+- 기존 구독에도 WebSocket 송신 직전 참여 상태를 재조회해 LEFT 수신을 차단한다.
+  events·visits는 최종 완료 이벤트를 받도록 COMPLETED 참여자의 기존 구독을 유지한다.
 - 이 ADR 구현으로 `PARTICIPANT_JOINED`, `EXPLORATION_STARTED`,
   `LOCATION_SHARING_CHANGED` 생산자를 연결하고 `EXPLORATION_COMPLETED` envelope와 커밋 후
   publisher를 제공한다. 후속 ADR-0025는 `ALL_COURSE_PLACES_VISITED` 자동 완료 생산자를
@@ -83,6 +89,19 @@ recorded-date: 2026-08-28
   대상으로 위 영향 목록에 남겼다.
 
 ### 관련 문서
+
+이탈 확장(2026-09-12)의 변경 영향은 다음과 같다.
+
+- 변경: 이탈 Service·DTO·Converter·publisher, OWNER 역할 변경, join 재합류, 시작 잠금,
+  STOMP 송신 시 재인가, 서비스·HTTP·PostgreSQL·실시간 테스트, 기능 6.4.1·4.3.2·5.1.1,
+  MVP·아키텍처·Postman 예시.
+- 확인 후 유지: CONNECT 토큰 인증, HTTP 기록 조회 권한, DB 스키마, outbox·replay 미지원,
+  AGENTS·하네스·스킬의 승인·검증 규칙. 새 기술이나 저장 구조가 없어 새 ADR은 만들지 않는다.
+- 확인하지 못함: 프런트 이탈 확인 모달·지도 이동·이벤트 소비와 운영 broker.
+- 미해결: 기존 다중 인스턴스 전달 제약.
+- 변경 영향 검사: `change-impact-review`, 통과. 변경 계약·코드·문서·Postman 예시를 대조했고 전체 459개 테스트(실패·건너뜀 0), spotlessCheck, 상대 링크 및 diff 형식 검사를 통과했다.
+- 복구: Git으로 코드·문서를 복구한다. 데이터 삭제나 migration은 없다.
+
 
 - [ADR-0021](0021-remove-premature-exploration-realtime-implementation.md)
 - [ADR-0022](0022-authenticated-stomp-transport-foundation.md)
