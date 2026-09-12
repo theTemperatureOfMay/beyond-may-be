@@ -267,18 +267,19 @@ public class VisitService {
         visitRepository
             .findById(visitId)
             .orElseThrow(() -> new VisitHandler(ErrorStatus.VISIT_NOT_FOUND));
+    // 탐험 잠금 전에 참여 엔티티를 읽으면 이탈 전 ACTIVE 상태가 1차 캐시에 남을 수 있다.
+    Long explorationId =
+        explorationParticipantRepository
+            .findExplorationIdByIdAndUserId(visit.getParticipantId(), userId)
+            .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
+    Exploration exploration =
+        explorationRepository
+            .findByIdForUpdate(explorationId)
+            .orElseThrow(() -> new IllegalStateException("방문 탐험 정보가 없습니다."));
     ExplorationParticipant participant =
         explorationParticipantRepository
             .findById(visit.getParticipantId())
             .orElseThrow(() -> new IllegalStateException("방문 참여자 정보가 없습니다."));
-    if (!participant.getUserId().equals(userId)) {
-      throw new ExplorationHandler(ErrorStatus._FORBIDDEN);
-    }
-
-    Exploration exploration =
-        explorationRepository
-            .findByIdForUpdate(participant.getExplorationId())
-            .orElseThrow(() -> new IllegalStateException("방문 탐험 정보가 없습니다."));
     if (exploration.getStatus() == ExplorationStatus.COMPLETED) {
       throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_COMPLETED);
     }
