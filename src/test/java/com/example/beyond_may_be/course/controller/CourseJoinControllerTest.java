@@ -7,7 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
 import com.example.beyond_may_be.apiPayload.exception.ExceptionAdvice;
+import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.config.SecurityConfig;
 import com.example.beyond_may_be.course.service.CourseService;
@@ -33,11 +35,42 @@ class CourseJoinControllerTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private AuthTokenService authTokenService;
   @Autowired private ExplorationService explorationService;
+  @Autowired private CourseService courseService;
 
   @BeforeEach
   void authenticate() {
-    reset(authTokenService, explorationService);
+    reset(authTokenService, explorationService, courseService);
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(2L));
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"join", "confirm"})
+  void duplicateJoinReturnsActiveExplorationId(String action) throws Exception {
+    var error =
+        new ExplorationHandler(
+            ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION,
+            new ExplorationDtos.ActiveExplorationResponse(44L));
+    if (action.equals("join")) {
+      given(explorationService.join(10L, 2L)).willThrow(error);
+    } else {
+      given(courseService.confirm(10L, 2L)).willThrow(error);
+    }
+
+    mockMvc
+        .perform(post("/api/v1/courses/10/" + action).header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("EXPLORATION409"))
+        .andExpect(jsonPath("$.data.activeExplorationId").value(44));
+  }
+
+  @Test
+  void completedErrorKeepsNullData() throws Exception {
+    given(explorationService.join(10L, 2L))
+        .willThrow(new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_COMPLETED));
+    mockMvc
+        .perform(post("/api/v1/courses/10/join").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()));
   }
 
   @Test

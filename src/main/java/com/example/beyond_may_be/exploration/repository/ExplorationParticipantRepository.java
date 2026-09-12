@@ -14,6 +14,11 @@ public interface ExplorationParticipantRepository
 
   Optional<ExplorationParticipant> findByExplorationIdAndUserId(Long explorationId, Long userId);
 
+  @Query(
+      "select p.explorationId from ExplorationParticipant p where p.id = :participantId and p.userId = :userId")
+  Optional<Long> findExplorationIdByIdAndUserId(
+      @Param("participantId") Long participantId, @Param("userId") Long userId);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(
       "select p from ExplorationParticipant p "
@@ -23,10 +28,16 @@ public interface ExplorationParticipantRepository
 
   List<ExplorationParticipant> findByExplorationId(Long explorationId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      "select p from ExplorationParticipant p where p.explorationId = :explorationId order by p.id")
+  List<ExplorationParticipant> findByExplorationIdForUpdate(
+      @Param("explorationId") Long explorationId);
+
   List<ExplorationParticipant> findByExplorationIdIn(List<Long> explorationIds);
 
   @Query(
-      "SELECT COUNT(p) > 0 FROM ExplorationParticipant p, Exploration e "
+      "SELECT p.explorationId FROM ExplorationParticipant p, Exploration e "
           + "WHERE e.id = p.explorationId "
           + "AND p.userId = :userId "
           + "AND p.status = "
@@ -34,5 +45,5 @@ public interface ExplorationParticipantRepository
           + "AND e.status IN ("
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.BEFORE, "
           + "com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING)")
-  boolean existsActiveParticipation(@Param("userId") Long userId);
+  Optional<Long> findActiveExplorationId(@Param("userId") Long userId);
 }

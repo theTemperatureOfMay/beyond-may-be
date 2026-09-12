@@ -67,7 +67,7 @@ class ExplorationStartServiceTest {
             .joinedAt(LocalDateTime.of(2026, 8, 14, 18, 0))
             .build();
     ReflectionTestUtils.setField(participant, "id", 72L);
-    given(explorationRepository.findById(44L)).willReturn(Optional.of(exploration));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
         .willReturn(Optional.of(participant));
     given(explorationRepository.startIfBefore(eq(44L), eq(72L), any(LocalDateTime.class)))
@@ -89,7 +89,7 @@ class ExplorationStartServiceTest {
   @DisplayName("존재하지 않는 탐험은 시작할 수 없다.")
   @Test
   void start_missingExploration_throwsNotFound() {
-    given(explorationRepository.findById(44L)).willReturn(Optional.empty());
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.empty());
 
     ExplorationHandler exception =
         assertThrows(ExplorationHandler.class, () -> explorationService.start(44L, 9L));
@@ -113,7 +113,7 @@ class ExplorationStartServiceTest {
             .locationSharingEnabled(false)
             .joinedAt(LocalDateTime.of(2026, 8, 14, 18, 0))
             .build();
-    given(explorationRepository.findById(44L)).willReturn(Optional.of(exploration));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
         .willReturn(Optional.of(leftParticipant));
 
@@ -143,7 +143,7 @@ class ExplorationStartServiceTest {
             .joinedAt(LocalDateTime.of(2026, 8, 14, 18, 0))
             .build();
     ReflectionTestUtils.setField(participant, "id", 72L);
-    given(explorationRepository.findById(44L)).willReturn(Optional.of(exploration));
+    given(explorationRepository.findByIdForUpdate(44L)).willReturn(Optional.of(exploration));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(44L, 9L))
         .willReturn(Optional.of(participant));
     given(explorationRepository.startIfBefore(eq(44L), eq(72L), any(LocalDateTime.class)))

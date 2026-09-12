@@ -82,7 +82,6 @@ public class ExplorationService {
 
     List<Exploration> explorations =
         explorationRepository.findAllByParticipantUserIdAndStatus(userId, status);
-    // ponytail: 과거 LEFT 탐험과 새 ONGOING이 겹치면 500으로 드러낸다. 이탈 API 도입 시 카드 우선순위를 계약한다.
     if (status == ExplorationStatus.ONGOING && explorations.size() > 1) {
       throw new IllegalStateException("진행 중 탐험은 최대 1개여야 합니다.");
     }
@@ -214,17 +213,25 @@ public class ExplorationService {
         userRepository
             .findByIdForUpdate(userId)
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
-    if (explorationParticipantRepository.existsActiveParticipation(userId)) {
-      throw new ExplorationHandler(ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION);
-    }
+    explorationParticipantRepository
+        .findActiveExplorationId(userId)
+        .ifPresent(
+            activeExplorationId -> {
+              throw new ExplorationHandler(
+                  ErrorStatus.DUPLICATE_ACTIVE_PARTICIPATION,
+                  ExplorationConverter.toActiveExplorationResponse(activeExplorationId));
+            });
     if (existing.isPresent()) {
       ExplorationParticipant participant = existing.get();
       participant.reactivate();
+      ensureActiveOwner(
+          explorationParticipantRepository.findByExplorationIdForUpdate(exploration.getId()),
+          participant);
       return ExplorationConverter.toJoinResponse(participant, true);
     }
 
     List<ExplorationParticipant> allParticipants =
-        explorationParticipantRepository.findByExplorationId(exploration.getId());
+        explorationParticipantRepository.findByExplorationIdForUpdate(exploration.getId());
     String displayName = resolveDisplayName(allParticipants, user.getNickname());
 
     ExplorationParticipant participant =
@@ -238,6 +245,7 @@ public class ExplorationService {
                 .locationSharingEnabled(false)
                 .joinedAt(LocalDateTime.now())
                 .build());
+    ensureActiveOwner(allParticipants, participant);
     ExplorationDtos.JoinResponse response = ExplorationConverter.toJoinResponse(participant, false);
     int participantCount =
         Math.toIntExact(
@@ -254,7 +262,7 @@ public class ExplorationService {
   public ExplorationDtos.StartResponse start(Long explorationId, Long userId) {
     Exploration exploration =
         explorationRepository
-            .findById(explorationId)
+            .findByIdForUpdate(explorationId)
             .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
     ExplorationParticipant participant =
         explorationParticipantRepository
@@ -270,6 +278,87 @@ public class ExplorationService {
     applicationEventPublisher.publishEvent(
         ExplorationConverter.toExplorationStartedEvent(UUID.randomUUID(), response));
     return response;
+  }
+
+  public ExplorationDtos.LeaveResponse leave(Long explorationId, Long userId) {
+    Exploration exploration =
+        explorationRepository
+            .findByIdForUpdate(explorationId)
+            .orElseThrow(() -> new ExplorationHandler(ErrorStatus.EXPLORATION_NOT_FOUND));
+    userRepository
+        .findByIdForUpdate(userId)
+        .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    List<ExplorationParticipant> participants =
+        explorationParticipantRepository.findByExplorationIdForUpdate(explorationId);
+    ExplorationParticipant participant =
+        participants.stream()
+            .filter(candidate -> candidate.getUserId().equals(userId))
+            .findFirst()
+            .orElseThrow(
+                () -> new ExplorationHandler(ErrorStatus.EXPLORATION_PARTICIPANT_FORBIDDEN));
+    if (participant.getStatus() == ParticipantStatus.LEFT) {
+      return ExplorationConverter.toLeaveResponse(participant, activeOwnerId(participants));
+    }
+    if (exploration.getStatus() == ExplorationStatus.COMPLETED) {
+      throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_COMPLETED);
+    }
+    if (participant.getStatus() != ParticipantStatus.ACTIVE) {
+      throw new ExplorationHandler(ErrorStatus.EXPLORATION_PARTICIPANT_FORBIDDEN);
+    }
+    participant.leave(LocalDateTime.now());
+    if (participant.getRole() == ParticipantRole.OWNER) {
+      participants.stream()
+          .filter(candidate -> candidate.getStatus() == ParticipantStatus.ACTIVE)
+          .min(
+              Comparator.comparing(ExplorationParticipant::getJoinedAt)
+                  .thenComparing(ExplorationParticipant::getId))
+          .ifPresent(
+              successor -> {
+                participant.changeRole(ParticipantRole.MEMBER);
+                successor.changeRole(ParticipantRole.OWNER);
+              });
+    }
+    explorationParticipantRepository.flush();
+    ExplorationDtos.LeaveResponse response =
+        ExplorationConverter.toLeaveResponse(participant, activeOwnerId(participants));
+    applicationEventPublisher.publishEvent(
+        ExplorationConverter.toLocationSharingChangedEvent(
+            UUID.randomUUID(), ExplorationConverter.toLocationSharingResponse(participant)));
+    applicationEventPublisher.publishEvent(
+        ExplorationConverter.toParticipantLeftEvent(
+            UUID.randomUUID(),
+            response,
+            (int)
+                participants.stream()
+                    .filter(candidate -> candidate.getStatus() == ParticipantStatus.ACTIVE)
+                    .count()));
+    return response;
+  }
+
+  private Long activeOwnerId(List<ExplorationParticipant> participants) {
+    return participants.stream()
+        .filter(
+            candidate ->
+                candidate.getStatus() == ParticipantStatus.ACTIVE
+                    && candidate.getRole() == ParticipantRole.OWNER)
+        .map(ExplorationParticipant::getId)
+        .findFirst()
+        .orElse(null);
+  }
+
+  private void ensureActiveOwner(
+      List<ExplorationParticipant> participants, ExplorationParticipant joining) {
+    if (participants.stream()
+        .anyMatch(
+            candidate ->
+                candidate.getStatus() == ParticipantStatus.ACTIVE
+                    && candidate.getRole() == ParticipantRole.OWNER)) {
+      return;
+    }
+    participants.stream()
+        .filter(candidate -> candidate.getRole() == ParticipantRole.OWNER)
+        .forEach(candidate -> candidate.changeRole(ParticipantRole.MEMBER));
+    joining.changeRole(ParticipantRole.OWNER);
   }
 
   public ExplorationDtos.CompleteResponse completeEarly(Long explorationId, Long userId) {

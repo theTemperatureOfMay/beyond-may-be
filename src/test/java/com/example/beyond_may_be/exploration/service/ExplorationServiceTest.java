@@ -129,8 +129,9 @@ class ExplorationServiceTest {
         .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 2L))
         .willReturn(Optional.empty());
-    given(explorationParticipantRepository.existsActiveParticipation(2L)).willReturn(false);
-    given(explorationParticipantRepository.findByExplorationId(5L))
+    given(explorationParticipantRepository.findActiveExplorationId(2L))
+        .willReturn(Optional.empty());
+    given(explorationParticipantRepository.findByExplorationIdForUpdate(5L))
         .willReturn(
             List.of(
                 ExplorationParticipant.builder()
@@ -191,8 +192,9 @@ class ExplorationServiceTest {
         .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 3L))
         .willReturn(Optional.empty());
-    given(explorationParticipantRepository.existsActiveParticipation(3L)).willReturn(false);
-    given(explorationParticipantRepository.findByExplorationId(5L))
+    given(explorationParticipantRepository.findActiveExplorationId(3L))
+        .willReturn(Optional.empty());
+    given(explorationParticipantRepository.findByExplorationIdForUpdate(5L))
         .willReturn(
             List.of(
                 ExplorationParticipant.builder()
@@ -227,7 +229,8 @@ class ExplorationServiceTest {
         .willReturn(Optional.empty());
     given(userRepository.findByIdForUpdate(3L))
         .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(3).build()));
-    given(explorationParticipantRepository.existsActiveParticipation(3L)).willReturn(true);
+    given(explorationParticipantRepository.findActiveExplorationId(3L))
+        .willReturn(Optional.of(44L));
 
     assertThrows(ExplorationHandler.class, () -> explorationService.join(10L, 3L));
   }
@@ -243,13 +246,14 @@ class ExplorationServiceTest {
         .willReturn(Optional.of(exploration(5L)));
     given(explorationParticipantRepository.findByExplorationIdAndUserId(5L, 3L))
         .willReturn(Optional.empty());
-    given(explorationParticipantRepository.existsActiveParticipation(3L)).willReturn(true);
+    given(explorationParticipantRepository.findActiveExplorationId(3L))
+        .willReturn(Optional.of(44L));
 
     assertThrows(ExplorationHandler.class, () -> explorationService.join(10L, 3L));
 
     org.mockito.InOrder locks = Mockito.inOrder(userRepository, explorationParticipantRepository);
     locks.verify(userRepository).findByIdForUpdate(3L);
-    locks.verify(explorationParticipantRepository).existsActiveParticipation(3L);
+    locks.verify(explorationParticipantRepository).findActiveExplorationId(3L);
   }
 
   @DisplayName("만료된 공유 링크로 합류하면 예외가 발생한다.")
@@ -363,7 +367,8 @@ class ExplorationServiceTest {
         .willReturn(Optional.of(existing));
     given(userRepository.findByIdForUpdate(2L))
         .willReturn(Optional.of(User.builder().nickname("여행자").identificationCode(2).build()));
-    given(explorationParticipantRepository.existsActiveParticipation(2L)).willReturn(true);
+    given(explorationParticipantRepository.findActiveExplorationId(2L))
+        .willReturn(Optional.of(44L));
 
     assertThrows(ExplorationHandler.class, () -> explorationService.join(10L, 2L));
 

@@ -131,9 +131,10 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
   }
 
   private ResponseEntity<Object> handleExceptionInternal(
-      Exception e, ErrorReasonDTO reason, HttpHeaders headers, HttpServletRequest request) {
+      GeneralException e, ErrorReasonDTO reason, HttpHeaders headers, HttpServletRequest request) {
 
-    ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
+    ApiResponse<Object> body =
+        ApiResponse.onFailure(reason.getCode(), reason.getMessage(), e.getData());
     //        e.printStackTrace();
 
     WebRequest webRequest = new ServletWebRequest(request);

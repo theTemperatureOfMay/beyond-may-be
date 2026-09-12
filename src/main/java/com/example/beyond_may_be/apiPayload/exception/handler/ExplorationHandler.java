@@ -8,4 +8,8 @@ public class ExplorationHandler extends GeneralException {
   public ExplorationHandler(BaseErrorCode code) {
     super(code);
   }
+
+  public ExplorationHandler(BaseErrorCode code, Object data) {
+    super(code, data);
+  }
 }

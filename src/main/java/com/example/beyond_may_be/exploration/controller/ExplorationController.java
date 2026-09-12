@@ -25,6 +25,33 @@ public class ExplorationController {
 
   private final ExplorationService explorationService;
 
+  @io.swagger.v3.oas.annotations.Operation(
+      summary = "탐험 이탈",
+      description =
+          "현재 참여를 LEFT로 바꾸고 기록을 보존합니다. OWNER 이탈 시 가장 먼저 합류한 활성 팀원에게 역할을 이전합니다. 반복 요청은 200이며, 이탈 성공 후 새 코스의 join을 호출합니다.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "이탈 또는 이미 이탈함"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "401",
+        description = "인증 필요"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "403",
+        description = "참여자가 아님"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "탐험 없음"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "409",
+        description = "EXPLORATION409_2: 완료된 탐험")
+  })
+  @PostMapping("/explorations/{explorationId}/leave")
+  public ApiResponse<ExplorationDtos.LeaveResponse> leave(
+      @PathVariable Long explorationId, @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(explorationService.leave(explorationId, userId));
+  }
+
   @GetMapping("/explorations")
   public ApiResponse<ExplorationDtos.ExplorationsResponse> getExplorations(
       @Parameter(schema = @Schema(allowableValues = {"ONGOING", "COMPLETED"})) @RequestParam

@@ -17,6 +17,32 @@ public final class ExplorationConverter {
 
   private ExplorationConverter() {}
 
+  public static ExplorationDtos.ActiveExplorationResponse toActiveExplorationResponse(
+      Long explorationId) {
+    return new ExplorationDtos.ActiveExplorationResponse(explorationId);
+  }
+
+  public static ExplorationDtos.LeaveResponse toLeaveResponse(
+      ExplorationParticipant participant, Long ownerParticipantId) {
+    return new ExplorationDtos.LeaveResponse(
+        participant.getExplorationId(),
+        participant.getId(),
+        participant.getStatus().name(),
+        toOffsetDateTime(participant.getLeftAt()),
+        ownerParticipantId);
+  }
+
+  public static ExplorationDtos.ParticipantLeftEvent toParticipantLeftEvent(
+      UUID eventId, ExplorationDtos.LeaveResponse response, int participantCount) {
+    return new ExplorationDtos.ParticipantLeftEvent(
+        eventId,
+        "PARTICIPANT_LEFT",
+        response.explorationId(),
+        response.leftAt(),
+        new ExplorationDtos.ParticipantLeftData(
+            response.participantId(), participantCount, response.ownerParticipantId()));
+  }
+
   public static ExplorationDtos.IdResponse toIdResponse(Exploration exploration) {
     return new ExplorationDtos.IdResponse(exploration.getId());
   }
