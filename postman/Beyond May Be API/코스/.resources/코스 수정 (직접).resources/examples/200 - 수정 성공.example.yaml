@@ -41,6 +41,7 @@ response:
               "category": "카페",
               "travelMbtiType": "THINKER",
               "summary": "카페 · 잠깐 쉬어가기",
+              "thumbnailUrl": null,
               "address": "광주",
               "latitude": 35.15,
               "longitude": 126.85,
