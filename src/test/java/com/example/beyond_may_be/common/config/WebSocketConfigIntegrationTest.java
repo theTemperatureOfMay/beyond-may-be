@@ -344,11 +344,13 @@ class WebSocketConfigIntegrationTest {
         .isInstanceOf(ExecutionException.class);
   }
 
-  @Test
-  void localhostFrontendOriginConnectsToWebSocketEndpoint() throws Exception {
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(
+      strings = {"http://localhost:3000", "https://beyond-may.vercel.app"})
+  void allowedFrontendOriginConnectsToWebSocketEndpoint(String origin) throws Exception {
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(7L));
     WebSocketHttpHeaders handshakeHeaders = new WebSocketHttpHeaders();
-    handshakeHeaders.setOrigin("http://localhost:3000");
+    handshakeHeaders.setOrigin(origin);
     StompHeaders connectHeaders = new StompHeaders();
     connectHeaders.add(HttpHeaders.AUTHORIZATION, "Bearer valid-token");
 

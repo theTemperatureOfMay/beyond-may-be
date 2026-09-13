@@ -4,7 +4,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.beyond_may_be.auth.service.AuthTokenService;
@@ -26,6 +28,51 @@ class SecurityPolicyIntegrationTest {
   @Autowired private MockMvc mockMvc;
 
   @Autowired private AuthTokenService authTokenService;
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"GET", "POST", "PUT", "PATCH"})
+  void deployedFrontendPreflightAllowsBearerJsonRequests(String method) throws Exception {
+    mockMvc
+        .perform(
+            options("/api/v1/users/login")
+                .header("Origin", "https://beyond-may.vercel.app")
+                .header("Access-Control-Request-Method", method)
+                .header("Access-Control-Request-Headers", "authorization,content-type"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Access-Control-Allow-Origin", "https://beyond-may.vercel.app"))
+        .andExpect(header().string("Access-Control-Allow-Headers", "authorization, content-type"));
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"", "Bearer valid-token"})
+  void deployedFrontendCorsPreservesBearerAuthentication(String authorization) throws Exception {
+    given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(1L));
+
+    mockMvc
+        .perform(
+            get("/api/not-allowed")
+                .header("Origin", "https://beyond-may.vercel.app")
+                .header("Authorization", authorization))
+        .andExpect(status().is(authorization.isEmpty() ? 401 : 404))
+        .andExpect(header().string("Access-Control-Allow-Origin", "https://beyond-may.vercel.app"))
+        .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+  }
+
+  @Test
+  void unlistedOriginCannotAccessRestApi() throws Exception {
+    mockMvc
+        .perform(
+            options("/api/v1/users/login")
+                .header("Origin", "https://other.example")
+                .header("Access-Control-Request-Method", "POST"))
+        .andExpect(status().isForbidden())
+        .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    mockMvc
+        .perform(
+            get("/api/v1/preference-tests/questions").header("Origin", "https://other.example"))
+        .andExpect(status().isForbidden())
+        .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+  }
 
   @Test
   void publicEndpointsAreAccessible() throws Exception {

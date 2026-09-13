@@ -63,6 +63,10 @@
 `user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
 일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
+REST API의 `/api/**` CORS는 `https://beyond-may.vercel.app` origin을 허용한다.
+허용 메서드는 GET·HEAD·POST·PUT·PATCH·OPTIONS, 요청 헤더는
+Authorization·Content-Type·Accept다. 사전 요청은 인증보다 먼저 처리하며,
+실제 요청의 기존 bearer 인증·인가 정책은 유지한다. 교차 출처 쿠키 인증은 허용하지 않는다.
 WebSocket의 `/ws` HTTP upgrade는 허용하고 STOMP `CONNECT` native
 `Authorization: Bearer <token>` 헤더를 같은 `AuthTokenService`로 검증해 userId
 principal을 설정한다. `/topic/explorations/{explorationId}/events`와 `/visits` 구독은

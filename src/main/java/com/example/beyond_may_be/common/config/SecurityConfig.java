@@ -2,6 +2,7 @@ package com.example.beyond_may_be.common.config;
 
 import com.example.beyond_may_be.auth.service.AuthTokenService;
 import com.example.beyond_may_be.common.security.TokenAuthenticationFilter;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -12,15 +13,30 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
 
   @Bean
+  CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(List.of("https://beyond-may.vercel.app"));
+    configuration.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "PATCH", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/api/**", configuration);
+    return source;
+  }
+
+  @Bean
   SecurityFilterChain securityFilterChain(
       HttpSecurity http, AuthTokenService authTokenService, Environment environment)
       throws Exception {
-    return http.csrf(AbstractHttpConfigurer::disable)
+    return http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .csrf(AbstractHttpConfigurer::disable)
         .exceptionHandling(
             exception ->
                 exception.authenticationEntryPoint(
