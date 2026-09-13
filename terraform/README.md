@@ -74,7 +74,8 @@ terraform plan
 terraform apply
 ```
 
-적용 후 `alb_dns_name` 출력값으로 서비스에 접속하고, `github_actions_role_arn` 출력값을
+적용 후 `cloudfront_domain_name` 출력값(HTTPS·WSS)으로 서비스에 접속한다. `alb_dns_name`
+(HTTP)은 CloudFront를 거치지 않는 origin 직접 확인용이다. `github_actions_role_arn` 출력값을
 GitHub 저장소 Settings → Secrets and variables → Actions에 `AWS_ROLE_ARN`으로
 등록한다 (`.github/workflows/deploy.yml`이 이 값을 사용한다). `visit_photo_bucket_name`은
 애플리케이션에 자동 전달되는 방문 사진 버킷을 확인할 때 사용한다.

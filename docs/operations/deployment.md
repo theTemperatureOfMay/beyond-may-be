@@ -8,7 +8,9 @@
 
 ## 운영 구성
 
-- 인터넷 요청은 AWS ALB를 거쳐 ECS Fargate의 Spring Boot 컨테이너로 전달된다.
+- 인터넷 요청은 CloudFront(HTTPS·WSS 종단, 팀 보유 도메인이 없어 기본
+  `*.cloudfront.net` 인증서 사용)에서 AWS ALB(HTTP)를 거쳐 ECS Fargate의 Spring Boot
+  컨테이너로 전달된다.
 - 애플리케이션 데이터는 RDS PostgreSQL에 저장한다.
 - 방문 사진 원본은 공개 접근을 차단한 S3에 저장하고, 메타데이터는 PostgreSQL에 둔다.
 - ECS task는 SSM Parameter Store에서 DB 연결 설정, TourAPI 인증키와 Groq API 키를
@@ -34,8 +36,9 @@ PR merge, 직접 push 또는 `workflow_dispatch` 실행 자체가 운영 배포 
 1. GitHub Actions의 `Deploy` workflow에서 `test`와 `deploy` job 성공을 확인한다.
 2. AWS ECS의 `beyond-may-be` cluster와 service에서 rollout 완료와 running task 수를
    확인한다.
-3. Terraform의 `alb_dns_name`에 `/actuator/health`를 붙인 Health URL이 HTTP 200과
-   `UP`을 반환하는지 확인한다.
+3. Terraform의 `cloudfront_domain_name`에 `/actuator/health`를 붙인 HTTPS Health URL이
+   200과 `UP`을 반환하는지 확인한다 (`alb_dns_name` 쪽 HTTP 확인은 CloudFront를 거치지
+   않는 origin 직접 확인용으로만 쓴다).
 4. 오류가 있으면 ECS service event와 CloudWatch log group
    `/ecs/beyond-may-be`를 확인하되 비밀값을 출력하지 않는다.
 5. 방문 사진 변경을 배포했다면 테스트 Visit으로 JPEG·PNG·WebP 중 한 장을 첨부해
