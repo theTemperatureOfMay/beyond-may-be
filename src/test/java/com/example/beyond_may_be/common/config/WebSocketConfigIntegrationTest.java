@@ -345,6 +345,27 @@ class WebSocketConfigIntegrationTest {
   }
 
   @Test
+  void localhostFrontendOriginConnectsToWebSocketEndpoint() throws Exception {
+    given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(7L));
+    WebSocketHttpHeaders handshakeHeaders = new WebSocketHttpHeaders();
+    handshakeHeaders.setOrigin("http://localhost:3000");
+    StompHeaders connectHeaders = new StompHeaders();
+    connectHeaders.add(HttpHeaders.AUTHORIZATION, "Bearer valid-token");
+
+    StompSession session =
+        client
+            .connectAsync(
+                "ws://localhost:" + port + "/ws",
+                handshakeHeaders,
+                connectHeaders,
+                new StompSessionHandlerAdapter() {})
+            .get(5, TimeUnit.SECONDS);
+
+    assertThat(session.isConnected()).isTrue();
+    session.disconnect();
+  }
+
+  @Test
   void crossOriginHandshakeDoesNotConnect() {
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(7L));
     WebSocketHttpHeaders handshakeHeaders = new WebSocketHttpHeaders();
