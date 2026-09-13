@@ -20,8 +20,9 @@ Spring WebSocket(STOMP) endpoint와 prefix가 확정됐으므로, 기능 4 메�
   허용한다.
   실제 인증은 STOMP `CONNECT` frame의 native `Authorization: Bearer <token>` 헤더를
   기존 `AuthTokenService`로 검증하고 userId principal을 설정한다.
-- 별도 origin 허용 목록을 열지 않아 Spring의 same-origin 기본값을 유지한다. SockJS,
-  query token, cookie 인증은 추가하지 않는다.
+- 동일 출처와 로컬 프런트엔드 origin `http://localhost:3000`을 허용한다. 로컬 브라우저
+  연결을 위해 2026-09-13에 해당 origin을 명시적으로 추가했다. 그 외 교차 출처는
+  허용하지 않는다. SockJS, query token, cookie 인증은 추가하지 않는다.
 - 기능별 destination과 `ACTIVE Participant` 인가가 구현되기 전까지 클라이언트의 모든
   `SEND`와 `SUBSCRIBE` frame을 거부한다.
 - 이번 결정에는 기능별 메시지 DTO·handler·publisher, 위치 공유, 방문·진행 이벤트와
@@ -70,6 +71,17 @@ endpoint·prefix·연결 인증 경계만 후속 결정한다.
   통과했다. 전체 `test`는 232개 중 226개가 통과하고 기존 Testcontainers 6개가 로컬
   Docker daemon 부재로 실패했다. 프런트엔드 STOMP client와 운영 reverse proxy·배포
   상태는 확인하지 않았다.
+
+### 2026-09-13 로컬 브라우저 연결 허용
+
+- 변경 대상: `WebSocketConfig`의 명시적 origin 허용 목록, 이 ADR의 출처 정책,
+  `WebSocketConfigIntegrationTest`의 로컬 프런트엔드 origin 연결 회귀 테스트.
+- 변경 영향 검사: `change-impact-review`로 설정·테스트·이 ADR의 출처 정책을 대조했다.
+  아키텍처·제품 문서와 프로젝트 스킬 검색에서 별도 origin 정책의 중복은 발견하지 않았다.
+  `SecurityConfig`의 `GET /ws` 허용과 STOMP bearer 인증 계약은 그대로 유효하다.
+- 확인하지 못함: 실제 프런트엔드 브라우저 연결, 운영 reverse proxy와 배포 상태.
+  운영 반영 후 브라우저 연결 확인이 남아 있다.
+- 복구: 이번 설정·테스트·문서 변경을 Git으로 되돌린다. DB 변경은 없다.
 
 ### 관련 문서
 
