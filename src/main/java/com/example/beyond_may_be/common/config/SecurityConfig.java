@@ -23,7 +23,8 @@ public class SecurityConfig {
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("https://beyond-may.vercel.app"));
+    configuration.setAllowedOrigins(
+        List.of("http://localhost:3000", "https://beyond-may.vercel.app"));
     configuration.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "PATCH", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

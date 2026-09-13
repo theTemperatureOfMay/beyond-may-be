@@ -30,31 +30,44 @@ class SecurityPolicyIntegrationTest {
   @Autowired private AuthTokenService authTokenService;
 
   @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(strings = {"GET", "POST", "PUT", "PATCH"})
-  void deployedFrontendPreflightAllowsBearerJsonRequests(String method) throws Exception {
+  @org.junit.jupiter.params.provider.CsvSource({
+    "http://localhost:3000, GET",
+    "http://localhost:3000, POST",
+    "http://localhost:3000, PUT",
+    "http://localhost:3000, PATCH",
+    "https://beyond-may.vercel.app, GET",
+    "https://beyond-may.vercel.app, POST",
+    "https://beyond-may.vercel.app, PUT",
+    "https://beyond-may.vercel.app, PATCH"
+  })
+  void frontendPreflightAllowsBearerJsonRequests(String origin, String method) throws Exception {
     mockMvc
         .perform(
             options("/api/v1/users/login")
-                .header("Origin", "https://beyond-may.vercel.app")
+                .header("Origin", origin)
                 .header("Access-Control-Request-Method", method)
                 .header("Access-Control-Request-Headers", "authorization,content-type"))
         .andExpect(status().isOk())
-        .andExpect(header().string("Access-Control-Allow-Origin", "https://beyond-may.vercel.app"))
+        .andExpect(header().string("Access-Control-Allow-Origin", origin))
         .andExpect(header().string("Access-Control-Allow-Headers", "authorization, content-type"));
   }
 
   @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(strings = {"", "Bearer valid-token"})
-  void deployedFrontendCorsPreservesBearerAuthentication(String authorization) throws Exception {
+  @org.junit.jupiter.params.provider.CsvSource({
+    "http://localhost:3000, ''",
+    "http://localhost:3000, Bearer valid-token",
+    "https://beyond-may.vercel.app, ''",
+    "https://beyond-may.vercel.app, Bearer valid-token"
+  })
+  void frontendCorsPreservesBearerAuthentication(String origin, String authorization)
+      throws Exception {
     given(authTokenService.resolveUserId("valid-token")).willReturn(Optional.of(1L));
 
     mockMvc
         .perform(
-            get("/api/not-allowed")
-                .header("Origin", "https://beyond-may.vercel.app")
-                .header("Authorization", authorization))
+            get("/api/not-allowed").header("Origin", origin).header("Authorization", authorization))
         .andExpect(status().is(authorization.isEmpty() ? 401 : 404))
-        .andExpect(header().string("Access-Control-Allow-Origin", "https://beyond-may.vercel.app"))
+        .andExpect(header().string("Access-Control-Allow-Origin", origin))
         .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
   }
 
