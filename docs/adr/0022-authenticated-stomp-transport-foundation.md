@@ -20,9 +20,10 @@ Spring WebSocket(STOMP) endpoint와 prefix가 확정됐으므로, 기능 4 메�
   허용한다.
   실제 인증은 STOMP `CONNECT` frame의 native `Authorization: Bearer <token>` 헤더를
   기존 `AuthTokenService`로 검증하고 userId principal을 설정한다.
-- 동일 출처와 로컬 프런트엔드 origin `http://localhost:3000`을 허용한다. 로컬 브라우저
-  연결을 위해 2026-09-13에 해당 origin을 명시적으로 추가했다. 그 외 교차 출처는
-  허용하지 않는다. SockJS, query token, cookie 인증은 추가하지 않는다.
+- 동일 출처와 로컬 프런트엔드 origin `http://localhost:3000`, 배포 프런트엔드 origin
+  `https://beyond-may.vercel.app`을 허용한다. 브라우저 연결을 위해 2026-09-13에 두
+  origin을 명시적으로 추가했다. 그 외 교차 출처는 허용하지 않는다. SockJS, query
+  token, cookie 인증은 추가하지 않는다.
 - 기능별 destination과 `ACTIVE Participant` 인가가 구현되기 전까지 클라이언트의 모든
   `SEND`와 `SUBSCRIBE` frame을 거부한다.
 - 이번 결정에는 기능별 메시지 DTO·handler·publisher, 위치 공유, 방문·진행 이벤트와
@@ -81,6 +82,26 @@ endpoint·prefix·연결 인증 경계만 후속 결정한다.
   `SecurityConfig`의 `GET /ws` 허용과 STOMP bearer 인증 계약은 그대로 유효하다.
 - 확인하지 못함: 실제 프런트엔드 브라우저 연결, 운영 reverse proxy와 배포 상태.
   운영 반영 후 브라우저 연결 확인이 남아 있다.
+- 복구: 이번 설정·테스트·문서 변경을 Git으로 되돌린다. DB 변경은 없다.
+
+### 2026-09-13 배포 프런트엔드 연결 허용
+
+- 변경 대상: `WebSocketConfig`의 명시적 origin 허용 목록에
+  `https://beyond-may.vercel.app`을 추가하고, 연결 통합 테스트를 로컬·배포 origin으로
+  매개변수화했다. 새로운 ADR이나 도메인 용어 변경은 필요하지 않다.
+- 확인했지만 변경하지 않음: `SecurityConfig`의 `GET /ws` 허용, STOMP bearer 인증,
+  다른 origin 차단과 아키텍처·제품 문서의 실시간 계약. 하네스·스킬 검색에서도 별도
+  origin 정책은 발견하지 않았다.
+- 검증: 기존 코드에서 로컬 origin은 통과하고 배포 origin 연결은 실패하는 것을 확인했다.
+  변경 후 `WebSocketConfigIntegrationTest` 16개(실패·오류·건너뜀 0개),
+  `spotlessCheck`, `git diff --check`가 통과했다. 작은 설정 변경으로 전체 테스트·전체
+  빌드는 실행하지 않았다.
+- 변경 영향 검사: `change-impact-review`로 이 ADR·설정·테스트와 관련 문서·스킬 검색
+  결과를 대조했고, 이번 origin 추가 범위의 정합성은 통과했다. 최초 테스트 시도는
+  샌드박스 네트워크 제한으로 실행되지 않아 권한을 확대한 환경에서 검증했다.
+- 확인하지 못함·미해결: 실제 프런트엔드 브라우저 연결과 운영 배포 상태.
+  TLS/WSS 인프라는 이번 변경 범위에 포함하지 않는다. REST CORS는 후속으로
+  `SecurityConfig`에 추가했으며 정책은 [백엔드 아키텍처](../architecture/backend.md)에 기록한다.
 - 복구: 이번 설정·테스트·문서 변경을 Git으로 되돌린다. DB 변경은 없다.
 
 ### 관련 문서
