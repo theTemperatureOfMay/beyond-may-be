@@ -31,5 +31,5 @@ output "rds_endpoint" {
 
 output "visit_photo_bucket_name" {
   description = "비공개 방문 사진 S3 버킷 이름"
-  value       = aws_s3_bucket.visit_photos.id
+  value       = module.s3.bucket_name
 }
