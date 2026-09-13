@@ -63,6 +63,10 @@
 `user_id`, 만료 시각(30일)과 함께 저장한다(Redis 없이 DB 기반, ADR-0006과
 일치). HTTP API는 `Authorization: Bearer <token>` 헤더로 전달하고
 `TokenAuthenticationFilter`가 검증해 `SecurityContext`에 userId를 설정한다.
+REST API의 `/api/**` CORS는 `https://beyond-may.vercel.app` origin을 허용한다.
+허용 메서드는 GET·HEAD·POST·PUT·PATCH·OPTIONS, 요청 헤더는
+Authorization·Content-Type·Accept다. 사전 요청은 인증보다 먼저 처리하며,
+실제 요청의 기존 bearer 인증·인가 정책은 유지한다. 교차 출처 쿠키 인증은 허용하지 않는다.
 WebSocket의 `/ws` HTTP upgrade는 허용하고 STOMP `CONNECT` native
 `Authorization: Bearer <token>` 헤더를 같은 `AuthTokenService`로 검증해 userId
 principal을 설정한다. `/topic/explorations/{explorationId}/events`와 `/visits` 구독은
@@ -469,7 +473,9 @@ AI 요청 중에는 프런트엔드가 버튼을 비활성화하고 자동 재�
 ## 운영 배포 구조
 
 백엔드는 AWS ALB 뒤의 ECS Fargate에서 실행하고 RDS PostgreSQL을 서버 데이터 정본으로
-사용한다. 방문 사진 원본은 비공개 S3에 두고 애플리케이션은 정적 키 없이 ECS Task
+사용한다. 팀이 보유한 도메인이 없어 ALB 자체에는 ACM 인증서를 붙일 수 없으므로, ALB
+앞에 CloudFront(기본 `*.cloudfront.net` 인증서)를 두어 HTTPS·WSS를 종단하고 ALB에는
+HTTP로 전달한다. 방문 사진 원본은 비공개 S3에 두고 애플리케이션은 정적 키 없이 ECS Task
 Role로 접근한다. GitHub Actions는 OIDC로 AWS 역할을 맡아 `main` 변경 후 새 컨테이너
 이미지를 자동 배포한다. 구조와 승인 결정은
 [ADR-0011](../adr/0011-aws-main-continuous-deployment.md)과

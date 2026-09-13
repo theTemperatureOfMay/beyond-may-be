@@ -27,7 +27,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
     registry.setErrorHandler(stompContractErrorHandler);
-    registry.addEndpoint("/ws");
+    registry
+        .addEndpoint("/ws")
+        .setAllowedOrigins("http://localhost:3000", "https://beyond-may.vercel.app");
   }
 
   @Override

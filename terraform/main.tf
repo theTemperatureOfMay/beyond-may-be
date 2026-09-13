@@ -5,63 +5,6 @@ resource "random_password" "db" {
   special = false
 }
 
-resource "aws_s3_bucket" "visit_photos" {
-  bucket_prefix = "${var.project_name}-visit-photos-"
-}
-
-resource "aws_s3_bucket_public_access_block" "visit_photos" {
-  bucket = aws_s3_bucket.visit_photos.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "visit_photos" {
-  bucket = aws_s3_bucket.visit_photos.id
-
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "visit_photos" {
-  bucket = aws_s3_bucket.visit_photos.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-data "aws_iam_policy_document" "visit_photos_secure_transport" {
-  statement {
-    effect    = "Deny"
-    actions   = ["s3:*"]
-    resources = [aws_s3_bucket.visit_photos.arn, "${aws_s3_bucket.visit_photos.arn}/*"]
-
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-
-    condition {
-      test     = "Bool"
-      variable = "aws:SecureTransport"
-      values   = ["false"]
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "visit_photos" {
-  bucket = aws_s3_bucket.visit_photos.id
-  policy = data.aws_iam_policy_document.visit_photos_secure_transport.json
-
-  depends_on = [aws_s3_bucket_public_access_block.visit_photos]
-}
-
 module "network" {
   source              = "./modules/network"
   name                = var.project_name
@@ -177,6 +120,58 @@ module "alb_ecs" {
 
   s3_bucket_name = module.s3.bucket_name
   s3_bucket_arn  = module.s3.bucket_arn
+}
+
+# CloudFront: ALB 앞단에 HTTPS/WSS를 종단하는 프록시. 팀이 보유한 도메인이 없어
+# ACM 인증서를 발급받을 수 없으므로, CloudFront 기본 도메인(*.cloudfront.net)의
+# 기본 인증서를 그대로 사용한다. 캐싱은 API 응답에 부적절하므로 비활성화하고,
+# WebSocket(STOMP) 업그레이드에 필요한 헤더가 그대로 전달되도록 AWS 관리형
+# "AllViewer" origin request 정책을 사용한다.
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
+}
+
+resource "aws_cloudfront_distribution" "backend" {
+  enabled = true
+  comment = "${var.project_name} backend HTTPS/WSS proxy"
+
+  origin {
+    domain_name = module.alb_ecs.alb_dns_name
+    origin_id   = "${var.project_name}-alb"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "${var.project_name}-alb"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods         = ["GET", "HEAD"]
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  price_class = "PriceClass_200"
 }
 
 module "iam" {
