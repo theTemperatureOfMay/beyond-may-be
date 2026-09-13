@@ -28,6 +28,7 @@ response:
               "category": "카페",
               "travelMbtiType": "THINKER",
               "summary": "조용한 로컬 카페",
+              "thumbnailUrl": null,
               "address": "광주 동구 테스트로 1",
               "latitude": 35.1595,
               "longitude": 126.8526,

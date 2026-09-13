@@ -66,6 +66,7 @@ public final class CourseConverter {
         place.getCategory(),
         place.getTravelMbtiType(),
         place.getDescription(),
+        place.getThumbnailUrl(),
         place.getAddress(),
         place.getLatitude(),
         place.getLongitude(),

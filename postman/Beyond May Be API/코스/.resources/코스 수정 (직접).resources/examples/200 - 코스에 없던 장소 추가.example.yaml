@@ -41,6 +41,7 @@ response:
               "category": "카페",
               "travelMbtiType": "FOODIE",
               "summary": "카페 · 로컬 미식",
+              "thumbnailUrl": null,
               "address": "광주 남구",
               "latitude": 35.14,
               "longitude": 126.91,

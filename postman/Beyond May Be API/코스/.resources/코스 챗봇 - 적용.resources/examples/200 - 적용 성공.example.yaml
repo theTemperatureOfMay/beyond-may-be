@@ -41,6 +41,7 @@ response:
               "category": "야경 명소",
               "travelMbtiType": "ARTIST",
               "summary": "야경 · 저녁 산책",
+              "thumbnailUrl": null,
               "address": "광주",
               "latitude": 35.15,
               "longitude": 126.85,
