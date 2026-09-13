@@ -179,6 +179,58 @@ module "alb_ecs" {
   s3_bucket_arn  = module.s3.bucket_arn
 }
 
+# CloudFront: ALB 앞단에 HTTPS/WSS를 종단하는 프록시. 팀이 보유한 도메인이 없어
+# ACM 인증서를 발급받을 수 없으므로, CloudFront 기본 도메인(*.cloudfront.net)의
+# 기본 인증서를 그대로 사용한다. 캐싱은 API 응답에 부적절하므로 비활성화하고,
+# WebSocket(STOMP) 업그레이드에 필요한 헤더가 그대로 전달되도록 AWS 관리형
+# "AllViewer" origin request 정책을 사용한다.
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
+}
+
+resource "aws_cloudfront_distribution" "backend" {
+  enabled = true
+  comment = "${var.project_name} backend HTTPS/WSS proxy"
+
+  origin {
+    domain_name = module.alb_ecs.alb_dns_name
+    origin_id   = "${var.project_name}-alb"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "${var.project_name}-alb"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods         = ["GET", "HEAD"]
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  price_class = "PriceClass_200"
+}
+
 module "iam" {
   source = "./modules/iam"
 

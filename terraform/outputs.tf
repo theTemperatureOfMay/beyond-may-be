@@ -3,6 +3,11 @@ output "alb_dns_name" {
   value       = module.alb_ecs.alb_dns_name
 }
 
+output "cloudfront_domain_name" {
+  description = "HTTPS/WSS로 접속할 CloudFront 배포 주소 (https://<이 값>, wss://<이 값>/ws)"
+  value       = aws_cloudfront_distribution.backend.domain_name
+}
+
 output "ecr_repository_url" {
   value = module.ecr.repository_url
 }
