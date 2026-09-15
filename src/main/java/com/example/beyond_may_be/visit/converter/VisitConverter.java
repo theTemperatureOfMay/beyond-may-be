@@ -71,6 +71,7 @@ public final class VisitConverter {
         visit.getCoursePlaceId(),
         visit.getCoursePlaceId() != null,
         toOffsetDateTime(visit.getVisitedAt()),
+        visit.getMemo(),
         photos);
   }
 
@@ -124,6 +125,11 @@ public final class VisitConverter {
             response.teamFirstVisit(),
             response.courseProgress(),
             response.explorationStatus()));
+  }
+
+  public static VisitDtos.RecordResponse toRecordResponse(
+      Visit visit, List<VisitDtos.PhotoResponse> photos) {
+    return new VisitDtos.RecordResponse(visit.getId(), visit.getMemo(), photos);
   }
 
   public static VisitDtos.PhotoResponse toPhotoResponse(

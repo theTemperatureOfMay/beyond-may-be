@@ -76,6 +76,7 @@ class VisitControllerTest {
                         null,
                         false,
                         OffsetDateTime.parse("2026-08-15T14:32:10+09:00"),
+                        null,
                         List.of(
                             new VisitDtos.VisitPhotoResponse(
                                 501L,
@@ -296,60 +297,84 @@ class VisitControllerTest {
         .andExpect(jsonPath("$.data.explorationStatus").value("ONGOING"));
   }
 
-  @DisplayName("방문 사진을 첨부하면 저장 결과와 서명 URL을 201로 반환한다.")
+  @DisplayName("사진 없이 메모만 방문 기록으로 저장할 수 있다.")
   @Test
-  void attachPhoto_validImage_returnsCreated() throws Exception {
+  void saveRecord_memoOnly_returnsOk() throws Exception {
+    given(visitService.saveRecord(9001L, "골목 산책이 좋았어요.", List.of(), 9L))
+        .willReturn(new VisitDtos.RecordResponse(9001L, "골목 산책이 좋았어요.", List.of()));
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
+                .param("memo", "골목 산책이 좋았어요.")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.memo").value("골목 산책이 좋았어요."))
+        .andExpect(jsonPath("$.data.photos").isEmpty());
+  }
+
+  @DisplayName("방문 사진을 첨부하면 저장 결과와 서명 URL을 200으로 반환한다.")
+  @Test
+  void saveRecord_validImage_returnsOk() throws Exception {
     OffsetDateTime uploadedAt = OffsetDateTime.parse("2026-08-15T14:33:00+09:00");
     OffsetDateTime urlExpiresAt = OffsetDateTime.parse("2026-08-15T15:33:00+09:00");
     MockMultipartFile file =
-        new MockMultipartFile("file", "visit.webp", "image/webp", "image".getBytes());
-    given(visitService.attachPhoto(9001L, file, 9L))
+        new MockMultipartFile("files", "visit.webp", "image/webp", "image".getBytes());
+    given(visitService.saveRecord(9001L, null, List.of(file), 9L))
         .willReturn(
-            new VisitDtos.PhotoResponse(
-                501L, 9001L, 1, "https://example.com/signed/501", urlExpiresAt, uploadedAt));
+            new VisitDtos.RecordResponse(
+                9001L,
+                null,
+                List.of(
+                    new VisitDtos.PhotoResponse(
+                        501L,
+                        9001L,
+                        1,
+                        "https://example.com/signed/501",
+                        urlExpiresAt,
+                        uploadedAt))));
 
     mockMvc
         .perform(
-            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
                 .file(file)
                 .header("Authorization", "Bearer valid-token"))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.message").value("생성에 성공했습니다."))
-        .andExpect(jsonPath("$.code").value("COMMON201"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("성공입니다."))
+        .andExpect(jsonPath("$.code").value("COMMON200"))
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.visitPhotoId").value(501))
+        .andExpect(jsonPath("$.data.photos[0].visitPhotoId").value(501))
         .andExpect(jsonPath("$.data.visitId").value(9001))
-        .andExpect(jsonPath("$.data.displayOrder").value(1))
-        .andExpect(jsonPath("$.data.imageUrl").value("https://example.com/signed/501"))
-        .andExpect(jsonPath("$.data.urlExpiresAt").value("2026-08-15T15:33:00+09:00"))
-        .andExpect(jsonPath("$.data.uploadedAt").value("2026-08-15T14:33:00+09:00"));
+        .andExpect(jsonPath("$.data.photos[0].displayOrder").value(1))
+        .andExpect(jsonPath("$.data.photos[0].imageUrl").value("https://example.com/signed/501"))
+        .andExpect(jsonPath("$.data.photos[0].urlExpiresAt").value("2026-08-15T15:33:00+09:00"))
+        .andExpect(jsonPath("$.data.photos[0].uploadedAt").value("2026-08-15T14:33:00+09:00"));
   }
 
-  @DisplayName("사진 파일이 누락되면 공통 400 응답으로 거부한다.")
+  @DisplayName("사진과 메모가 모두 누락되면 공통 400 응답으로 거부한다.")
   @Test
-  void attachPhoto_missingFile_returnsBadRequest() throws Exception {
+  void saveRecord_missingFile_returnsBadRequest() throws Exception {
+    given(visitService.saveRecord(9001L, null, List.of(), 9L))
+        .willThrow(new VisitHandler(ErrorStatus._BAD_REQUEST));
     mockMvc
         .perform(
-            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
                 .header("Authorization", "Bearer valid-token"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON400"))
         .andExpect(jsonPath("$.success").value(false));
-
-    then(visitService).shouldHaveNoInteractions();
   }
 
   @DisplayName("multipart 제한을 넘은 사진은 공통 413 응답으로 거부한다.")
   @Test
-  void attachPhoto_multipartLimitExceeded_returnsPayloadTooLarge() throws Exception {
+  void saveRecord_multipartLimitExceeded_returnsPayloadTooLarge() throws Exception {
     MockMultipartFile file =
-        new MockMultipartFile("file", "large.png", "image/png", new byte[] {1});
-    given(visitService.attachPhoto(9001L, file, 9L))
+        new MockMultipartFile("files", "large.png", "image/png", new byte[] {1});
+    given(visitService.saveRecord(9001L, null, List.of(file), 9L))
         .willThrow(new MaxUploadSizeExceededException(10L * 1024 * 1024));
 
     mockMvc
         .perform(
-            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
                 .file(file)
                 .header("Authorization", "Bearer valid-token"))
         .andExpect(status().isPayloadTooLarge())
@@ -359,15 +384,15 @@ class VisitControllerTest {
 
   @DisplayName("지원하지 않는 사진 형식은 415로 거부한다.")
   @Test
-  void attachPhoto_unsupportedImage_returnsUnsupportedMediaType() throws Exception {
+  void saveRecord_unsupportedImage_returnsUnsupportedMediaType() throws Exception {
     MockMultipartFile file =
-        new MockMultipartFile("file", "visit.gif", "image/gif", new byte[] {1});
-    given(visitService.attachPhoto(9001L, file, 9L))
+        new MockMultipartFile("files", "visit.gif", "image/gif", new byte[] {1});
+    given(visitService.saveRecord(9001L, null, List.of(file), 9L))
         .willThrow(new VisitHandler(ErrorStatus.VISIT_PHOTO_UNSUPPORTED_TYPE));
 
     mockMvc
         .perform(
-            multipart("/api/v1/visits/{visitId}/photos", 9001L)
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
                 .file(file)
                 .header("Authorization", "Bearer valid-token"))
         .andExpect(status().isUnsupportedMediaType())
@@ -377,12 +402,12 @@ class VisitControllerTest {
 
   @DisplayName("인증 없이 방문 사진을 첨부하면 거부한다.")
   @Test
-  void attachPhoto_unauthenticated_returnsUnauthorized() throws Exception {
+  void saveRecord_unauthenticated_returnsUnauthorized() throws Exception {
     MockMultipartFile file =
-        new MockMultipartFile("file", "visit.png", "image/png", new byte[] {1});
+        new MockMultipartFile("files", "visit.png", "image/png", new byte[] {1});
 
     mockMvc
-        .perform(multipart("/api/v1/visits/{visitId}/photos", 9001L).file(file))
+        .perform(multipart("/api/v1/visits/{visitId}/record", 9001L).file(file))
         .andExpect(status().isUnauthorized());
 
     then(visitService).shouldHaveNoInteractions();
@@ -457,6 +482,41 @@ class VisitControllerTest {
         .andExpect(status().isUnauthorized());
 
     then(visitService).shouldHaveNoInteractions();
+  }
+
+  @DisplayName("같은 multipart 키의 사진 세 장과 메모를 한 기록으로 전달한다.")
+  @Test
+  void saveRecord_multipleFilesAndMemo_bindsTogether() throws Exception {
+    MockMultipartFile first = new MockMultipartFile("files", "1.png", "image/png", new byte[] {1});
+    MockMultipartFile second = new MockMultipartFile("files", "2.png", "image/png", new byte[] {2});
+    MockMultipartFile third = new MockMultipartFile("files", "3.png", "image/png", new byte[] {3});
+    given(visitService.saveRecord(9001L, "산책", List.of(first, second, third), 9L))
+        .willReturn(new VisitDtos.RecordResponse(9001L, "산책", List.of()));
+    mockMvc
+        .perform(
+            multipart("/api/v1/visits/{visitId}/record", 9001L)
+                .file(first)
+                .file(second)
+                .file(third)
+                .param("memo", "산책")
+                .header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.memo").value("산책"));
+    then(visitService).should().saveRecord(9001L, "산책", List.of(first, second, third), 9L);
+  }
+
+  @DisplayName("OpenAPI는 새 기록 경로와 메모 응답을 제공하고 이전 사진 경로는 제거한다.")
+  @Test
+  void openApi_describesRecordAndMemo() throws Exception {
+    mockMvc
+        .perform(get("/v3/api-docs").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.paths['/api/v1/visits/{visitId}/record'].post").exists())
+        .andExpect(jsonPath("$.paths['/api/v1/visits/{visitId}/photos']").doesNotExist())
+        .andExpect(
+            jsonPath("$.components.schemas.RecordResponse.properties.memo.type").value("string"))
+        .andExpect(
+            jsonPath("$.components.schemas.VisitResponse.properties.memo.type").value("string"));
   }
 
   @SpringBootConfiguration

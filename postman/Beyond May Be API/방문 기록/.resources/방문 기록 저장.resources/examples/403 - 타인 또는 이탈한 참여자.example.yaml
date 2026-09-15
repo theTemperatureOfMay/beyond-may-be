@@ -1,9 +1,15 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/visits/9001/photos"
+  url: "{{baseUrl}}/api/v1/visits/9001/record"
   method: POST
   headers:
     Authorization: Bearer {{accessToken}}
+  body:
+    type: formdata
+    content:
+      - type: text
+        key: memo
+        value: 골목 산책이 좋았어요.
 response:
   statusCode: 403
   statusText: Forbidden

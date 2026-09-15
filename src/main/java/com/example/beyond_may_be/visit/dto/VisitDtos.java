@@ -34,6 +34,8 @@ public final class VisitDtos {
       ExplorationDtos.CourseProgressResponse courseProgress,
       String explorationStatus) {}
 
+  public record RecordResponse(Long visitId, String memo, List<PhotoResponse> photos) {}
+
   public record PhotoResponse(
       Long visitPhotoId,
       Long visitId,
@@ -69,6 +71,7 @@ public final class VisitDtos {
       Long coursePlaceId,
       boolean isCoursePlace,
       OffsetDateTime visitedAt,
+      String memo,
       List<VisitPhotoResponse> photos) {}
 
   public record ParticipantResponse(Long participantId, String displayName) {}

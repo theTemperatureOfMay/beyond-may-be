@@ -1,0 +1,43 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits/9001/record"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: formdata
+    content:
+      - type: text
+        key: memo
+        value: 골목 산책이 좋았어요.
+      - type: file
+        key: files
+        src: []
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "visitId": 9001,
+          "memo": "골목 산책이 좋았어요.",
+          "photos": [
+            {
+              "visitPhotoId": 501,
+              "visitId": 9001,
+              "displayOrder": 1,
+              "imageUrl": "https://example-bucket.s3.ap-northeast-2.amazonaws.com/visits/9001/photo?X-Amz-Signature=example",
+              "urlExpiresAt": "2026-08-15T15:32:10+09:00",
+              "uploadedAt": "2026-08-15T14:33:00+09:00"
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000
