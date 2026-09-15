@@ -116,8 +116,23 @@ class PlaceControllerTest {
   }
 
   @Test
-  void rejectsUnauthenticatedRequest() throws Exception {
-    mockMvc.perform(get("/api/v1/places/101")).andExpect(status().isUnauthorized());
+  void allowsUnauthenticatedDetailRequest() throws Exception {
+    given(placeService.getDetail(101L))
+        .willReturn(
+            new PlaceDtos.DetailResponse(
+                101L,
+                "국립아시아문화전당",
+                "전시",
+                TravelPreferenceType.ARTIST,
+                List.of("전시", "문화"),
+                "광주광역시 동구 문화전당로 38",
+                new BigDecimal("35.146600"),
+                new BigDecimal("126.919900"),
+                "평일 10:00-18:00",
+                "검수된 상세 설명",
+                "https://example.com/places/101.webp"));
+
+    mockMvc.perform(get("/api/v1/places/101")).andExpect(status().isOk());
   }
 
   @Test
