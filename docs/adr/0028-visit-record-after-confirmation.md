@@ -23,7 +23,7 @@ recorded-date: 2026-09-15
 
 - 인증 API에 사진·메모를 합치면 사진 업로드 실패가 인증까지 막으므로 분리한다.
 - 사진 업로드마다 메모를 따로 저장하면 한 화면의 저장이 부분 성공할 수 있어 한 요청으로 받는다.
-- 변경 대상: 방문 Controller·DTO·Service·Converter·Visit, Flyway V10, multipart 요청 크기, 서비스·HTTP·DB 테스트, 기능 명세·MVP·사용자 흐름·아키텍처·논의 필요·Postman·용어집.
+- 변경 대상: 방문 Controller·DTO·Service·Converter·Visit, Flyway V10, multipart 요청 크기, 서비스·HTTP·DB 테스트, 기능 명세·MVP·사용자 흐름·아키텍처·논의 필요·운영 배포 확인 절차·Postman·용어집.
 - 확인 대상: 방문 인증·STOMP 이벤트, S3 저장소·IAM, 안전 정책·하네스·스킬. 기존 구조와 권한 경계에 이 변경을 적용하며 새 의존성이나 운영 권한은 추가하지 않는다.
 - 복구: 이전 코드로 롤백해도 nullable 메모 열과 기존 사진을 보존한다. 배포 시 V10 적용 후 새 API를 사용하는 클라이언트로 전환해야 한다.
 - 미확인: 실제 프런트엔드 화면 연결, 운영 S3·배포 환경. 로컬 Docker 무응답으로 PostgreSQL migration·트랜잭션·동시성 통합 테스트는 실행 완료하지 못했다. 운영 배포는 이번 작업에 포함하지 않는다.
