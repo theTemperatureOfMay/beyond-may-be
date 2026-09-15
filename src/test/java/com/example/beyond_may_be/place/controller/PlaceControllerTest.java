@@ -120,6 +120,31 @@ class PlaceControllerTest {
     mockMvc.perform(get("/api/v1/places/101")).andExpect(status().isUnauthorized());
   }
 
+  @Test
+  void allowsUnauthenticatedRecommendationsRequest() throws Exception {
+    given(placeService.getRecommendations(TravelPreferenceType.THINKER))
+        .willReturn(
+            new PlaceDtos.PlaceRecommendationResponse(
+                List.of(
+                    new PlaceDtos.DetailResponse(
+                        1L,
+                        "장소1",
+                        "카페",
+                        TravelPreferenceType.THINKER,
+                        List.of("조용함"),
+                        "광주 동구 테스트로 1",
+                        new BigDecimal("35.159500"),
+                        new BigDecimal("126.852600"),
+                        "09:00-18:00",
+                        "설명",
+                        null))));
+
+    mockMvc
+        .perform(get("/api/v1/places/recommendations").param("type", "THINKER"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.places[0].placeId").value(1));
+  }
+
   @SpringBootConfiguration
   @EnableAutoConfiguration(
       excludeName = {
