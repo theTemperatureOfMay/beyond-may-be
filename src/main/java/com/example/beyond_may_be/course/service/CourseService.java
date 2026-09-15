@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -57,6 +58,11 @@ public class CourseService {
   private static final int SHARE_LINK_VALID_DAYS = 3;
   private static final String TRAVEL_MODE_WALK = "WALK";
   private static final int CHAT_MESSAGE_MAX_LENGTH = 150;
+  // Groq openai/gpt-oss-120b의 TPM(분당 토큰) 한도가 8000이라, 활성 장소
+  // 전체(현재 171곳)를 candidatePlaces로 보내면 요청 하나가 한도를 넘겨 매번
+  // 413(rate_limit_exceeded)로 실패한다. 프롬프트 토큰을 한도 안으로 유지하기
+  // 위해 후보 개수를 제한한다.
+  private static final int MAX_CHAT_CANDIDATE_PLACES = 40;
   private static final int MAX_AI_REVISIONS = 2;
   private static final int DEFAULT_STAY_MINUTES = 60;
   private static final LocalTime DEFAULT_START_TIME = LocalTime.of(7, 0);
@@ -431,9 +437,12 @@ public class CourseService {
     Set<Long> currentPlaceIds =
         currentPlaces.stream().map(CoursePlace::getPlaceId).collect(Collectors.toSet());
     List<Place> candidatePlaces =
-        placeRepository.findByActiveTrue().stream()
-            .filter(place -> !currentPlaceIds.contains(place.getId()))
-            .toList();
+        new ArrayList<>(
+            placeRepository.findByActiveTrue().stream()
+                .filter(place -> !currentPlaceIds.contains(place.getId()))
+                .toList());
+    Collections.shuffle(candidatePlaces);
+    candidatePlaces = candidatePlaces.stream().limit(MAX_CHAT_CANDIDATE_PLACES).toList();
 
     GroqCourseChatClient.ChatSuggestion suggestion =
         groqCourseChatClient
