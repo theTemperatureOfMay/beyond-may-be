@@ -35,7 +35,7 @@ aws:
   region: ${AWS_REGION:ap-northeast-2}
 
 visit-photo:
-  bucket: ${VISIT_PHOTO_BUCKET:}
+  bucket: ${S3_BUCKET_NAME:}
   url-expiration: ${VISIT_PHOTO_URL_EXPIRATION:PT1H}
 
 management:
