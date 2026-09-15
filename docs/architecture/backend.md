@@ -31,7 +31,7 @@
 | 장소·추천 | 검수된 장소 카탈로그, 사용자별 현재 추천 결과 | `places`, `recommendation_sets` |
 | 코스 | AI 생성 결과, 방문 순서, 수정과 확정 | `courses`, `course_places` |
 | 탐험 | 확정 코스의 팀 합류, 역할, 시작과 완료 | `explorations`, `exploration_participants` |
-| 방문 기록 | 참여자별 방문 인증과 선택적 다중 사진 | `visits`, `visit_photos` |
+| 방문 기록 | 참여자별 방문 인증과 인증 후 선택적 사진·메모 | `visits`, `visit_photos` |
 | 인증 | 로그인·회원가입 시 발급하는 opaque 인증 토큰 | `auth_tokens` |
 
 ## 인증과 권한
@@ -51,7 +51,7 @@
 | 팀원 조회 | 해당 `Exploration`의 `LEFT`가 아닌 `Participant` |
 | 코스별 탐험 ID·탐험 상세 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
 | 방문 인증 | 해당 `Exploration`의 `ACTIVE Participant` |
-| 사진 첨부 | `Visit`을 만든 사용자이면서 해당 `Participant`가 `ACTIVE` |
+| 방문 기록 저장 | `Visit`을 만든 사용자이면서 해당 `Participant`가 `ACTIVE` 또는 `COMPLETED`; `LEFT`는 거부 |
 | 팀 방문 기록·팀 누적 밝힌 지도 조회 | 해당 `Exploration`의 현재 또는 과거 `Participant` |
 | 탐험 조기 완료 | 해당 `Exploration`의 `ACTIVE OWNER Participant` |
 
@@ -351,7 +351,7 @@ erDiagram
 
 ### `visits`, `visit_photos`
 
-- Visit은 `participant_id`, `place_id`, 선택적 `course_place_id`, `visited_at`을
+- Visit은 `participant_id`, `place_id`, 선택적 `course_place_id`, `visited_at`, 선택적 `memo`(2,000자)를
   가진다. `course_place_id`가 없으면 코스에 포함되지 않은 주변 장소 방문이다.
 - Participant는 Exploration 하나에 속하므로 `(participant_id, place_id)`가 유일해
   같은 탐험에서 같은 참여자의 동일 장소 재인증을 막는다.
@@ -385,15 +385,19 @@ erDiagram
   안에서 `ONGOING`과 현재 `ACTIVE OWNER`를 검증하고 Exploration·활성 Participant를
   완료한다. Visit과 사진은 유지하며 커밋 후 `/events`에
   `completionReason=OWNER_EARLY_COMPLETION`인 `EXPLORATION_COMPLETED`를 전파한다.
-- Visit에는 사진을 선택적으로 여러 장 연결할 수 있다.
-- 인증 `POST /api/v1/visits/{visitId}/photos`는 Visit을 만든 사용자의 Participant가 현재
-  `ACTIVE`이고 Exploration이 완료되지 않은 경우에 JPEG·PNG·WebP 한 장을 최대 10MB까지
-  받는다. 장수 제한은 없다.
+- Visit에는 사진을 최대 3장 연결하고 메모를 남길 수 있다. 기존 데이터는 삭제하지 않는다.
+- 인증 `POST /api/v1/visits/{visitId}/record`는 작성자의 Participant가 `ACTIVE` 또는
+  `COMPLETED`이면 완료된 탐험에도 multipart `files`·`memo`를 함께 저장한다. `LEFT`는 거부한다.
+  사진은 기존 포함 3장·장당 10MB 이하 JPEG·PNG·WebP, 메모는 최대 2,000자다.
+  메모 생략은 유지하고 빈 문자열은 지운다. 200 응답은 Visit ID·메모·이번 요청의 추가 사진이다.
+  팀 방문 GET에도 메모를 포함한다. 상세 계약은 [기능 5.2.1](../product/features/travel-records.md#521-방문한-장소-목록-조회)을 따른다.
+- 사진과 메모는 같은 트랜잭션이며 롤백 시 이번 요청의 S3 객체만 최선 노력으로 삭제한다.
 - 사진 파일은 전용 비공개 S3, DB에는 `object_key`와 표시 순서만 저장한다. 외부 응답은
   object key 대신 기본 1시간 presigned GET URL과 실제 만료 시각을 반환한다.
 - 같은 Visit 행을 잠근 뒤 다음 표시 순서를 배정하며 DB의 유일 제약으로 중복을 최종
   차단한다.
 - `(visit_id, display_order)`는 유일하다.
+- `V10__visit_record_memo.sql`이 nullable 메모 열을 추가한다. 기존 앱으로 롤백해도 열과 기록은 보존한다.
 
 방문 대상과 조회 파생 규칙은
 [ADR-0010](../adr/0010-place-based-visits.md)을 따른다.

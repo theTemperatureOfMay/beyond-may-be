@@ -97,18 +97,28 @@ Participant`를 `COMPLETED`로 전환한다. Visit과 사진은 보존한다. �
 인증된 현재 또는 과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로
 해당 탐험의 모든 참여자 Visit을 `visitedAt` 내림차순 조회한다. 코스 장소와 주변 장소를
 모두 포함하며 응답에는 방문 참여자의 고정 표시 이름, 장소 정보, CoursePlace 연결 여부와
-사진을 담는다. 사진은 `displayOrder` 오름차순이고 저장된 object key마다 새 presigned GET
+메모(`memo`, 미작성 시 null)와 사진을 담는다. 사진은 `displayOrder` 오름차순이고 저장된 object key마다 새 presigned GET
 URL과 만료 시각을 발급하며 userId와 object key는 노출하지 않는다. 방문이 없으면 빈 배열과
 `totalCount: 0`을 반환한다. 탐험이 없으면 404, 참여 이력이 없으면 403으로 거부한다.
 
-방문 인증에는 사진을 선택적으로 첨부할 수 있으며 사진 장수는 제한하지 않는다.
-사진은 한 장씩 업로드하고 장당 10MB 이하의 JPEG·PNG·WebP 형식을 허용한다.
-Visit을 만든 현재 `ACTIVE Participant` 본인은 인증
-`POST /api/v1/visits/{visitId}/photos`의 multipart `file`로 사진을 한 장씩 추가한다.
-완료된 탐험에는 추가할 수 없다. 서버가 다음 표시 순서를 배정하고 원본은 비공개 S3,
-DB에는 object key와 순서만 저장한다. 성공 응답은 object key 대신 기본 1시간 유효한
-presigned GET URL과 실제 만료 시각을 반환한다. 이후 팀 방문 목록 조회는 저장된 key마다
-새 URL을 발급한다([ADR-0027](../../adr/0027-private-s3-visit-photo-storage.md)).
+방문 인증 성공 후 생성된 `visitId`로 방문 기록 작성 화면에 진입한다. 사진(최대 3장)과
+메모를 선택적으로 입력하고 '기록 저장'으로 저장한다. '건너뛰기'는 저장 요청 없이
+인증 이력만 유지한다. 사진만 또는 메모만 저장할 수 있다.
+
+인증 `POST /api/v1/visits/{visitId}/record`는 multipart `files`(선택, 여러 파일을 같은
+키로 전송)와 `memo`(선택, 최대 2,000자)를 받는다. 기존 `/photos` API를 대체한다.
+메모 생략은 기존 값 유지, 빈 문자열은 메모 지우기다. 사진은 기존 사진에 추가하며
+기존 사진 포함 최대 3장, 장당 10MB 이하 JPEG·PNG·WebP만 허용한다. 두 항목을 모두
+생략하면 400이다. 메모 길이·사진 장수 초과는 400, 파일 용량 초과는 413, 형식 오류는 415다.
+
+작성자인 `ACTIVE` 또는 `COMPLETED Participant` 본인만 저장할 수 있으며 탐험 완료 후에도
+허용한다. `LEFT` 또는 타인은 403, 없는 Visit은 404다. 사진과 메모는 함께 저장하고 실패 시
+이번 요청의 DB 변경을 롤백하며 새 업로드 객체를 최선 노력으로 정리한다. 기존 인증·사진은 보존한다.
+200 성공 응답에는 `visitId`, 저장된 `memo`, 이번 요청으로 추가한 `photos` 배열을 담는다.
+사진 항목은 `visitPhotoId`, `visitId`, `displayOrder`, `imageUrl`, `urlExpiresAt`, `uploadedAt`이다.
+전체 사진은 팀 방문 기록 GET으로 조회한다. 사진을 보내지 않으면 응답 `photos`는 빈 배열이다.
+원본은 비공개 S3, DB에는 object key와 순서만 저장하며 응답은 기본 1시간 presigned GET URL을
+반환한다([ADR-0028](../../adr/0028-visit-record-after-confirmation.md)).
 
 (셋로그처럼) 사진찍고 인증 후 백로그 형태로 생성해줌
 ex) 포켓몬 고, 피크민처럼

@@ -36,6 +36,7 @@ response:
               "coursePlaceId": 301,
               "isCoursePlace": true,
               "visitedAt": "2026-08-15T15:05:40+09:00",
+              "memo": "골목 산책이 좋았어요.",
               "photos": [
                 {
                   "visitPhotoId": 503,
@@ -63,6 +64,7 @@ response:
               "coursePlaceId": null,
               "isCoursePlace": false,
               "visitedAt": "2026-08-15T14:32:10+09:00",
+              "memo": "골목 산책이 좋았어요.",
               "photos": []
             }
           ],

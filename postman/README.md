@@ -30,7 +30,7 @@ Postman Desktop에서 이 `postman/` 폴더를 Local Folder로 연결해 Local V
   `팀 탐험 지도 / POST {{baseUrl}}/api/v1/visits`,
   `방문 기록 / GET {{baseUrl}}/api/v1/visits?explorationId={explorationId}`,
   `방문 기록 / GET {{baseUrl}}/api/v1/visits/visited-places?explorationId={explorationId}`,
-  `방문 기록 / POST {{baseUrl}}/api/v1/visits/{visitId}/photos`가 있다.
+  `방문 기록 / POST {{baseUrl}}/api/v1/visits/{visitId}/record`가 있다.
 - 새 API 요청은 해당 도메인 폴더에 추가한다.
 - 토큰, 비밀번호, 실제 환경별 비밀값, 실사용자 정보는 공용 Collection에 넣지 않는다.
 - Postman UI에서 설명·예시를 수정했다면 변경 내용이 원본 요청·예시 YAML에 반영됐는지 확인한다.

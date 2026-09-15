@@ -41,8 +41,9 @@ PR merge, 직접 push 또는 `workflow_dispatch` 실행 자체가 운영 배포 
    않는 origin 직접 확인용으로만 쓴다).
 4. 오류가 있으면 ECS service event와 CloudWatch log group
    `/ecs/beyond-may-be`를 확인하되 비밀값을 출력하지 않는다.
-5. 방문 사진 변경을 배포했다면 테스트 Visit으로 JPEG·PNG·WebP 중 한 장을 첨부해
-   `201`과 HTTPS 서명 URL을 확인하고, URL 만료 시각 전 이미지 GET이 성공하는지 확인한다.
+5. 방문 기록 변경을 배포했다면 테스트 Visit의 `POST /api/v1/visits/{visitId}/record`에
+   multipart `files`로 JPEG·PNG·WebP 사진과 선택적 `memo`를 보내 `200`을 확인한다.
+   응답의 메모와 사진 HTTPS 서명 URL을 확인하고, 만료 시각 전 이미지 GET이 성공하는지 확인한다.
 
 확인한 workflow run, commit과 시각을 배포 기록에 남긴다. 실제 배포 상태를 확인하지
 않았다면 완료 또는 정상으로 기록하지 않는다.

@@ -39,6 +39,13 @@ public class Visit extends BaseEntity {
   @Column(name = "visited_at", nullable = false)
   private LocalDateTime visitedAt;
 
+  @Column(length = 2000)
+  private String memo;
+
+  public void updateMemo(String memo) {
+    this.memo = memo;
+  }
+
   @Builder
   public Visit(Long participantId, Long placeId, Long coursePlaceId, LocalDateTime visitedAt) {
     this.participantId = participantId;

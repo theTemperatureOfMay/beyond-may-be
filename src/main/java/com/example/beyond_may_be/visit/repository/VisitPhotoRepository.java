@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface VisitPhotoRepository extends JpaRepository<VisitPhoto, Long> {
 
+  long countByVisitId(Long visitId);
+
   @Query(
       "SELECT COALESCE(MAX(photo.displayOrder), 0) FROM VisitPhoto photo "
           + "WHERE photo.visitId = :visitId")

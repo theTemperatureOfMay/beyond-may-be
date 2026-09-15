@@ -6,6 +6,7 @@ import com.example.beyond_may_be.visit.dto.VisitDtos;
 import com.example.beyond_may_be.visit.service.VisitService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -50,14 +51,13 @@ public class VisitController {
         .body(ApiResponse.of(SuccessStatus._CREATED, visitService.confirmVisit(request, userId)));
   }
 
-  @PostMapping(value = "/{visitId}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<ApiResponse<VisitDtos.PhotoResponse>> attachPhoto(
+  @PostMapping(value = "/{visitId}/record", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ApiResponse<VisitDtos.RecordResponse> saveRecord(
       @PathVariable Long visitId,
-      @RequestPart("file") MultipartFile file,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files,
+      @RequestParam(required = false) String memo,
       @AuthenticationPrincipal Long userId) {
-    return ResponseEntity.status(SuccessStatus._CREATED.getHttpStatus())
-        .body(
-            ApiResponse.of(
-                SuccessStatus._CREATED, visitService.attachPhoto(visitId, file, userId)));
+    return ApiResponse.onSuccess(
+        visitService.saveRecord(visitId, memo, files == null ? List.of() : files, userId));
   }
 }

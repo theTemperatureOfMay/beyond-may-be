@@ -1,10 +1,12 @@
 ---
-status: accepted
+status: superseded by ADR-0028
 decision-date: 2026-09-03
 recorded-date: 2026-09-03
 ---
 
 # ADR-0027 방문 사진은 비공개 S3에 저장하고 단기 서명 URL로 제공한다
+
+> 사진·메모 저장 계약과 완료 후 작성 권한은 [ADR-0028](0028-visit-record-after-confirmation.md)로 대체되었다. 아래는 당시 결정이며, 비공개 S3와 서명 URL 정책은 ADR-0028에서도 유지한다.
 
 [ADR-0025](0025-visit-confirmation-and-realtime-propagation.md)는 Visit과 사진 이벤트의
 경계를 정했지만 사진 업로드와 객체 저장소 계약은 제외했다. 기능 5.2.1의 선택적 다중

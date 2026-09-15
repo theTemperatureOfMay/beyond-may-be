@@ -1,0 +1,31 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/visits/9001/record"
+  method: POST
+  headers:
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: formdata
+    content:
+      - type: text
+        key: memo
+        value: 골목 산책이 좋았어요.
+      - type: file
+        key: files
+        src: ["photo1.png", "photo2.png", "photo3.png", "photo4.png"]
+
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "잘못된 요청입니다.",
+        "code": "COMMON400",
+        "data": null,
+        "success": false
+      }
+order: 3000

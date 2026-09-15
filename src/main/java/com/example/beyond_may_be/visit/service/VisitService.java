@@ -23,6 +23,7 @@ import com.example.beyond_may_be.visit.repository.VisitPhotoRepository;
 import com.example.beyond_may_be.visit.repository.VisitRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -261,64 +262,81 @@ public class VisitService {
     return response;
   }
 
-  public VisitDtos.PhotoResponse attachPhoto(Long visitId, MultipartFile file, Long userId) {
-    String contentType = validatePhoto(file);
-    Visit visit =
+  public VisitDtos.RecordResponse saveRecord(
+      Long visitId, String memo, List<MultipartFile> files, Long userId) {
+    if (files.size() > 3
+        || (memo == null && files.isEmpty())
+        || (memo != null && memo.length() > 2000)) {
+      throw new VisitHandler(ErrorStatus._BAD_REQUEST);
+    }
+    List<String> contentTypes = files.stream().map(this::validatePhoto).toList();
+    Long participantId =
         visitRepository
-            .findById(visitId)
+            .findParticipantIdById(visitId)
             .orElseThrow(() -> new VisitHandler(ErrorStatus.VISIT_NOT_FOUND));
-    // 탐험 잠금 전에 참여 엔티티를 읽으면 이탈 전 ACTIVE 상태가 1차 캐시에 남을 수 있다.
+    // 잠금 전에는 ID만 읽고, 잠금 후 최신 참여 상태와 메모를 처음 적재한다.
     Long explorationId =
         explorationParticipantRepository
-            .findExplorationIdByIdAndUserId(visit.getParticipantId(), userId)
+            .findExplorationIdByIdAndUserId(participantId, userId)
             .orElseThrow(() -> new ExplorationHandler(ErrorStatus._FORBIDDEN));
-    Exploration exploration =
-        explorationRepository
-            .findByIdForUpdate(explorationId)
-            .orElseThrow(() -> new IllegalStateException("방문 탐험 정보가 없습니다."));
+    explorationRepository
+        .findByIdForUpdate(explorationId)
+        .orElseThrow(() -> new IllegalStateException("방문 탐험 정보가 없습니다."));
     ExplorationParticipant participant =
         explorationParticipantRepository
-            .findById(visit.getParticipantId())
+            .findById(participantId)
             .orElseThrow(() -> new IllegalStateException("방문 참여자 정보가 없습니다."));
-    if (exploration.getStatus() == ExplorationStatus.COMPLETED) {
-      throw new ExplorationHandler(ErrorStatus.EXPLORATION_ALREADY_COMPLETED);
-    }
-    if (participant.getStatus() != ParticipantStatus.ACTIVE) {
+    if (participant.getStatus() != ParticipantStatus.ACTIVE
+        && participant.getStatus() != ParticipantStatus.COMPLETED) {
       throw new ExplorationHandler(ErrorStatus._FORBIDDEN);
     }
-    visitRepository
-        .findByIdForUpdate(visitId)
-        .orElseThrow(() -> new VisitHandler(ErrorStatus.VISIT_NOT_FOUND));
+    Visit visit =
+        visitRepository
+            .findByIdForUpdate(visitId)
+            .orElseThrow(() -> new VisitHandler(ErrorStatus.VISIT_NOT_FOUND));
 
-    int displayOrder = visitPhotoRepository.findMaxDisplayOrderByVisitId(visitId) + 1;
-    String objectKey = "visits/" + visitId + "/" + UUID.randomUUID();
-    boolean rollbackCleanupRegistered = false;
+    if (!files.isEmpty() && visitPhotoRepository.countByVisitId(visitId) + files.size() > 3) {
+      throw new VisitHandler(ErrorStatus._BAD_REQUEST);
+    }
+    int displayOrder =
+        files.isEmpty() ? 0 : visitPhotoRepository.findMaxDisplayOrderByVisitId(visitId);
+    List<String> objectKeys = new ArrayList<>();
+    List<VisitDtos.PhotoResponse> photos = new ArrayList<>();
+    boolean rollbackCleanupRegistered = registerRollbackCleanup(objectKeys);
     try {
-      visitPhotoStorage.upload(objectKey, contentType, file);
-      rollbackCleanupRegistered = registerRollbackCleanup(objectKey);
-      VisitPhoto photo =
-          visitPhotoRepository.saveAndFlush(
-              VisitPhoto.builder()
-                  .visitId(visitId)
-                  .objectKey(objectKey)
-                  .displayOrder(displayOrder)
-                  .build());
-      VisitPhotoStorage.SignedUrl signedUrl = visitPhotoStorage.createSignedGetUrl(objectKey);
-      return VisitConverter.toPhotoResponse(photo, signedUrl.imageUrl(), signedUrl.expiresAt());
+      for (int index = 0; index < files.size(); index++) {
+        String objectKey = "visits/" + visitId + "/" + UUID.randomUUID();
+        objectKeys.add(objectKey);
+        visitPhotoStorage.upload(objectKey, contentTypes.get(index), files.get(index));
+        VisitPhoto photo =
+            visitPhotoRepository.saveAndFlush(
+                VisitPhoto.builder()
+                    .visitId(visitId)
+                    .objectKey(objectKey)
+                    .displayOrder(++displayOrder)
+                    .build());
+        VisitPhotoStorage.SignedUrl signedUrl = visitPhotoStorage.createSignedGetUrl(objectKey);
+        photos.add(
+            VisitConverter.toPhotoResponse(photo, signedUrl.imageUrl(), signedUrl.expiresAt()));
+      }
+      if (memo != null) {
+        visit.updateMemo(memo);
+      }
+      return VisitConverter.toRecordResponse(visit, photos);
     } catch (DataIntegrityViolationException exception) {
       if (!rollbackCleanupRegistered) {
-        deleteUploadedObject(objectKey);
+        objectKeys.forEach(this::deleteUploadedObject);
       }
       throw new VisitHandler(ErrorStatus.VISIT_PHOTO_ORDER_CONFLICT);
     } catch (RuntimeException exception) {
       if (!rollbackCleanupRegistered) {
-        deleteUploadedObject(objectKey);
+        objectKeys.forEach(this::deleteUploadedObject);
       }
       throw exception;
     }
   }
 
-  private boolean registerRollbackCleanup(String objectKey) {
+  private boolean registerRollbackCleanup(List<String> objectKeys) {
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
       return false;
     }
@@ -327,7 +345,7 @@ public class VisitService {
           @Override
           public void afterCompletion(int status) {
             if (status == STATUS_ROLLED_BACK) {
-              deleteUploadedObject(objectKey);
+              objectKeys.forEach(VisitService.this::deleteUploadedObject);
             }
           }
         });

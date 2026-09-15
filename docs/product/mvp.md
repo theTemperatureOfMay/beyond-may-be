@@ -58,7 +58,7 @@
 | 탐험 | 확정 코스를 여러 사용자가 함께 수행하는 시작·진행·완료 단위 | `Exploration` |
 | 팀·팀원 | 탐험에 합류한 사용자 집합과 각 참여자. 별도 Team 쓰기 모델은 두지 않는다. | `ExplorationParticipant` |
 | 방문 인증 | 참여자가 탐험 중 장소에 도착했음을 위치 기준으로 확인하고 남기는 기록 | `Visit`, `VisitPhoto` |
-| 여행 기록 | 코스와 탐험의 진행·완료 상태, 팀·개인 방문과 사진을 조회한 결과 | `Course`, `Exploration`, `Visit`, `VisitPhoto` 조합 |
+| 여행 기록 | 코스와 탐험의 진행·완료 상태, 팀·개인 방문과 사진·메모를 조회한 결과 | `Course`, `Exploration`, `Visit`, `VisitPhoto` 조합 |
 | 밝힌 지도 | 방문 인증이 존재하는 장소를 누적해 보여 주는 지도 | `Visit` 기반 조회 결과 |
 
 ## 1. 초기 진입 및 성향 검사
@@ -122,7 +122,7 @@
 |---|---|---|---|---|---|
 | 5.1.1 | 진행 중인 코스 조회 | 사용자별 ONGOING 코스 목록과 방문 집계 | 데모 핵심 | `구현 완료` | 인증 `GET /api/v1/explorations?status=ONGOING`이 현재 ACTIVE 참여에서 진행 중 탐험을 최대 1개 반환하며 이탈한 탐험은 제외한다. `LEFT` 제외 팀원, 팀 CoursePlace 방문 수, 전체 장소 수와 첫 유효 코스 이미지를 포함하며 빈 결과는 정상 응답한다. |
 | 5.1.2 | 완료한 코스 조회 | 팀 기준 장소 완료 집계, 완료 전환과 완료 코스 목록·정렬·보존 | 일반 | `구현 완료` | 인증 `GET /api/v1/explorations?status=COMPLETED`가 현재·과거 참여자의 완료 탐험을 `completedAt` 내림차순으로 기간 제한 없이 반환한다. 마지막 팀 코스 장소 방문은 자동 완료하며, `ACTIVE OWNER`는 인증 `POST /api/v1/explorations/{explorationId}/complete`로 조기 완료할 수 있다. 두 경로 모두 Exploration·활성 Participant를 완료하고 커밋 후 각각 `ALL_COURSE_PLACES_VISITED`, `OWNER_EARLY_COMPLETION` 이유의 상태 이벤트를 발행한다. |
-| 5.2.1 | 방문한 장소 목록 조회 | 코스·주변 장소를 포함한 팀·개인 방문 기록과 선택적 다중 사진 | 데모 핵심 | `구현 완료` | `POST /api/v1/visits`가 코스·주변 Place 기반 개인 방문을 저장하고, Visit 작성자인 `ACTIVE Participant`는 `POST /api/v1/visits/{visitId}/photos`로 10MB 이하 JPEG·PNG·WebP를 비공개 S3에 제한 없이 한 장씩 첨부한다. 현재·과거 참여자는 `GET /api/v1/visits?explorationId={explorationId}`로 팀 전체 Visit을 최신순 조회하며 사진마다 새 1시간 presigned GET URL을 받는다. 빈 결과는 정상 응답한다(ADR-0027). |
+| 5.2.1 | 방문한 장소 목록 조회 | 인증 후 사진·메모 저장과 팀 방문 조회 | 데모 핵심 | `구현 완료` | `POST /api/v1/visits`로 인증 이력을 만들고 `/api/v1/visits/{visitId}/record`로 선택적 `files`·`memo`를 저장한다. 작성자 ACTIVE·COMPLETED 참여자는 완료 후에도 저장할 수 있고 LEFT는 거부한다. 사진은 기존 포함 최대 3장·장당 10MB, 메모는 2,000자다. 팀 방문 GET은 현재·과거 참여자에게 메모와 매번 새 1시간 사진 URL을 반환한다(ADR-0028). Docker 무응답으로 새 DB 통합 검증은 보류 중이다. |
 | 5.2.2 | 밝힌 지도 전체 보기 | 방문 장소 기반 누적 지도 데이터와 공유 자료 제공 | 데모 핵심 | `구현 완료` | 현재·과거 참여자는 인증 `GET /api/v1/visits/visited-places?explorationId={explorationId}`로 코스·주변 장소를 포함한 팀 Visit을 장소별로 집계해 최근 방문순으로 조회한다. 장소 정보·검수 좌표·코스 포함 여부·방문 수·방문 참여자 수·최초·최근 방문 시각과 표시 이름을 제공하며 빈 결과는 정상 응답한다. 사용자 GPS는 저장·반환하지 않고 지도 이미지 저장·공유는 프런트엔드 책임이다. |
 
 ## 6. 공통·예외 처리
@@ -152,7 +152,7 @@
   기록과 밝힌 지도 집계 조회다. 상태
   채널은 새 참여자 합류·탐험 시작·위치 공유 설정 변경과 자동·OWNER 조기 완료를 발행한다. 방문
   채널은 개인 방문과 팀 진행률을 별도로 발행한다. 옵트인 위치 채널은 `ONGOING` 탐험의
-  유효 위치를 휘발 전파한다. 세 채널 모두 참여자 범위로 인가하며 사진 첨부 API는
+  유효 위치를 휘발 전파한다. 세 채널 모두 참여자 범위로 인가하며 방문 기록 저장 API의 사진은
   비공개 S3와 ECS Task Role로 구현했다. 위치 replay와 외부 broker는 아직 없다
   (ADR-0022~0027).
 - 회원가입·로그인은 opaque 인증 토큰(30일 만료, DB 기반)을 발급한다.

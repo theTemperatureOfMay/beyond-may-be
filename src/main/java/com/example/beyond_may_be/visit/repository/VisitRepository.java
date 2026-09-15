@@ -11,6 +11,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface VisitRepository extends JpaRepository<Visit, Long> {
 
+  @Query("SELECT visit.participantId FROM Visit visit WHERE visit.id = :visitId")
+  Optional<Long> findParticipantIdById(@Param("visitId") Long visitId);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT visit FROM Visit visit WHERE visit.id = :visitId")
   Optional<Visit> findByIdForUpdate(@Param("visitId") Long visitId);
