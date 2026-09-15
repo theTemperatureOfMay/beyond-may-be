@@ -876,6 +876,34 @@ class CourseServiceTest {
     assertThat(course.getAiRevisionCount()).isEqualTo(1);
   }
 
+  @DisplayName("활성 장소가 많아도 Groq에 보내는 candidatePlaces는 토큰 한도를 넘지 않도록 상한 개수로 제한된다.")
+  @Test
+  void requestChatRevision_manyActivePlaces_capsCandidatePlaces() {
+    Course course = draftCourse();
+    given(courseRepository.findById(10L)).willReturn(Optional.of(course));
+    given(coursePlaceRepository.findByCourseIdOrderByDayNumberAscVisitOrderAsc(10L))
+        .willReturn(List.of(existingCoursePlace(1L, 1, 1, 30)));
+    given(placeRepository.findAllById(Mockito.<Iterable<Long>>any()))
+        .willReturn(List.of(placeAt(1L, 35.00, "A")));
+    List<Place> manyActivePlaces =
+        java.util.stream.LongStream.rangeClosed(2, 200)
+            .mapToObj(id -> placeAt(id, 35.00, "장소" + id))
+            .toList();
+    given(placeRepository.findByActiveTrue()).willReturn(manyActivePlaces);
+    given(groqCourseChatClient.requestRevision(any(), any(), any(), any(), any()))
+        .willReturn(
+            Optional.of(
+                new GroqCourseChatClient.ChatSuggestion(
+                    "ADD_RECOMMENDATION", "추천해요", List.of(), List.of())));
+
+    courseService.requestChatRevision(10L, 1L, new CourseDtos.ChatRequest("아무거나"));
+
+    ArgumentCaptor<List<Place>> candidatePlacesCaptor = ArgumentCaptor.forClass(List.class);
+    Mockito.verify(groqCourseChatClient)
+        .requestRevision(any(), any(), any(), candidatePlacesCaptor.capture(), any());
+    assertThat(candidatePlacesCaptor.getValue()).hasSize(40);
+  }
+
   @DisplayName("메시지가 150자를 초과하면 예외가 발생하고 Groq를 호출하지 않는다.")
   @Test
   void requestChatRevision_messageTooLong_throwsWithoutCallingGroq() {
