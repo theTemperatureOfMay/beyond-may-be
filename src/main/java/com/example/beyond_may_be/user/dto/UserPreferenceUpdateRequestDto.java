@@ -1,0 +1,15 @@
+package com.example.beyond_may_be.user.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserPreferenceUpdateRequestDto {
+  private Integer thinkerScore;
+  private Integer foodieScore;
+  private Integer artistScore;
+  private Integer remembererScore;
+}

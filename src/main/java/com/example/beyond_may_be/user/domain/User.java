@@ -72,4 +72,17 @@ public class User extends BaseEntity {
     this.artistScore = artistScore;
     this.remembererScore = remembererScore;
   }
+
+  public void updatePreference(
+      TravelPreferenceType preferenceType,
+      Integer thinkerScore,
+      Integer foodieScore,
+      Integer artistScore,
+      Integer remembererScore) {
+    this.preferenceType = preferenceType;
+    this.thinkerScore = thinkerScore;
+    this.foodieScore = foodieScore;
+    this.artistScore = artistScore;
+    this.remembererScore = remembererScore;
+  }
 }

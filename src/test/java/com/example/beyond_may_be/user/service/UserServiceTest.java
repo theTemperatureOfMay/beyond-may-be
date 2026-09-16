@@ -13,6 +13,7 @@ import com.example.beyond_may_be.preference.domain.enums.TravelPreferenceType;
 import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.dto.UserLoginRequestDto;
 import com.example.beyond_may_be.user.dto.UserLoginResponseDto;
+import com.example.beyond_may_be.user.dto.UserPreferenceUpdateRequestDto;
 import com.example.beyond_may_be.user.dto.UserSignUpRequestDto;
 import com.example.beyond_may_be.user.dto.UserSignUpResponseDto;
 import com.example.beyond_may_be.user.repository.UserRepository;
@@ -177,6 +178,54 @@ class UserServiceTest {
     given(userRepository.findById(1L)).willReturn(Optional.empty());
 
     assertThrows(UserHandler.class, () -> userService.getMyPreference(1L));
+  }
+
+  @DisplayName("재검사 점수로 성향을 갱신하면 유형과 점수가 새 값으로 바뀐다.")
+  @Test
+  void updateMyPreference_recalculatesPreferenceTypeFromNewScores() {
+    // given
+    User user =
+        User.builder()
+            .nickname("testuser")
+            .identificationCode(12)
+            .preferenceType(TravelPreferenceType.THINKER)
+            .thinkerScore(9)
+            .foodieScore(1)
+            .artistScore(1)
+            .remembererScore(1)
+            .build();
+    given(userRepository.findById(1L)).willReturn(Optional.of(user));
+    UserPreferenceUpdateRequestDto requestDto = new UserPreferenceUpdateRequestDto(1, 1, 9, 1);
+
+    // when
+    var responseDto = userService.updateMyPreference(1L, requestDto);
+
+    // then
+    assertThat(responseDto.getPreferenceType()).isEqualTo(TravelPreferenceType.ARTIST);
+    assertThat(responseDto.getThinkerScore()).isEqualTo(1);
+    assertThat(responseDto.getFoodieScore()).isEqualTo(1);
+    assertThat(responseDto.getArtistScore()).isEqualTo(9);
+    assertThat(responseDto.getRemembererScore()).isEqualTo(1);
+    assertThat(user.getPreferenceType()).isEqualTo(TravelPreferenceType.ARTIST);
+  }
+
+  @DisplayName("점수를 하나도 보내지 않고 성향을 갱신하려 하면 예외가 발생한다.")
+  @Test
+  void updateMyPreference_allScoresNull_throws() {
+    UserPreferenceUpdateRequestDto requestDto =
+        new UserPreferenceUpdateRequestDto(null, null, null, null);
+
+    assertThrows(UserHandler.class, () -> userService.updateMyPreference(1L, requestDto));
+    org.mockito.Mockito.verifyNoInteractions(userRepository);
+  }
+
+  @DisplayName("존재하지 않는 사용자의 성향을 갱신하려 하면 예외가 발생한다.")
+  @Test
+  void updateMyPreference_userNotFound_throws() {
+    given(userRepository.findById(1L)).willReturn(Optional.empty());
+    UserPreferenceUpdateRequestDto requestDto = new UserPreferenceUpdateRequestDto(1, 2, 3, 4);
+
+    assertThrows(UserHandler.class, () -> userService.updateMyPreference(1L, requestDto));
   }
 
   @DisplayName("로그아웃하면 인증 토큰을 폐기한다.")
