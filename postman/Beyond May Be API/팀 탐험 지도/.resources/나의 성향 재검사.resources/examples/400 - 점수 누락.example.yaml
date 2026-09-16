@@ -1,0 +1,31 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/users/me/preference"
+  method: PUT
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{accessToken}}
+  body:
+    type: json
+    content: |-
+      {
+        "thinkerScore": null,
+        "foodieScore": null,
+        "artistScore": null,
+        "remembererScore": null
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성향 점수를 하나 이상 입력해야 합니다.",
+        "code": "USER400",
+        "data": null,
+        "success": false
+      }
+order: 2000

@@ -22,6 +22,7 @@ public enum ErrorStatus implements BaseErrorCode {
   // User
   USER_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USER401", "닉네임 또는 식별 코드가 올바르지 않습니다."),
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER404", "사용자를 찾을 수 없습니다."),
+  USER_PREFERENCE_SCORES_MISSING(HttpStatus.BAD_REQUEST, "USER400", "성향 점수를 하나 이상 입력해야 합니다."),
 
   // Course
   COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE404", "코스를 찾을 수 없습니다."),
