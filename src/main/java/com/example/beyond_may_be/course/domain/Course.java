@@ -95,4 +95,8 @@ public class Course extends BaseEntity {
   public void incrementAiRevisionCount() {
     this.aiRevisionCount++;
   }
+
+  public void markPlacesUpdated() {
+    markUpdated();
+  }
 }

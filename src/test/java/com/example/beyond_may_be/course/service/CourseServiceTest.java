@@ -66,6 +66,46 @@ class CourseServiceTest {
   @Mock private RecommendationSetRepository recommendationSetRepository;
   @Mock private TransactionTemplate transactionTemplate;
 
+  @Test
+  void getCourses_returnsOwnedCoursesWithActualExplorationState() {
+    Course draft = draftCourse();
+    ReflectionTestUtils.setField(draft, "id", 12L);
+    LocalDateTime updatedAt = LocalDateTime.of(2026, 9, 19, 10, 0);
+    ReflectionTestUtils.setField(draft, "updatedAt", updatedAt);
+    Course confirmed = draftCourse();
+    ReflectionTestUtils.setField(confirmed, "id", 11L);
+    ReflectionTestUtils.setField(confirmed, "updatedAt", updatedAt.minusDays(1));
+    confirmed.confirm(updatedAt.minusDays(1), updatedAt.plusDays(2));
+    Exploration exploration =
+        Exploration.builder()
+            .courseId(11L)
+            .status(com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING)
+            .startedAt(updatedAt)
+            .build();
+    ReflectionTestUtils.setField(exploration, "id", 21L);
+    given(courseRepository.findByOwnerUserIdOrderByUpdatedAtDescIdDesc(1L))
+        .willReturn(List.of(draft, confirmed));
+    given(explorationRepository.findByCourseIdIn(List.of(12L, 11L)))
+        .willReturn(List.of(exploration));
+
+    var courses = courseService.getCourses(1L).courses();
+    assertThat(courses)
+        .extracting(CourseDtos.CourseSummaryResponse::courseId)
+        .containsExactly(12L, 11L);
+    assertThat(courses.get(0).explorationId()).isNull();
+    assertThat(courses.get(0).updatedAt()).isNotNull();
+    assertThat(courses.get(1).explorationId()).isEqualTo(21L);
+    assertThat(courses.get(1).explorationStatus()).isEqualTo("ONGOING");
+    assertThat(courses.get(1).status()).isEqualTo("CONFIRMED");
+  }
+
+  @Test
+  void getCourses_emptyDoesNotQueryExplorations() {
+    given(courseRepository.findByOwnerUserIdOrderByUpdatedAtDescIdDesc(1L)).willReturn(List.of());
+    assertThat(courseService.getCourses(1L).courses()).isEmpty();
+    Mockito.verifyNoInteractions(explorationRepository);
+  }
+
   @BeforeEach
   void setUpTransactions() {
     Mockito.lenient()
@@ -528,6 +568,9 @@ class CourseServiceTest {
   @Test
   void editPlaces_reorderOnly_updatesOrderAndTravelMode() {
     stubThreePlaceCourse();
+    Course course = courseRepository.findById(10L).orElseThrow();
+    LocalDateTime previousUpdate = LocalDateTime.now().minusDays(1);
+    ReflectionTestUtils.setField(course, "updatedAt", previousUpdate);
     CourseDtos.UpdatePlacesRequest request =
         new CourseDtos.UpdatePlacesRequest(
             List.of(
@@ -536,6 +579,8 @@ class CourseServiceTest {
                 new CourseDtos.PlaceOrderItem(2L, 1, 3)));
 
     CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
+
+    assertThat(course.getUpdatedAt()).isAfter(previousUpdate);
 
     assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())
         .containsExactly(3L, 1L, 2L);

@@ -113,18 +113,17 @@ class ExplorationControllerTest {
   }
 
   @Test
-  void rejectsBeforeExplorationStatus() throws Exception {
+  void acceptsBeforeExplorationStatus() throws Exception {
     given(explorationService.getExplorations(71L, ExplorationStatus.BEFORE))
-        .willThrow(new ExplorationHandler(ErrorStatus._BAD_REQUEST));
-
+        .willReturn(new ExplorationDtos.ExplorationsResponse("BEFORE", List.of(), 0));
     mockMvc
         .perform(
             get("/api/v1/explorations")
                 .queryParam("status", "BEFORE")
                 .header("Authorization", "Bearer valid-token"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("COMMON400"))
-        .andExpect(jsonPath("$.success").value(false));
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("BEFORE"))
+        .andExpect(jsonPath("$.data.explorations").isEmpty());
   }
 
   @Test
@@ -156,7 +155,7 @@ class ExplorationControllerTest {
         .andExpect(status().isOk())
         .andExpect(
             jsonPath("$.paths['/api/v1/explorations'].get.parameters[0].schema.enum")
-                .value(containsInAnyOrder("ONGOING", "COMPLETED")));
+                .value(containsInAnyOrder("BEFORE", "ONGOING", "COMPLETED")));
   }
 
   @Test

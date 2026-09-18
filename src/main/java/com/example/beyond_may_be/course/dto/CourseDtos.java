@@ -5,10 +5,21 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public final class CourseDtos {
   private CourseDtos() {}
+
+  public record CourseListResponse(List<CourseSummaryResponse> courses) {}
+
+  public record CourseSummaryResponse(
+      Long courseId,
+      String title,
+      String status,
+      OffsetDateTime updatedAt,
+      Long explorationId,
+      String explorationStatus) {}
 
   public record ConfirmResponse(
       Long courseId,

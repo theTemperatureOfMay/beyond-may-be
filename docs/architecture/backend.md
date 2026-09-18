@@ -308,6 +308,7 @@ erDiagram
 - 모든 코스는 `start_date`, `end_date`, `start_time`을 저장한다. AI 생성 코스의 기본
   시작 시각은 07:00, 기본 체류시간은 60분이며 `CUSTOM`은 3박 4일 이상 직접 선택 기간이다.
 - Course는 제목, 소유자, 상태, 공유 만료 시각과 서버 관리 AI 수정 횟수를 가진다.
+- 인증 GET /api/v1/courses는 현재 사용자가 만든 코스만 수정 시각·ID 내림차순으로 반환한다. 탐험 ID·상태를 함께 조회하며, CoursePlace 편집도 Course 수정 시각을 갱신한다.
 - AI 수정은 최대 2회이며 조건부 갱신으로 동시 초과를 막는다.
 - CoursePlace는 Place 참조, 일자, 일자 내 순서, 예상 체류시간과 이전 장소에서의
   이동수단을 가진다.
@@ -340,11 +341,11 @@ erDiagram
   빈 팀은 LEFT OWNER를 유지하다 첫 합류·재합류 시 활성 소유자를 정한다.
 - join·confirm의 `EXPLORATION409`는 `data.activeExplorationId`를 포함한다.
   이탈 성공 후 새 join을 별도로 호출하며 신규 합류 실패 시 이탈을 자동 취소하지 않는다.
-- 인증 `GET /api/v1/explorations?status={ONGOING|COMPLETED}`는 ONGOING에 ACTIVE 참여만,
+- 인증 `GET /api/v1/explorations?status={BEFORE|ONGOING|COMPLETED}`는 BEFORE·ONGOING에 ACTIVE 참여만,
   COMPLETED에 과거 참여까지 포함한다. 카드의 팀원 수·표시 이름에서는 `LEFT`를 제외하지만
   과거 Participant의 CoursePlace Visit은 팀 진행률에 포함한다. 완료 목록은
   `completed_at` 내림차순이며 코스 장소 순서상 첫 번째 비어 있지 않은 저장 썸네일을 대표
-  이미지로 사용한다. ACTIVE 참여의 `ONGOING`이 둘 이상이면 `COMMON500`으로 불변식 위반을
+  이미지로 사용한다. BEFORE의 startedAt은 null이다. BEFORE·ONGOING 조회에서 ACTIVE 참여가 둘 이상이면 `COMMON500`으로 불변식 위반을
   드러낸다. 시작·이탈은 탐험 행을 먼저 잠가 권한 변경과 상태 전환을 직렬화한다.
   이탈은 사용자·참여자 행도 잠그고, 이탈 커밋 후 LOCATION_SHARING_CHANGED(false)와
   PARTICIPANT_LEFT를 전파한다. 기존 STOMP 구독에도 송신 직전 참여 상태를 확인해 LEFT를 차단한다.

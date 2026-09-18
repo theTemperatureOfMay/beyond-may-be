@@ -33,6 +33,10 @@
 둘 이상이면 서버 오류로 불변식 위반을 드러낸다. 완료 목록은 과거 참여도 포함한다. 단일 탐험의
 상태와 실행 권한은 `GET /api/v1/explorations/{explorationId}`로 조회한다.
 
+홈 복구용으로 같은 API의 `status=BEFORE`도 지원한다. BEFORE·ONGOING 조회는
+현재 ACTIVE 참여만 포함하며 LEFT는 제외한다. BEFORE 응답의 `startedAt`은 null이다.
+여행 기록 화면의 진행 중 탭은 기존대로 ONGOING만 표시한다.
+
 #### 5.1.2 완료한 코스 조회
 
 - 적용 사용자: 닉네임 세션 사용자

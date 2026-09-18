@@ -4,6 +4,22 @@
 
 ## 상세 기능
 
+### 내가 만든 코스 목록
+
+인증된 사용자의 `GET /api/v1/courses`는 본인이 만든 모든 코스를
+`data.courses` 배열로 반환한다. 다른 사람의 코스는 참여 여부와 무관하게 제외하며,
+내가 만든 코스는 탐험 이탈 여부와 무관하게 포함한다. 없으면 빈 배열, 미인증이면 401이다.
+
+각 항목은 `courseId`, `title`, `status`(DRAFT/CONFIRMED), `updatedAt`,
+`explorationId`, `explorationStatus`(BEFORE/ONGOING/COMPLETED)를 포함한다.
+연결된 탐험이 없으면 탐험 필드는 null이다. 코스 생성 시각과 탐험 시작 시각은 이 목록 응답에 포함하지 않는다.
+시간은 오프셋이 있는 ISO 8601 문자열이다. 정렬은 `updatedAt DESC, courseId DESC`이다.
+직접 편집·AI 수정 적용·추천 장소 추가도 코스의 `updatedAt`을 갱신한다.
+
+초안은 여러 개 보관할 수 있으며 홈에서는 정렬된 목록의 첫 DRAFT를 이어 만들기 대상으로 사용한다.
+세부 장소는 기존 `GET /api/v1/courses/{courseId}/draft`로 조회한다.
+활성 탐험 참여 여부는 이 생성자 목록이 아닌 탐험 목록으로 판별한다.
+
 ### 3.1 코스 확인
 
 #### 3.1.0 AI 코스 생성

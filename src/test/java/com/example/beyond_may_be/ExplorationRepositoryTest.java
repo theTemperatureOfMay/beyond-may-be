@@ -36,6 +36,26 @@ class ExplorationRepositoryTest {
   @Autowired private PlatformTransactionManager transactionManager;
 
   @Test
+  void beforeListExcludesLeftParticipants() {
+    var before =
+        explorationRepository.save(
+            Exploration.builder().courseId(999980L).status(ExplorationStatus.BEFORE).build());
+    explorationParticipantRepository.saveAllAndFlush(
+        List.of(
+            participant(before.getId(), 81L, ParticipantStatus.LEFT),
+            participant(before.getId(), 82L, ParticipantStatus.ACTIVE)));
+    assertThat(
+            explorationRepository.findAllByParticipantUserIdAndStatus(
+                81L, ExplorationStatus.BEFORE))
+        .isEmpty();
+    assertThat(
+            explorationRepository.findAllByParticipantUserIdAndStatus(
+                82L, ExplorationStatus.BEFORE))
+        .extracting(Exploration::getId)
+        .containsExactly(before.getId());
+  }
+
+  @Test
   void ongoingListExcludesLeftExplorationAndActiveIdIncludesBefore() {
     var left =
         explorationRepository.save(

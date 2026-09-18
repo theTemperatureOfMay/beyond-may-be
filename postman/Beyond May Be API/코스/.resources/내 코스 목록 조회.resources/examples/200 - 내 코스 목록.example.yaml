@@ -1,0 +1,40 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/courses"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "courses": [
+            {
+              "courseId": 32,
+              "title": "광주 여행 초안",
+              "status": "DRAFT",
+              "updatedAt": "2026-09-19T10:00:00+09:00",
+              "explorationId": null,
+              "explorationStatus": null
+            },
+            {
+              "courseId": 31,
+              "title": "광주 여행",
+              "status": "CONFIRMED",
+              "updatedAt": "2026-09-18T10:00:00+09:00",
+              "explorationId": 44,
+              "explorationStatus": "ONGOING"
+            }
+          ]
+        },
+        "success": true
+      }
+order: 1000

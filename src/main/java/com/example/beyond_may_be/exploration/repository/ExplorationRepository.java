@@ -15,12 +15,14 @@ import org.springframework.data.repository.query.Param;
 public interface ExplorationRepository extends JpaRepository<Exploration, Long> {
   Optional<Exploration> findByCourseId(Long courseId);
 
+  List<Exploration> findByCourseIdIn(List<Long> courseIds);
+
   @Query(
       "SELECT e FROM Exploration e, ExplorationParticipant p "
           + "WHERE p.explorationId = e.id "
           + "AND p.userId = :userId "
           + "AND e.status = :status "
-          + "AND (e.status <> com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.ONGOING "
+          + "AND (e.status = com.example.beyond_may_be.exploration.domain.enums.ExplorationStatus.COMPLETED "
           + "OR p.status = com.example.beyond_may_be.exploration.domain.enums.ParticipantStatus.ACTIVE) "
           + "ORDER BY e.completedAt DESC")
   List<Exploration> findAllByParticipantUserIdAndStatus(

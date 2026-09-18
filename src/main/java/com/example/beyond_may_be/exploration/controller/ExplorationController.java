@@ -54,7 +54,8 @@ public class ExplorationController {
 
   @GetMapping("/explorations")
   public ApiResponse<ExplorationDtos.ExplorationsResponse> getExplorations(
-      @Parameter(schema = @Schema(allowableValues = {"ONGOING", "COMPLETED"})) @RequestParam
+      @Parameter(schema = @Schema(allowableValues = {"BEFORE", "ONGOING", "COMPLETED"}))
+          @RequestParam
           ExplorationStatus status,
       @AuthenticationPrincipal Long userId) {
     return ApiResponse.onSuccess(explorationService.getExplorations(userId, status));
