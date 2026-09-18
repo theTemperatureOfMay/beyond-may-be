@@ -19,7 +19,7 @@ public final class PlaceConverter {
         place.getLatitude(),
         place.getLongitude(),
         place.getBusinessHours(),
-        place.getDescription(),
+        place.getDescription() == null ? "상세 설명 정보 없음" : place.getDescription(),
         place.getThumbnailUrl());
   }
 
