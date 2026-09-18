@@ -9,6 +9,7 @@ import com.example.beyond_may_be.user.domain.User;
 import com.example.beyond_may_be.user.dto.UserLoginRequestDto;
 import com.example.beyond_may_be.user.dto.UserLoginResponseDto;
 import com.example.beyond_may_be.user.dto.UserPreferenceResponseDto;
+import com.example.beyond_may_be.user.dto.UserPreferenceUpdateRequestDto;
 import com.example.beyond_may_be.user.dto.UserSignUpRequestDto;
 import com.example.beyond_may_be.user.dto.UserSignUpResponseDto;
 import com.example.beyond_may_be.user.repository.UserRepository;
@@ -117,6 +118,33 @@ public class UserService {
         userRepository
             .findById(userId)
             .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    return UserConverter.toPreferenceResponse(user);
+  }
+
+  public UserPreferenceResponseDto updateMyPreference(
+      Long userId, UserPreferenceUpdateRequestDto requestDto) {
+    if (requestDto.getThinkerScore() == null
+        && requestDto.getFoodieScore() == null
+        && requestDto.getArtistScore() == null
+        && requestDto.getRemembererScore() == null) {
+      throw new UserHandler(ErrorStatus.USER_PREFERENCE_SCORES_MISSING);
+    }
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new UserHandler(ErrorStatus.USER_NOT_FOUND));
+    TravelPreferenceType preferenceType =
+        resolvePreferenceType(
+            requestDto.getThinkerScore(),
+            requestDto.getFoodieScore(),
+            requestDto.getArtistScore(),
+            requestDto.getRemembererScore());
+    user.updatePreference(
+        preferenceType,
+        requestDto.getThinkerScore(),
+        requestDto.getFoodieScore(),
+        requestDto.getArtistScore(),
+        requestDto.getRemembererScore());
     return UserConverter.toPreferenceResponse(user);
   }
 
