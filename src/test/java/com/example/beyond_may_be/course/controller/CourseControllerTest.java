@@ -53,6 +53,29 @@ class CourseControllerTest {
   }
 
   @Test
+  void returnsOwnedCourseListAndRequiresAuthentication() throws Exception {
+    given(courseService.getCourses(1L))
+        .willReturn(
+            new CourseDtos.CourseListResponse(
+                List.of(
+                    new CourseDtos.CourseSummaryResponse(
+                        31L,
+                        "초안",
+                        "DRAFT",
+                        java.time.OffsetDateTime.parse("2026-09-19T10:00:00+09:00"),
+                        null,
+                        null))));
+    mockMvc
+        .perform(get("/api/v1/courses").header("Authorization", "Bearer valid-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.courses[0].courseId").value(31))
+        .andExpect(jsonPath("$.data.courses[0].status").value("DRAFT"))
+        .andExpect(jsonPath("$.data.courses[0].startedAt").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.data.courses[0].updatedAt").value("2026-09-19T10:00:00+09:00"));
+    mockMvc.perform(get("/api/v1/courses")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void returnsExplorationIdByCourseId() throws Exception {
     given(explorationService.getIdByCourseId(31L, 1L))
         .willReturn(new ExplorationDtos.IdResponse(44L));

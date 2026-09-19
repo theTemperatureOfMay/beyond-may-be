@@ -142,6 +142,21 @@ class PlaceServiceTest {
 
     // then
     assertThat(response.places()).hasSize(2);
+    assertThat(response.places())
+        .allSatisfy(place -> assertThat(place.description()).isEqualTo("설명"));
+  }
+
+  @Test
+  void getRecommendations_missingDescription_returnsFallback() {
+    given(placeRepository.findByTravelMbtiTypeAndActiveTrue(TravelPreferenceType.ARTIST))
+        .willReturn(List.of(place(201L, null, "09:00-18:00", null, null)));
+
+    PlaceRecommendationResponse response =
+        service().getRecommendations(TravelPreferenceType.ARTIST);
+
+    assertThat(response.places())
+        .singleElement()
+        .satisfies(place -> assertThat(place.description()).isEqualTo("상세 설명 정보 없음"));
   }
 
   @DisplayName("해당 유형의 활성 장소가 없으면 빈 목록을 반환한다.")

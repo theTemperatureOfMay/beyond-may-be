@@ -5,11 +5,34 @@ import com.example.beyond_may_be.course.domain.CoursePlace;
 import com.example.beyond_may_be.course.dto.CourseDtos;
 import com.example.beyond_may_be.exploration.domain.Exploration;
 import com.example.beyond_may_be.place.domain.Place;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
 public final class CourseConverter {
   private CourseConverter() {}
+
+  public static CourseDtos.CourseSummaryResponse toCourseSummaryResponse(
+      Course course, Exploration exploration) {
+    return new CourseDtos.CourseSummaryResponse(
+        course.getId(),
+        course.getTitle(),
+        course.getStatus().name(),
+        toOffsetDateTime(course.getUpdatedAt()),
+        exploration == null ? null : exploration.getId(),
+        exploration == null ? null : exploration.getStatus().name());
+  }
+
+  private static OffsetDateTime toOffsetDateTime(LocalDateTime value) {
+    return value == null
+        ? null
+        : value
+            .atZone(ZoneId.systemDefault())
+            .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
+            .toOffsetDateTime();
+  }
 
   public static CourseDtos.ConfirmResponse toConfirmResponse(
       Course course, Exploration exploration) {

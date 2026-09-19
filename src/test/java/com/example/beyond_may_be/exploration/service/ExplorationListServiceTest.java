@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 
-import com.example.beyond_may_be.apiPayload.code.status.ErrorStatus;
-import com.example.beyond_may_be.apiPayload.exception.handler.ExplorationHandler;
 import com.example.beyond_may_be.course.domain.Course;
 import com.example.beyond_may_be.course.domain.CoursePlace;
 import com.example.beyond_may_be.course.domain.enums.CourseStatus;
@@ -147,15 +145,14 @@ class ExplorationListServiceTest {
     assertThat(response.totalCount()).isZero();
   }
 
-  @DisplayName("BEFORE는 여행 기록 목록 상태로 허용하지 않는다.")
+  @DisplayName("시작 전 탐험도 홈 복구용 목록으로 조회한다.")
   @Test
-  void getExplorations_before_throwsBadRequest() {
-    ExplorationHandler exception =
-        assertThrows(
-            ExplorationHandler.class,
-            () -> explorationService.getExplorations(71L, ExplorationStatus.BEFORE));
-
-    assertThat(exception.getCode()).isEqualTo(ErrorStatus._BAD_REQUEST);
+  void getExplorations_before_returnsEmptyResponse() {
+    given(explorationRepository.findAllByParticipantUserIdAndStatus(71L, ExplorationStatus.BEFORE))
+        .willReturn(List.of());
+    var response = explorationService.getExplorations(71L, ExplorationStatus.BEFORE);
+    assertThat(response.status()).isEqualTo("BEFORE");
+    assertThat(response.explorations()).isEmpty();
   }
 
   @DisplayName("진행 중 탐험이 둘 이상이면 목록 계약 위반으로 실패한다.")

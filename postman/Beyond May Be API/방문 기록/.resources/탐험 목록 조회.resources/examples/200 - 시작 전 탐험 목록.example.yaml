@@ -1,0 +1,41 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/explorations?status=BEFORE"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "status": "BEFORE",
+          "explorations": [
+            {
+              "explorationId": 44,
+              "courseId": 31,
+              "courseTitle": "광주 여행",
+              "status": "BEFORE",
+              "representativeImageUrl": null,
+              "participantCount": 1,
+              "participantDisplayNames": [
+                "여행자"
+              ],
+              "completedCoursePlaceCount": 0,
+              "totalCoursePlaceCount": 3,
+              "startedAt": null,
+              "completedAt": null
+            }
+          ],
+          "totalCount": 1
+        },
+        "success": true
+      }
+order: 1500

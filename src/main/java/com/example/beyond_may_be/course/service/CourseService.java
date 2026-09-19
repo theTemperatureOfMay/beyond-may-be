@@ -89,6 +89,26 @@ public class CourseService {
   private final RecommendationSetRepository recommendationSetRepository;
   private final TransactionTemplate transactionTemplate;
 
+  @Transactional(readOnly = true)
+  public CourseDtos.CourseListResponse getCourses(Long userId) {
+    List<Course> courses = courseRepository.findByOwnerUserIdOrderByUpdatedAtDescIdDesc(userId);
+    if (courses.isEmpty()) {
+      return new CourseDtos.CourseListResponse(List.of());
+    }
+    Map<Long, Exploration> explorationsByCourseId =
+        explorationRepository
+            .findByCourseIdIn(courses.stream().map(Course::getId).toList())
+            .stream()
+            .collect(Collectors.toMap(Exploration::getCourseId, Function.identity()));
+    return new CourseDtos.CourseListResponse(
+        courses.stream()
+            .map(
+                course ->
+                    CourseConverter.toCourseSummaryResponse(
+                        course, explorationsByCourseId.get(course.getId())))
+            .toList());
+  }
+
   private int dayCount(TravelSchedule travelSchedule, LocalDate startDate, LocalDate endDate) {
     return switch (travelSchedule) {
       case DAY_TRIP -> 1;
@@ -402,6 +422,7 @@ public class CourseService {
     // DB에 반영해두지 않으면 재배치된 (day, order) 슬롯이 아직 지워지지 않은 기존 행과
     // 유니크 제약(uk_course_places_course_day_order)에서 충돌한다.
     coursePlaceRepository.flush();
+    course.markPlacesUpdated();
     return coursePlaceRepository.saveAll(newRows);
   }
 

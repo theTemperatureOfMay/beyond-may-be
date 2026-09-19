@@ -36,6 +36,13 @@ public class CourseController {
   private final CourseService courseService;
   private final ExplorationService explorationService;
 
+  @GetMapping
+  @Operation(summary = "내가 만든 코스 목록", description = "인증된 사용자가 만든 모든 코스를 수정 시각, 코스 ID 내림차순으로 조회합니다.")
+  public ApiResponse<CourseDtos.CourseListResponse> getCourses(
+      @AuthenticationPrincipal Long userId) {
+    return ApiResponse.onSuccess(courseService.getCourses(userId));
+  }
+
   @PostMapping("/ai-generation")
   public WebAsyncTask<ApiResponse<CourseDtos.CourseDetailResponse>> generate(
       @AuthenticationPrincipal Long userId) {

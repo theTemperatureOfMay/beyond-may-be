@@ -76,14 +76,14 @@ public class ExplorationService {
   @Transactional(readOnly = true)
   public ExplorationDtos.ExplorationsResponse getExplorations(
       Long userId, ExplorationStatus status) {
-    if (status == null || status == ExplorationStatus.BEFORE) {
+    if (status == null) {
       throw new ExplorationHandler(ErrorStatus._BAD_REQUEST);
     }
 
     List<Exploration> explorations =
         explorationRepository.findAllByParticipantUserIdAndStatus(userId, status);
-    if (status == ExplorationStatus.ONGOING && explorations.size() > 1) {
-      throw new IllegalStateException("진행 중 탐험은 최대 1개여야 합니다.");
+    if (status != ExplorationStatus.COMPLETED && explorations.size() > 1) {
+      throw new IllegalStateException("활성 탐험은 최대 1개여야 합니다.");
     }
     if (explorations.isEmpty()) {
       return ExplorationConverter.toExplorationsResponse(status, List.of());

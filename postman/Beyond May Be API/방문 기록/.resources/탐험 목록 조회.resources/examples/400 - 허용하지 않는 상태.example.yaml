@@ -1,6 +1,6 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/v1/explorations?status=BEFORE"
+  url: "{{baseUrl}}/api/v1/explorations?status=UNKNOWN"
   method: GET
   headers:
     Authorization: Bearer {{accessToken}}
