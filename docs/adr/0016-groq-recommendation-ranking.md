@@ -2,12 +2,12 @@
 status: accepted
 decision-date: 2026-08-21
 recorded-date: 2026-08-21
-last-updated: 2026-08-21
+last-updated: 2026-09-19
 ---
 
 # ADR-0016 Groq 후보 선별과 서버 전체 검증
 
-추천 장소 생성은 서버가 활성 DB 장소의 유형별 최종 할당량과 최대 60곳의 허용 후보를
+추천 장소 생성은 서버가 활성 DB 장소의 유형별 최종 할당량과 최대 45곳의 허용 후보를
 확정한 뒤, Groq `openai/gpt-oss-20b`가 그 후보 ID만 순서화하도록 한다. AI는 추천에
 필수인 정본이 아니므로 strict JSON Schema 응답을 서버가 전부 검증하고, 통신·파싱·계약
 검증이 하나라도 실패하면 사용자 ID와 날짜 기반의 안정적인 규칙 결과 전체로 대체한다.

@@ -46,7 +46,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class RecommendationService {
 
   private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
-  private static final int RECOMMENDATION_COUNT = 20;
+  private static final int RECOMMENDATION_COUNT = 15;
   private static final int MAX_VARCHAR_LENGTH = 255;
   private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
   private static final List<TravelPreferenceType> TYPE_PRIORITY =
@@ -897,7 +897,7 @@ public class RecommendationService {
       Map<TravelPreferenceType, Integer> initial,
       Map<TravelPreferenceType, Integer> scores,
       Map<TravelPreferenceType, Integer> availability) {
-    // 후보가 부족해 비는 몫을 남은 성향 점수 비율대로 재배분하되 총 추천 수는 20개를 넘지 않는다.
+    // 후보가 부족해 비는 몫을 남은 성향 점수 비율대로 재배분하되 총 추천 수는 15개를 넘지 않는다.
     Map<TravelPreferenceType, Integer> quotas = emptyCounts();
     TYPE_PRIORITY.forEach(
         type -> quotas.put(type, Math.min(initial.get(type), availability.get(type))));
@@ -940,7 +940,7 @@ public class RecommendationService {
   }
 
   private Map<TravelPreferenceType, Integer> initialQuotas(User user) {
-    // 네 성향 점수 비율을 20곳에 적용하고 나눗셈 나머지가 큰 성향부터 남은 자리를 배정한다.
+    // 네 성향 점수 비율을 15곳에 적용하고 나눗셈 나머지가 큰 성향부터 남은 자리를 배정한다.
     Map<TravelPreferenceType, Integer> scores = scores(user);
     long totalScore = scores.values().stream().mapToLong(Integer::longValue).sum();
     Map<TravelPreferenceType, Integer> quotas = emptyCounts();

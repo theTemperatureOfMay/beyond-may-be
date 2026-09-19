@@ -107,7 +107,7 @@ class RecommendationControllerTest {
                 TravelSchedule.ONE_NIGHT_TWO_DAYS,
                 LocalDate.of(2099, 8, 20),
                 LocalDate.of(2099, 8, 21),
-                20,
+                15,
                 5,
                 3,
                 false,
@@ -141,7 +141,7 @@ class RecommendationControllerTest {
         .andExpect(jsonPath("$.data.travelSchedule").value("ONE_NIGHT_TWO_DAYS"))
         .andExpect(jsonPath("$.data.startDate").value("2099-08-20"))
         .andExpect(jsonPath("$.data.endDate").value("2099-08-21"))
-        .andExpect(jsonPath("$.data.batchSize").value(20))
+        .andExpect(jsonPath("$.data.batchSize").value(15))
         .andExpect(jsonPath("$.data.minimumSelectionCount").value(5))
         .andExpect(jsonPath("$.data.selectedPlaceCount").value(3))
         .andExpect(jsonPath("$.data.selectionReady").value(false))
