@@ -314,11 +314,12 @@ erDiagram
 - CoursePlace는 Place 참조, 일자, 일자 내 순서, 예상 체류시간과 이전 장소에서의
   이동수단을 가진다.
 - `(course_id, place_id)`와 `(course_id, day_number, visit_order)`는 유일하다.
-- 폴리라인과 경로 계산 결과는 저장하지 않는다. 프런트엔드는 Kakao Maps API로
-  지도를 렌더링하고 CoursePlace 순서와 좌표로 TMAP API의 도보 경로를 조회한다.
+- 폴리라인과 경로 계산 결과는 저장하지 않는다. 백엔드는 CoursePlace 좌표로
+  카카오맵 REST API의 도보·대중교통 경로 API를 호출한다. 대중교통 경로에는 탑승 전·하차 후
+  도보 구간도 포함해 반환하고, 프런트엔드는 응답을 Kakao Maps에 표시한다.
 
 외부 지도·경로 제공자 경계는
-[ADR-0009](../adr/0009-kakao-map-tmap-walking-route.md)을 따른다.
+[ADR-0029](../adr/0029-kakao-map-multimodal-route-api.md)을 따른다.
 
 ### `explorations`, `exploration_participants`
 
@@ -457,7 +458,7 @@ Exploration 완료 → COMPLETED
 | 한국관광공사 OpenAPI | 초기 광주 장소 수집, 부족 유형 변경분 보충, 추천 응답 장소 상세정보 사후 보강, 장소 상세 GET의 빈 필드 동기 보강과 수동 주변 장소 조회 입력. 유효 주변 장소도 PostgreSQL에 저장해 외부 응답 자체는 런타임 정본이 아님(ADR-0015, ADR-0017, ADR-0020) |
 | Groq API | 추천 후보 순위와 선택 장소의 날짜별 방문 순서를 strict JSON Schema로 제안. 서버 검증 실패 시 규칙 기반 결과로 전체 대체 |
 | Kakao Maps API | 프런트엔드 지도·핀·뷰포트 렌더링 |
-| TMAP API | 프런트엔드 도보 경로와 폴리라인 계산 |
+| Kakao Maps REST API | 백엔드 도보·대중교통 경로 계산과 응답 제공 |
 | 비공개 Amazon S3 | 방문 인증 사진 원본. 모든 공개 접근·ACL을 차단하고 SSE-S3·HTTPS를 적용한다. ECS Task Role에는 전용 버킷 `visits/*`의 GET·PUT·DELETE만 허용하며 API는 1시간 presigned GET URL만 노출한다(ADR-0027). |
 | 실시간 탐험 채널(부분 구현) | `/ws` WebSocket(STOMP), `/topic` simple broker와 `CONNECT` bearer 인증을 사용한다. 새 참여자 합류·탐험 시작·위치 공유 설정 변경·자동 완료·OWNER 조기 완료는 `/events`, 개인 방문과 팀 진행률은 `/visits`에 업무 커밋 후 JSON envelope로 최선 노력 발행한다. 옵트인 팀원 위치는 `/app/.../locations`에서 연결별 10m·정확도 50m 필터 후 `/topic/.../locations`로 즉시 전파한다. 세 채널은 참여자 범위로 인가하며 위치는 `ONGOING` 탐험으로 제한한다. 위치는 저장·replay하지 않고 상태·집계·개별 방문은 탐험·참여자·팀 방문 기록 HTTP 조회로 복구한다. 외부 broker는 아직 없다([ADR-0022](../adr/0022-authenticated-stomp-transport-foundation.md), [ADR-0023](../adr/0023-location-sharing-opt-in-and-state-event.md), [ADR-0024](../adr/0024-exploration-state-event-channel.md), [ADR-0025](../adr/0025-visit-confirmation-and-realtime-propagation.md), [ADR-0026](../adr/0026-ephemeral-stomp-location-sharing.md), [ADR-0027](../adr/0027-private-s3-visit-photo-storage.md)). |
 
