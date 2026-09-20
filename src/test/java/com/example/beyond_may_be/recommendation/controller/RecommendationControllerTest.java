@@ -56,7 +56,7 @@ class RecommendationControllerTest {
 
   @Test
   void createsCurrentRecommendationSet() throws Exception {
-    given(recommendationService.createOrGetCurrent(eq(1L), any()))
+    given(recommendationService.createOrReplaceCurrent(eq(1L), any()))
         .willReturn(
             new RecommendationDtos.RecommendationResponse(
                 12L,
@@ -194,7 +194,7 @@ class RecommendationControllerTest {
 
   @Test
   void limitsRecommendationGenerationToThirtySeconds() {
-    given(recommendationService.createOrGetCurrent(eq(1L), any()))
+    given(recommendationService.createOrReplaceCurrent(eq(1L), any()))
         .willReturn(
             new RecommendationDtos.RecommendationResponse(
                 12L,
@@ -310,7 +310,7 @@ class RecommendationControllerTest {
 
   @Test
   void rejectsInvalidPeriod() throws Exception {
-    given(recommendationService.createOrGetCurrent(eq(1L), any()))
+    given(recommendationService.createOrReplaceCurrent(eq(1L), any()))
         .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_INVALID_PERIOD));
 
     MvcResult asyncResult =
@@ -338,7 +338,7 @@ class RecommendationControllerTest {
 
   @Test
   void reportsMissingFinalPreferenceAsConflict() throws Exception {
-    given(recommendationService.createOrGetCurrent(any(), any()))
+    given(recommendationService.createOrReplaceCurrent(any(), any()))
         .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED));
 
     MvcResult asyncResult =
@@ -366,7 +366,7 @@ class RecommendationControllerTest {
 
   @Test
   void reportsRecommendationTimeoutAsServiceUnavailable() throws Exception {
-    given(recommendationService.createOrGetCurrent(any(), any()))
+    given(recommendationService.createOrReplaceCurrent(any(), any()))
         .willThrow(new RecommendationHandler(ErrorStatus.RECOMMENDATION_TIMEOUT));
 
     MvcResult asyncResult =
