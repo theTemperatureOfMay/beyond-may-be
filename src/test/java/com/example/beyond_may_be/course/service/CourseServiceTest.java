@@ -36,6 +36,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.LongStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -208,6 +209,57 @@ class CourseServiceTest {
             org.assertj.core.groups.Tuple.tuple(2L, 1, 3),
             org.assertj.core.groups.Tuple.tuple(5L, 2, 1),
             org.assertj.core.groups.Tuple.tuple(4L, 2, 2));
+  }
+
+  @DisplayName("직접 선택 일정은 장소 15개로 DRAFT 코스를 생성할 수 있다.")
+  @Test
+  void generate_customWithFifteenPlaces_succeeds() {
+    List<Long> likedPlaceIds = LongStream.rangeClosed(1, 15).boxed().toList();
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.CUSTOM)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 23))
+            .recommendedPlaceIds(likedPlaceIds)
+            .likedPlaceIds(likedPlaceIds)
+            .dislikedPlaceIds(List.of())
+            .build();
+    List<Place> places =
+        likedPlaceIds.stream().map(id -> placeAt(id, 35.00 + id / 1000.0, "장소" + id)).toList();
+    stubGeneration(
+        recommendationSet,
+        places,
+        List.of(
+            likedPlaceIds.subList(0, 4),
+            likedPlaceIds.subList(4, 8),
+            likedPlaceIds.subList(8, 12),
+            likedPlaceIds.subList(12, 15)));
+
+    CourseDtos.CourseDetailResponse response = courseService.generate(1L);
+
+    assertThat(response.places()).hasSize(15);
+  }
+
+  @DisplayName("직접 선택 일정은 장소가 14개면 코스를 생성하지 않는다.")
+  @Test
+  void generate_customWithFourteenPlaces_throws() {
+    List<Long> likedPlaceIds = LongStream.rangeClosed(1, 14).boxed().toList();
+    RecommendationSet recommendationSet =
+        RecommendationSet.builder()
+            .userId(1L)
+            .travelSchedule(TravelSchedule.CUSTOM)
+            .startDate(LocalDate.of(2026, 8, 20))
+            .endDate(LocalDate.of(2026, 8, 23))
+            .recommendedPlaceIds(likedPlaceIds)
+            .likedPlaceIds(likedPlaceIds)
+            .dislikedPlaceIds(List.of())
+            .build();
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(recommendationSet));
+
+    CourseHandler exception = assertThrows(CourseHandler.class, () -> courseService.generate(1L));
+
+    assertThat(exception.getCode()).isEqualTo(ErrorStatus.COURSE_INVALID_PLACE_COUNT);
   }
 
   @DisplayName("AI 순서가 유효하지 않으면 현재 장소에서 가장 가까운 장소 순으로 코스를 만든다.")

@@ -1312,7 +1312,7 @@ class RecommendationServiceTest {
     "DAY_TRIP, 0, 3",
     "ONE_NIGHT_TWO_DAYS, 1, 5",
     "TWO_NIGHTS_THREE_DAYS, 2, 7",
-    "CUSTOM, 3, 20"
+    "CUSTOM, 3, 15"
   })
   void appliesPeriodRulesAndMinimumSelectionCount(
       TravelSchedule schedule, int days, int minimumSelectionCount) {

@@ -968,7 +968,7 @@ public class RecommendationService {
       case DAY_TRIP -> 3;
       case ONE_NIGHT_TWO_DAYS -> 5;
       case TWO_NIGHTS_THREE_DAYS -> 7;
-      case CUSTOM -> 20;
+      case CUSTOM -> 15;
     };
   }
 
