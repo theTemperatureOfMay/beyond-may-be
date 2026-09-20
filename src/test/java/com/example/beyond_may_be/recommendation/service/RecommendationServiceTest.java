@@ -705,7 +705,7 @@ class RecommendationServiceTest {
   }
 
   @Test
-  void createsTwentyPlacesInFourThreeTwoOneRatio() {
+  void createsFifteenPlacesWithMinimumTwoPerTypeAndScoreWeightedRemainder() {
     User user =
         User.builder()
             .nickname("여행자")
@@ -749,10 +749,10 @@ class RecommendationServiceTest {
     assertThat(response.batch().batchNumber()).isEqualTo(1);
     assertThat(response.batch().places()).hasSize(15);
     assertThat(counts)
-        .containsEntry(TravelPreferenceType.THINKER, 6L)
-        .containsEntry(TravelPreferenceType.FOODIE, 5L)
+        .containsEntry(TravelPreferenceType.THINKER, 5L)
+        .containsEntry(TravelPreferenceType.FOODIE, 4L)
         .containsEntry(TravelPreferenceType.ARTIST, 3L)
-        .containsEntry(TravelPreferenceType.REMEMBERER, 1L);
+        .containsEntry(TravelPreferenceType.REMEMBERER, 3L);
     verify(placeDetailEnrichmentService)
         .enrichAsync(
             response.batch().places().stream()
@@ -782,6 +782,9 @@ class RecommendationServiceTest {
         .hasSize(12);
     assertThat(rankRequest.scores()).containsEntry(TravelPreferenceType.THINKER, 1);
     assertThat(rankRequest.quotas()).containsEntry(TravelPreferenceType.THINKER, 4);
+    assertThat(rankRequest.quotas()).containsEntry(TravelPreferenceType.FOODIE, 4);
+    assertThat(rankRequest.quotas()).containsEntry(TravelPreferenceType.ARTIST, 4);
+    assertThat(rankRequest.quotas()).containsEntry(TravelPreferenceType.REMEMBERER, 3);
     assertThat(rankRequest.travelSchedule()).isEqualTo(TravelSchedule.DAY_TRIP);
     assertThat(rankRequest.startDate()).isEqualTo(LocalDate.of(2099, 8, 20));
     assertThat(rankRequest.endDate()).isEqualTo(LocalDate.of(2099, 8, 20));
@@ -810,10 +813,15 @@ class RecommendationServiceTest {
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactlyElementsOf(aiOrder.get());
+        .containsExactlyInAnyOrderElementsOf(aiOrder.get())
+        .isNotEqualTo(aiOrder.get());
     ArgumentCaptor<RecommendationSet> saved = ArgumentCaptor.forClass(RecommendationSet.class);
     verify(recommendationSetRepository).save(saved.capture());
-    assertThat(saved.getValue().getRecommendedPlaceIds()).containsExactlyElementsOf(aiOrder.get());
+    assertThat(saved.getValue().getRecommendedPlaceIds())
+        .containsExactlyElementsOf(
+            response.batch().places().stream()
+                .map(RecommendationDtos.PlaceResponse::placeId)
+                .toList());
   }
 
   @ParameterizedTest(name = "{0}")
@@ -840,7 +848,7 @@ class RecommendationServiceTest {
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactlyElementsOf(validSelection(sent.get()));
+        .containsExactlyInAnyOrderElementsOf(validSelection(sent.get()));
   }
 
   @Test
@@ -1022,7 +1030,7 @@ class RecommendationServiceTest {
 
   @Test
   void continuesWithDatabaseCandidatesWhenTourApiFails() {
-    User user = user(TravelPreferenceType.THINKER, 4, 3, 2, 1);
+    User user = user(TravelPreferenceType.THINKER, 7, 1, 1, 1);
     List<Place> places =
         places(
             Map.of(
@@ -1046,9 +1054,9 @@ class RecommendationServiceTest {
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
-        .containsEntry(TravelPreferenceType.FOODIE, 6L)
-        .containsEntry(TravelPreferenceType.ARTIST, 3L)
-        .containsEntry(TravelPreferenceType.REMEMBERER, 1L);
+        .containsEntry(TravelPreferenceType.FOODIE, 4L)
+        .containsEntry(TravelPreferenceType.ARTIST, 4L)
+        .containsEntry(TravelPreferenceType.REMEMBERER, 2L);
     verify(tourApiSyncClient).fetchChangedPlaces();
     verify(placeRepository, never()).findExistingTourContentIds(any());
     InOrder order = inOrder(tourApiSyncClient, transactionTemplate);
@@ -1085,7 +1093,7 @@ class RecommendationServiceTest {
 
   @Test
   void redistributesATypeShortageUsingOriginalScores() {
-    User user = user(TravelPreferenceType.THINKER, 4, 3, 2, 1);
+    User user = user(TravelPreferenceType.THINKER, 7, 1, 1, 1);
     List<Place> places =
         places(
             Map.of(
@@ -1108,9 +1116,9 @@ class RecommendationServiceTest {
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
-        .containsEntry(TravelPreferenceType.FOODIE, 6L)
-        .containsEntry(TravelPreferenceType.ARTIST, 3L)
-        .containsEntry(TravelPreferenceType.REMEMBERER, 1L);
+        .containsEntry(TravelPreferenceType.FOODIE, 4L)
+        .containsEntry(TravelPreferenceType.ARTIST, 4L)
+        .containsEntry(TravelPreferenceType.REMEMBERER, 2L);
     verify(tourApiSyncClient).fetchChangedPlaces();
   }
 
@@ -1129,9 +1137,9 @@ class RecommendationServiceTest {
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
-        .containsEntry(TravelPreferenceType.FOODIE, 5L)
-        .containsEntry(TravelPreferenceType.ARTIST, 5L)
-        .doesNotContainKey(TravelPreferenceType.REMEMBERER);
+        .containsEntry(TravelPreferenceType.FOODIE, 4L)
+        .containsEntry(TravelPreferenceType.ARTIST, 4L)
+        .containsEntry(TravelPreferenceType.REMEMBERER, 2L);
   }
 
   @Test
@@ -1200,8 +1208,30 @@ class RecommendationServiceTest {
         recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
-        .containsOnlyKeys(TravelPreferenceType.ARTIST)
-        .containsEntry(TravelPreferenceType.ARTIST, 15L);
+        .containsEntry(TravelPreferenceType.THINKER, 2L)
+        .containsEntry(TravelPreferenceType.FOODIE, 2L)
+        .containsEntry(TravelPreferenceType.ARTIST, 9L)
+        .containsEntry(TravelPreferenceType.REMEMBERER, 2L);
+  }
+
+  @Test
+  void limitsDominantPreferenceWhileKeepingEveryTypeVisible() {
+    User user = user(TravelPreferenceType.FOODIE, 0, 7, 0, 0);
+    List<Place> places = places(20);
+    Map<Long, Place> placesById = byId(places);
+    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
+    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+    saveWithId(12L);
+
+    RecommendationDtos.RecommendationResponse response =
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+
+    assertThat(countTypes(response, placesById))
+        .containsEntry(TravelPreferenceType.FOODIE, 9L)
+        .containsEntry(TravelPreferenceType.THINKER, 2L)
+        .containsEntry(TravelPreferenceType.ARTIST, 2L)
+        .containsEntry(TravelPreferenceType.REMEMBERER, 2L);
   }
 
   @Test
@@ -1346,9 +1376,10 @@ class RecommendationServiceTest {
 
     assertThat(first.batch().places()).hasSize(8);
     assertThat(second.batch().places()).isEqualTo(first.batch().places());
-    assertThat(first.batch().places().subList(0, 4))
+    assertThat(first.batch().places())
         .extracting(place -> byId(places).get(place.placeId()).getTravelMbtiType())
-        .containsExactlyElementsOf(List.of(TravelPreferenceType.values()));
+        .containsExactlyInAnyOrderElementsOf(
+            places.stream().map(Place::getTravelMbtiType).toList());
   }
 
   private static User user(

@@ -47,6 +47,7 @@ public class RecommendationService {
 
   private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
   private static final int RECOMMENDATION_COUNT = 15;
+  private static final int MIN_RECOMMENDATIONS_PER_TYPE = 2;
   private static final int MAX_VARCHAR_LENGTH = 255;
   private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
   private static final List<TravelPreferenceType> TYPE_PRIORITY =
@@ -312,6 +313,15 @@ public class RecommendationService {
           recommendationSet, snapshot.batchNumber(), snapshot.minimumSelectionCount(), null);
     }
     int nextBatchNumber = batchCount(recommendationSet) + 1;
+    selected =
+        shuffleForDisplay(
+            selected,
+            Objects.hash(
+                userId,
+                snapshot.travelSchedule(),
+                snapshot.startDate(),
+                snapshot.endDate(),
+                nextBatchNumber));
     recommendationSet.appendRecommendedPlaces(selected.stream().map(Place::getId).toList());
     return reactionResponse(
         recommendationSet,
@@ -496,6 +506,11 @@ public class RecommendationService {
         validAiResult
             ? aiPlaceIds.stream().map(activePlacesById::get).toList()
             : selectionPlan(userId, user, request, activePlaces).fallbackPlaces();
+    selected =
+        shuffleForDisplay(
+            selected,
+            Objects.hash(
+                userId, request.travelSchedule(), request.startDate(), request.endDate(), 1));
     List<Long> selectedIds = selected.stream().map(Place::getId).toList();
     // 5-3. 최초 요청은 새 세트를 저장하고, 이후 요청은 일정과 관계없이 현재 세트와 반응 기록을 교체한다.
     RecommendationSet recommendationSet =
@@ -895,29 +910,32 @@ public class RecommendationService {
   }
 
   private Map<TravelPreferenceType, Integer> initialQuotas(User user) {
-    // 네 성향 점수 비율을 15곳에 적용하고 나눗셈 나머지가 큰 성향부터 남은 자리를 배정한다.
+    // 네 성향을 최소 2곳씩 먼저 보장하고, 남은 7곳만 점수 비율로 배정한다.
     Map<TravelPreferenceType, Integer> scores = scores(user);
-    long totalScore = scores.values().stream().mapToLong(Integer::longValue).sum();
     Map<TravelPreferenceType, Integer> quotas = emptyCounts();
+    TYPE_PRIORITY.forEach(type -> quotas.put(type, MIN_RECOMMENDATIONS_PER_TYPE));
+
+    int remaining = RECOMMENDATION_COUNT - sum(quotas);
+    long totalScore = scores.values().stream().mapToLong(Integer::longValue).sum();
     if (totalScore == 0) {
-      quotas.put(user.getPreferenceType(), RECOMMENDATION_COUNT);
+      quotas.computeIfPresent(user.getPreferenceType(), (type, quota) -> quota + remaining);
       return quotas;
     }
 
     Map<TravelPreferenceType, Long> remainders = new EnumMap<>(TravelPreferenceType.class);
     int allocated = 0;
     for (TravelPreferenceType type : TYPE_PRIORITY) {
-      long scaled = (long) scores.get(type) * RECOMMENDATION_COUNT;
-      int quota = (int) (scaled / totalScore);
-      quotas.put(type, quota);
+      long scaled = (long) scores.get(type) * remaining;
+      int addition = (int) (scaled / totalScore);
+      quotas.put(type, quotas.get(type) + addition);
       remainders.put(type, scaled % totalScore);
-      allocated += quota;
+      allocated += addition;
     }
     TYPE_PRIORITY.stream()
         .sorted(
             Comparator.comparingLong((TravelPreferenceType type) -> remainders.get(type))
                 .reversed())
-        .limit(RECOMMENDATION_COUNT - allocated)
+        .limit(remaining - allocated)
         .forEach(type -> quotas.put(type, quotas.get(type) + 1));
     return quotas;
   }
@@ -929,6 +947,12 @@ public class RecommendationService {
     scores.put(TravelPreferenceType.ARTIST, orZero(user.getArtistScore()));
     scores.put(TravelPreferenceType.REMEMBERER, orZero(user.getRemembererScore()));
     return scores;
+  }
+
+  private List<Place> shuffleForDisplay(List<Place> places, long seed) {
+    List<Place> shuffled = new ArrayList<>(places);
+    Collections.shuffle(shuffled, new Random(seed));
+    return shuffled;
   }
 
   private Map<TravelPreferenceType, Integer> emptyCounts() {
