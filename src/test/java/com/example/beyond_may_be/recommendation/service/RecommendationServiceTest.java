@@ -731,7 +731,7 @@ class RecommendationServiceTest {
             });
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(
+        recommendationService.createOrReplaceCurrent(
             1L,
             new RecommendationDtos.CreateRequest(
                 TravelSchedule.DAY_TRIP, LocalDate.of(2099, 8, 20), LocalDate.of(2099, 8, 20)));
@@ -770,7 +770,7 @@ class RecommendationServiceTest {
     given(placeRepository.findAllByActiveTrue()).willReturn(places);
     saveWithId(12L);
 
-    recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+    recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     ArgumentCaptor<GroqRecommendationClient.RankRequest> captor =
         ArgumentCaptor.forClass(GroqRecommendationClient.RankRequest.class);
@@ -806,7 +806,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
@@ -836,7 +836,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
@@ -868,7 +868,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
@@ -926,7 +926,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.batch().places())
         .extracting(RecommendationDtos.PlaceResponse::placeId)
@@ -965,7 +965,7 @@ class RecommendationServiceTest {
     given(placeRepository.findExistingTourContentIds(any())).willReturn(Set.of(1001L));
     saveWithId(12L);
 
-    recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+    recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     verify(tourApiSyncClient).fetchChangedPlaces();
     verify(placeRepository)
@@ -1042,7 +1042,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
@@ -1061,7 +1061,6 @@ class RecommendationServiceTest {
     User user = user(TravelPreferenceType.THINKER, 1, 1, 1, 1);
     List<Place> places = places(20);
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
-    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.empty());
     given(placeRepository.findAllByActiveTrue()).willReturn(places);
     given(groqRecommendationClient.rank(any()))
         .willAnswer(
@@ -1073,7 +1072,8 @@ class RecommendationServiceTest {
     try {
       assertThatThrownBy(
               () ->
-                  recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0)))
+                  recommendationService.createOrReplaceCurrent(
+                      1L, request(TravelSchedule.DAY_TRIP, 0)))
           .isInstanceOf(RecommendationHandler.class)
           .extracting("code")
           .isEqualTo(ErrorStatus.RECOMMENDATION_TIMEOUT);
@@ -1104,7 +1104,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
@@ -1125,7 +1125,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 5L)
@@ -1155,7 +1155,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
         .containsEntry(TravelPreferenceType.THINKER, 1L)
@@ -1181,7 +1181,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById).values()).containsExactlyInAnyOrder(4L, 4L, 4L, 3L);
   }
@@ -1197,7 +1197,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(countTypes(response, placesById))
         .containsOnlyKeys(TravelPreferenceType.ARTIST)
@@ -1210,14 +1210,16 @@ class RecommendationServiceTest {
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
 
     assertThatThrownBy(
-            () -> recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0)))
+            () ->
+                recommendationService.createOrReplaceCurrent(
+                    1L, request(TravelSchedule.DAY_TRIP, 0)))
         .isInstanceOf(RecommendationHandler.class)
         .extracting("code")
         .isEqualTo(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED);
 
     assertThatThrownBy(
             () ->
-                recommendationService.createOrGetCurrent(
+                recommendationService.createOrReplaceCurrent(
                     1L, request(TravelSchedule.ONE_NIGHT_TWO_DAYS, 0)))
         .isInstanceOf(RecommendationHandler.class)
         .extracting("code")
@@ -1226,7 +1228,7 @@ class RecommendationServiceTest {
     LocalDate yesterday = LocalDate.now().minusDays(1);
     assertThatThrownBy(
             () ->
-                recommendationService.createOrGetCurrent(
+                recommendationService.createOrReplaceCurrent(
                     1L,
                     new RecommendationDtos.CreateRequest(
                         TravelSchedule.DAY_TRIP, yesterday, yesterday)))
@@ -1236,32 +1238,28 @@ class RecommendationServiceTest {
   }
 
   @Test
-  void returnsStoredCurrentSetWithoutRegeneratingIt() {
+  void replacesStoredCurrentSetEvenWhenPeriodIsUnchanged() {
     User user = user(TravelPreferenceType.THINKER, 4, 3, 2, 1);
-    Place place = places(1).getFirst();
+    List<Place> places = places(20);
     RecommendationSet stored =
         recommendationSet(
-            12L,
-            TravelSchedule.DAY_TRIP,
-            List.of(place.getId()),
-            List.of(place.getId()),
-            List.of());
+            12L, TravelSchedule.DAY_TRIP, List.of(999L), List.of(999L), List.of(998L));
     given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
     given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
-    given(placeRepository.findAllById(List.of(place.getId()))).willReturn(List.of(place));
+    given(placeRepository.findAllByActiveTrue()).willReturn(places);
+    given(recommendationSetRepository.save(stored)).willReturn(stored);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.recommendationId()).isEqualTo(12L);
-    assertThat(response.batch().places())
-        .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactly(place.getId());
-    assertThat(stored.getLikedPlaceIds()).containsExactly(place.getId());
-    verify(placeRepository, never()).findAllByActiveTrue();
+    assertThat(response.batch().places()).hasSize(15);
+    assertThat(stored.getRecommendedPlaceIds()).doesNotContain(999L);
+    assertThat(stored.getLikedPlaceIds()).isEmpty();
+    assertThat(stored.getDislikedPlaceIds()).isEmpty();
+    verify(recommendationSetRepository).save(stored);
     verify(tourApiSyncClient, never()).fetchChangedPlaces();
-    verify(placeDetailEnrichmentService, never()).enrichAsync(any());
-    verify(recommendationSetRepository, never()).save(any());
+    verify(placeDetailEnrichmentService).enrichAsync(any());
   }
 
   @Test
@@ -1276,7 +1274,8 @@ class RecommendationServiceTest {
     given(recommendationSetRepository.save(stored)).willReturn(stored);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.ONE_NIGHT_TWO_DAYS, 1));
+        recommendationService.createOrReplaceCurrent(
+            1L, request(TravelSchedule.ONE_NIGHT_TWO_DAYS, 1));
 
     assertThat(response.recommendationId()).isEqualTo(12L);
     assertThat(stored.getTravelSchedule()).isEqualTo(TravelSchedule.ONE_NIGHT_TWO_DAYS);
@@ -1302,34 +1301,10 @@ class RecommendationServiceTest {
         .enrichAsync(any());
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(response.recommendationId()).isEqualTo(12L);
     assertThat(response.batch().places()).hasSize(15);
-  }
-
-  @Test
-  void skipsMissingAndInactivePlacesInTheStoredLastBatch() {
-    User user = user(TravelPreferenceType.THINKER, 1, 0, 0, 0);
-    List<Long> ids = new ArrayList<>();
-    for (long id = 1; id <= 30; id++) {
-      ids.add(id);
-    }
-    RecommendationSet stored =
-        recommendationSet(12L, TravelSchedule.DAY_TRIP, ids, List.of(), List.of());
-    Place active = place(21L, TravelPreferenceType.THINKER, true);
-    Place inactive = place(22L, TravelPreferenceType.THINKER, false);
-    given(userRepository.findByIdForUpdate(1L)).willReturn(Optional.of(user));
-    given(recommendationSetRepository.findByUserId(1L)).willReturn(Optional.of(stored));
-    given(placeRepository.findAllById(ids.subList(15, 30))).willReturn(List.of(active, inactive));
-
-    RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
-
-    assertThat(response.batch().batchNumber()).isEqualTo(2);
-    assertThat(response.batch().places())
-        .extracting(RecommendationDtos.PlaceResponse::placeId)
-        .containsExactly(21L);
   }
 
   @ParameterizedTest
@@ -1348,7 +1323,7 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse response =
-        recommendationService.createOrGetCurrent(1L, request(schedule, days));
+        recommendationService.createOrReplaceCurrent(1L, request(schedule, days));
 
     assertThat(response.minimumSelectionCount()).isEqualTo(minimumSelectionCount);
     assertThat(response.batch().places()).isEmpty();
@@ -1365,9 +1340,9 @@ class RecommendationServiceTest {
     saveWithId(12L);
 
     RecommendationDtos.RecommendationResponse first =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
     RecommendationDtos.RecommendationResponse second =
-        recommendationService.createOrGetCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
+        recommendationService.createOrReplaceCurrent(1L, request(TravelSchedule.DAY_TRIP, 0));
 
     assertThat(first.batch().places()).hasSize(8);
     assertThat(second.batch().places()).isEqualTo(first.batch().places());

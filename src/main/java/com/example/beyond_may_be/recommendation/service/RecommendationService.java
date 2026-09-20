@@ -64,7 +64,7 @@ public class RecommendationService {
   private final GroqRecommendationClient groqRecommendationClient;
   private final TransactionTemplate transactionTemplate;
 
-  public RecommendationDtos.RecommendationResponse createOrGetCurrent(
+  public RecommendationDtos.RecommendationResponse createOrReplaceCurrent(
       Long userId, RecommendationDtos.CreateRequest request) {
     // 1. 여행 일정이 유효하고 사용자의 최종 여행 성향이 저장되어 있는지 확인한다.
     validatePeriod(request);
@@ -76,38 +76,28 @@ public class RecommendationService {
       throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED);
     }
 
-    // 2. 동일 일정으로 만든 현재 추천 세트가 있으면 새로 만들지 않고 그대로 반환한다.
-    Optional<RecommendationSet> current = recommendationSetRepository.findByUserId(userId);
-    if (current.isPresent() && samePeriod(current.get(), request)) {
-      return responseFor(current.get());
-    }
-
-    // 3. 성향별 장소가 최초 할당량보다 부족하면 트랜잭션 밖에서 TourAPI 변경분을 한 번 조회한다.
+    // 2. 성향별 장소가 최초 할당량보다 부족하면 트랜잭션 밖에서 TourAPI 변경분을 한 번 조회한다.
     List<SyncItem> syncItems =
         hasInitialShortage(user, placeRepository.findAllByActiveTrue())
             ? fetchChangedPlaces()
             : List.of();
     ensureRequestActive();
-    // 4. 사용자 잠금 트랜잭션에서 신규 장소를 저장하고 할당량·AI 후보·규칙 폴백을 준비한다.
-    SelectionPreparation preparation =
+    // 3. 사용자 잠금 트랜잭션에서 신규 장소를 저장하고 할당량·AI 후보·규칙 폴백을 준비한다.
+    SelectionPlan plan =
         Objects.requireNonNull(
             transactionTemplate.execute(status -> prepareSelection(userId, request, syncItems)));
     ensureRequestActive();
-    if (preparation.response() != null) {
-      return preparation.response();
-    }
-    SelectionPlan plan = Objects.requireNonNull(preparation.plan());
-    // 5. DB 트랜잭션 밖에서 AI가 후보를 선별한다. 실패하면 빈 결과로 6단계 폴백을 유도한다.
+    // 4. DB 트랜잭션 밖에서 AI가 후보를 선별한다. 실패하면 빈 결과로 5단계 폴백을 유도한다.
     List<Long> aiPlaceIds = plan.target() == 0 ? List.of() : rankSafely(plan.rankRequest());
     ensureRequestActive();
-    // 6. 최신 DB 상태로 AI 결과를 검증하고 현재 추천 세트를 저장하거나 교체한다.
-    CreationResult result =
+    // 5. 최신 DB 상태로 AI 결과를 검증하고 현재 추천 세트를 저장하거나 교체한다.
+    RecommendationDtos.RecommendationResponse response =
         Objects.requireNonNull(
             transactionTemplate.execute(
                 status -> createOrReplaceCurrent(userId, request, plan, aiPlaceIds)));
-    // 7. 새 추천의 빈 상세정보 보강만 비동기로 예약하고 저장된 추천 응답을 즉시 반환한다.
-    scheduleEnrichment(result);
-    return result.response();
+    // 6. 새 추천의 빈 상세정보 보강만 비동기로 예약하고 저장된 추천 응답을 즉시 반환한다.
+    scheduleEnrichment(response);
+    return response;
   }
 
   public RecommendationDtos.ReactionResponse replaceBatchReactions(
@@ -459,9 +449,9 @@ public class RecommendationService {
     return placeCount > 0 && placeCount % RECOMMENDATION_COUNT != 0;
   }
 
-  private SelectionPreparation prepareSelection(
+  private SelectionPlan prepareSelection(
       Long userId, RecommendationDtos.CreateRequest request, List<SyncItem> syncItems) {
-    // 4-1. 동시 요청이 같은 추천을 중복 생성하지 않도록 사용자를 잠그고 현재 세트를 재확인한다.
+    // 3-1. 추천 계획을 준비하는 동안 같은 사용자의 상태 변경을 직렬화한다.
     User user =
         userRepository
             .findByIdForUpdate(userId)
@@ -469,25 +459,20 @@ public class RecommendationService {
     if (user.getPreferenceType() == null) {
       throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED);
     }
-    Optional<RecommendationSet> current = recommendationSetRepository.findByUserId(userId);
-    if (current.isPresent() && samePeriod(current.get(), request)) {
-      return new SelectionPreparation(responseFor(current.get()), null);
-    }
-
-    // 4-2. 유효한 TourAPI 신규 장소를 저장했다면 최신 DB 목록으로 추천 계획을 다시 만든다.
+    // 3-2. 유효한 TourAPI 신규 장소를 저장했다면 최신 DB 목록으로 추천 계획을 다시 만든다.
     List<Place> activePlaces = placeRepository.findAllByActiveTrue();
     if (hasInitialShortage(user, activePlaces) && syncNewPlaces(syncItems)) {
       activePlaces = placeRepository.findAllByActiveTrue();
     }
-    return new SelectionPreparation(null, selectionPlan(userId, user, request, activePlaces));
+    return selectionPlan(userId, user, request, activePlaces);
   }
 
-  private CreationResult createOrReplaceCurrent(
+  private RecommendationDtos.RecommendationResponse createOrReplaceCurrent(
       Long userId,
       RecommendationDtos.CreateRequest request,
       SelectionPlan preparedPlan,
       List<Long> aiPlaceIds) {
-    // 6-1. AI 호출 중 발생한 동시 요청을 반영하도록 사용자를 잠그고 현재 세트를 다시 확인한다.
+    // 5-1. 저장하는 동안 같은 사용자의 상태 변경을 직렬화한다.
     User user =
         userRepository
             .findByIdForUpdate(userId)
@@ -496,11 +481,8 @@ public class RecommendationService {
       throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_PREFERENCE_REQUIRED);
     }
     Optional<RecommendationSet> current = recommendationSetRepository.findByUserId(userId);
-    if (current.isPresent() && samePeriod(current.get(), request)) {
-      return new CreationResult(responseFor(current.get()), false);
-    }
 
-    // 6-2. AI가 전달받은 활성 후보와 유형별 할당량을 정확히 지켰을 때만 AI 결과를 사용한다.
+    // 5-2. AI가 전달받은 활성 후보와 유형별 할당량을 정확히 지켰을 때만 AI 결과를 사용한다.
     List<Place> activePlaces = placeRepository.findAllByActiveTrue();
     Map<Long, Place> activePlacesById =
         activePlaces.stream()
@@ -515,7 +497,7 @@ public class RecommendationService {
             ? aiPlaceIds.stream().map(activePlacesById::get).toList()
             : selectionPlan(userId, user, request, activePlaces).fallbackPlaces();
     List<Long> selectedIds = selected.stream().map(Place::getId).toList();
-    // 6-3. 최초 요청은 새 세트를 저장하고, 기간 변경은 같은 ID의 세트와 반응 기록을 교체한다.
+    // 5-3. 최초 요청은 새 세트를 저장하고, 이후 요청은 일정과 관계없이 현재 세트와 반응 기록을 교체한다.
     RecommendationSet recommendationSet =
         current.orElseGet(
             () ->
@@ -534,18 +516,14 @@ public class RecommendationService {
     }
     ensureRequestActive();
     RecommendationSet saved = recommendationSetRepository.save(recommendationSet);
-    return new CreationResult(
-        RecommendationConverter.toRecommendationResponse(
-            saved, minimumSelectionCount(request.travelSchedule()), 1, selected),
-        true);
+    return RecommendationConverter.toRecommendationResponse(
+        saved, minimumSelectionCount(request.travelSchedule()), 1, selected);
   }
 
-  private void scheduleEnrichment(CreationResult result) {
+  private void scheduleEnrichment(RecommendationDtos.RecommendationResponse response) {
     List<Long> placeIds =
-        result.response().batch().places().stream()
-            .map(RecommendationDtos.PlaceResponse::placeId)
-            .toList();
-    if (!result.created() || placeIds.isEmpty()) {
+        response.batch().places().stream().map(RecommendationDtos.PlaceResponse::placeId).toList();
+    if (placeIds.isEmpty()) {
       return;
     }
     try {
@@ -725,9 +703,6 @@ public class RecommendationService {
       BigDecimal longitude,
       String thumbnailUrl) {}
 
-  private record SelectionPreparation(
-      RecommendationDtos.RecommendationResponse response, SelectionPlan plan) {}
-
   private record ReactionPreparation(
       RecommendationDtos.ReactionResponse response,
       SelectionPlan plan,
@@ -747,32 +722,12 @@ public class RecommendationService {
       int batchNumber,
       int minimumSelectionCount) {}
 
-  private record CreationResult(
-      RecommendationDtos.RecommendationResponse response, boolean created) {}
-
   private record SelectionPlan(
       GroqRecommendationClient.RankRequest rankRequest,
       List<Place> fallbackPlaces,
       Set<Long> candidateIds,
       Map<TravelPreferenceType, Integer> quotas,
       int target) {}
-
-  private RecommendationDtos.RecommendationResponse responseFor(
-      RecommendationSet recommendationSet) {
-    int batchNumber = batchCount(recommendationSet);
-    List<Long> batchIds = batchPlaceIds(recommendationSet, batchNumber);
-    Map<Long, Place> activePlacesById =
-        placeRepository.findAllById(batchIds).stream()
-            .filter(Place::isActive)
-            .collect(Collectors.toMap(Place::getId, Function.identity()));
-    List<Place> places =
-        batchIds.stream().map(activePlacesById::get).filter(Objects::nonNull).toList();
-    return RecommendationConverter.toRecommendationResponse(
-        recommendationSet,
-        minimumSelectionCount(recommendationSet.getTravelSchedule()),
-        batchNumber,
-        places);
-  }
 
   private SelectionPlan selectionPlan(
       Long userId, User user, RecommendationDtos.CreateRequest request, List<Place> activePlaces) {
@@ -1006,13 +961,6 @@ public class RecommendationService {
     if (!valid) {
       throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_INVALID_PERIOD);
     }
-  }
-
-  private boolean samePeriod(
-      RecommendationSet recommendationSet, RecommendationDtos.CreateRequest request) {
-    return recommendationSet.getTravelSchedule() == request.travelSchedule()
-        && recommendationSet.getStartDate().equals(request.startDate())
-        && recommendationSet.getEndDate().equals(request.endDate());
   }
 
   private int minimumSelectionCount(TravelSchedule travelSchedule) {

@@ -38,7 +38,7 @@ public class RecommendationController {
   @Operation(
       summary = "현재 추천 세트 생성",
       description =
-          "저장된 성향 점수로 추천하며, 유형별 장소가 부족하면 TourAPI 광주 변경분을 한 번 보충한 뒤 DB 후보를 사용합니다. 새 추천 장소의 빈 상세정보는 응답과 분리된 내부 작업으로 보강합니다. 전체 처리가 30초를 넘으면 503을 반환하고 자동 재시도하지 않습니다.")
+          "일정이 같아도 저장된 성향 점수로 현재 추천 세트를 새로 생성·교체하고 기존 반응을 초기화합니다. 유형별 장소가 부족하면 TourAPI 광주 변경분을 한 번 보충한 뒤 DB 후보를 사용합니다. 새 추천 장소의 빈 상세정보는 응답과 분리된 내부 작업으로 보강합니다. 전체 처리가 30초를 넘으면 503을 반환하고 자동 재시도하지 않습니다.")
   @PostMapping("/sets")
   public WebAsyncTask<ApiResponse<RecommendationDtos.RecommendationResponse>>
       createRecommendationSet(
@@ -48,7 +48,9 @@ public class RecommendationController {
     WebAsyncTask<ApiResponse<RecommendationDtos.RecommendationResponse>> task =
         new WebAsyncTask<>(
             RECOMMENDATION_TIMEOUT_MILLIS,
-            () -> ApiResponse.onSuccess(recommendationService.createOrGetCurrent(userId, request)));
+            () ->
+                ApiResponse.onSuccess(
+                    recommendationService.createOrReplaceCurrent(userId, request)));
     task.onTimeout(
         () -> {
           throw new RecommendationHandler(ErrorStatus.RECOMMENDATION_TIMEOUT);
