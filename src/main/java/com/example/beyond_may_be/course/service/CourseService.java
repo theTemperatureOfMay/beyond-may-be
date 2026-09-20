@@ -75,7 +75,7 @@ public class CourseService {
     MIN_PLACE_COUNT.put(TravelSchedule.DAY_TRIP, 3);
     MIN_PLACE_COUNT.put(TravelSchedule.ONE_NIGHT_TWO_DAYS, 5);
     MIN_PLACE_COUNT.put(TravelSchedule.TWO_NIGHTS_THREE_DAYS, 7);
-    MIN_PLACE_COUNT.put(TravelSchedule.CUSTOM, 20);
+    MIN_PLACE_COUNT.put(TravelSchedule.CUSTOM, 15);
   }
 
   private final CourseRepository courseRepository;
