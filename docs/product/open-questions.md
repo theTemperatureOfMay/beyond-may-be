@@ -17,7 +17,7 @@
 | 1.2.2·2.1.2 | 사색러와 기억러의 장소 범위 경계 | `기억러는 5·18·민주화 전용이 아니라 역사 건축물·역사 장소 대상, 사색러와의 상세 경계 [결정 필요]` |
 | 4.4.1 | TourAPI 주변 장소 수집·주기적 전체 갱신과 실패 대체 | 수동 주변 조회는 `locationBasedList2` 실패·키 없음·유효 후보 없음 시 저장된 활성 장소를 같은 1km·코스 제외·거리순 조건으로 대체한다. 주기적 전체 갱신은 `[MVP 이후 운영 정책]` |
 | 4.4.1 | `locationBasedList2` 런타임 호출과 기존 장소 정본 경계 | 수동 주변 조회에서만 한 페이지를 런타임 호출하고 유효 장소를 `places`에 저장·재사용하도록 기능 명세와 백엔드 아키텍처에 반영했다. 런타임 장소 정본은 계속 `places`다. |
-| 3.1.0·3.1.1 | 지도·도보 경로 제공자와 연동 계약 | `지도 Kakao Maps·도보 경로 TMAP 확정, 연동 상세 [프런트 확인]` |
+| 3.1.0·3.1.1 | 지도·도보·대중교통 경로 제공자와 연동 계약 | `지도·경로 모두 Kakao Maps API로 확정, 백엔드 GET /api/v1/routes가 도보·대중교통 REST API를 각각 호출, 프런트 연결 [확인 필요]` |
 | 4.3.1 | GPS 정확도 기준값과 좌표 payload 계약 | 정확도 50m 이하의 엄격한 숫자 좌표·`OffsetDateTime` 측정 시각을 `/app/explorations/{explorationId}/locations`로 보내고 연결별 마지막 수락 위치에서 10m 이상 이동한 경우만 전파하도록 확정·구현했다. 공유 설정 변경 시 기준점을 초기화하고 계약 오류는 안정된 STOMP `ERROR message` code로 구분한다(ADR-0026). places `numeric(9,6)` 정밀도는 유지한다. |
 | 4.3.2 | 팀원 상태·위치 공유 실시간 payload와 채널 계약 | 상태 `/events`, 방문 `/visits`, 휘발 위치 `/locations`를 분리하고 `ACTIVE Participant` 구독 인가를 적용했다. 위치는 `ONGOING` 탐험에서만 허용하고 userId 없이 옵트인 참여자의 `participantId`·표시 이름·좌표를 전파하며 저장·replay하지 않는다. 팀 방문 기록은 HTTP GET으로 복구하고 다중 서버 외부 broker는 제외했다(ADR-0024~0027). |
 | 4.3.3 | 인증 반경, GPS 미허용 처리와 방문 인증 계약 | `POST /api/v1/visits`, GPS 정확도 50m 이하·서버 거리 100m 이하, 원본 좌표 미저장과 방문 결과·진행률 응답을 확정·구현했다. 팀 전체 개별 방문은 `GET /api/v1/visits?explorationId={explorationId}`로 복구한다(ADR-0025, ADR-0027). |

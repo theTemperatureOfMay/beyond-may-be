@@ -1,0 +1,43 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/routes?startLng=126.900000&startLat=35.100000&endLng=126.910000&endLat=35.110000"
+  method: GET
+  headers:
+    Authorization: Bearer {{accessToken}}
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "성공입니다.",
+        "code": "COMMON200",
+        "data": {
+          "walking": {
+            "properties": {"totalDistance": 4025, "totalTime": 3914},
+            "legs": []
+          },
+          "publicTransit": {
+            "properties": {"type": "BUS", "totalDistance": 5083, "totalTime": 2122},
+            "steps": [
+              {
+                "properties": {"guidance": "탑승지까지 이동", "type": "WALKING", "distance": 30, "time": 3},
+                "path": {"points": [[126.900, 35.100], [126.905, 35.105]]}
+              },
+              {
+                "properties": {"guidance": "버스 탑승", "type": "BUS", "distance": 100, "time": 10},
+                "path": {"points": [[126.905, 35.105], [126.908, 35.108]]}
+              },
+              {
+                "properties": {"guidance": "목적지까지 이동", "type": "WALKING", "distance": 40, "time": 4},
+                "path": {"points": [[126.908, 35.108], [126.910, 35.110]]}
+              }
+            ]
+          }
+        },
+        "success": true
+      }
+order: 1000

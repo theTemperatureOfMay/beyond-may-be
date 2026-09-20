@@ -53,6 +53,9 @@ public enum ErrorStatus implements BaseErrorCode {
   PLACE_DETAIL_UNAVAILABLE(
       HttpStatus.SERVICE_UNAVAILABLE, "PLACE503", "장소 상세정보를 일시적으로 불러오지 못했습니다."),
 
+  ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTE404", "도보 또는 대중교통 경로를 찾을 수 없습니다."),
+  ROUTE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "ROUTE503", "길찾기 서비스를 일시적으로 사용할 수 없습니다."),
+
   // Visit
   VISIT_NOT_FOUND(HttpStatus.NOT_FOUND, "VISIT404", "방문 기록을 찾을 수 없습니다."),
   VISIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "VISIT400", "인증 반경을 벗어났습니다."),

@@ -20,6 +20,7 @@ class ArchitectureRulesTest {
               "com.example.beyond_may_be.apiPayload..",
               "com.example.beyond_may_be.common..",
               "com.example.beyond_may_be.*.controller..",
+              "com.example.beyond_may_be.*.client..",
               "com.example.beyond_may_be.*.converter..",
               "com.example.beyond_may_be.*.domain..",
               "com.example.beyond_may_be.*.dto..",

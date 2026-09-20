@@ -1,10 +1,14 @@
 ---
-status: accepted
+status: superseded
 decision-date: 2026-08-07
 recorded-date: 2026-08-07
+last-updated: 2026-09-20
 ---
 
 # ADR-0009 Kakao Maps는 지도를, TMAP은 도보 경로를 담당한다
+
+현재 경로 제공자 결정은 [ADR-0029](0029-kakao-map-multimodal-route-api.md)가
+대체한다. 이 문서는 당시 결정과 변경 이력을 보존한다.
 
 런타임 장소 정본은 검수된 PostgreSQL `places`이며 AI는 이 장소만 선별한다. 화면의
 지도·핀·뷰포트 렌더링은 Kakao Maps API를 사용하고, 장소 사이의 도보 경로와
