@@ -7,4 +7,6 @@ public final class RouteDtos {
   private RouteDtos() {}
 
   public record RouteResponse(JsonNode walking, JsonNode publicTransit) {}
+
+  public record RouteResult(RouteResponse response, boolean partial) {}
 }

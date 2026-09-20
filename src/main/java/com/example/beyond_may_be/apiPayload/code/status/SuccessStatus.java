@@ -12,6 +12,7 @@ public enum SuccessStatus implements BaseCode {
 
   // 일반적인 응답
   _OK(HttpStatus.OK, "COMMON200", "성공입니다."),
+  ROUTE_PARTIAL(HttpStatus.OK, "ROUTE200_1", "일부 도보 구간을 조회하지 못해 대중교통 경로만 반환합니다."),
   _CREATED(HttpStatus.CREATED, "COMMON201", "생성에 성공했습니다.");
 
   private final HttpStatus httpStatus;

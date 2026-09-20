@@ -1,6 +1,7 @@
 package com.example.beyond_may_be.route.controller;
 
 import com.example.beyond_may_be.apiPayload.ApiResponse;
+import com.example.beyond_may_be.apiPayload.code.status.SuccessStatus;
 import com.example.beyond_may_be.route.dto.RouteDtos;
 import com.example.beyond_may_be.route.service.RouteService;
 import jakarta.validation.constraints.DecimalMax;
@@ -39,6 +40,8 @@ public class RouteController {
           @DecimalMin(value = "-90.0", message = "_BAD_REQUEST")
           @DecimalMax(value = "90.0", message = "_BAD_REQUEST")
           BigDecimal endLat) {
-    return ApiResponse.onSuccess(routeService.getRoute(startLng, startLat, endLng, endLat));
+    RouteDtos.RouteResult result = routeService.getRoute(startLng, startLat, endLng, endLat);
+    SuccessStatus status = result.partial() ? SuccessStatus.ROUTE_PARTIAL : SuccessStatus._OK;
+    return ApiResponse.of(status, result.response());
   }
 }

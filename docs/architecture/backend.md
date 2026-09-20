@@ -316,7 +316,8 @@ erDiagram
 - `(course_id, place_id)`와 `(course_id, day_number, visit_order)`는 유일하다.
 - 폴리라인과 경로 계산 결과는 저장하지 않는다. 백엔드는 CoursePlace 좌표로
   카카오맵 REST API의 도보·대중교통 경로 API를 호출한다. 대중교통 경로에는 탑승 전·하차 후
-  도보 구간도 포함해 반환하고, 프런트엔드는 응답을 Kakao Maps에 표시한다.
+  도보 구간도 포함해 반환한다. 보조 도보 조회가 실패하면 대중교통 경로와
+  `ROUTE200_1` 안내를 반환하고, 프런트엔드는 응답을 Kakao Maps에 표시한다.
 
 외부 지도·경로 제공자 경계는
 [ADR-0029](../adr/0029-kakao-map-multimodal-route-api.md)을 따른다.

@@ -40,10 +40,11 @@ class RouteServiceTest {
     given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
         .willReturn(publicTransitResponse("NO_RESULTS"));
 
-    RouteDtos.RouteResponse result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
 
-    assertThat(result.walking().get("id").asText()).isEqualTo("walk-1");
-    assertThat(result.publicTransit()).isNull();
+    assertThat(result.response().walking().get("id").asText()).isEqualTo("walk-1");
+    assertThat(result.response().publicTransit()).isNull();
+    assertThat(result.partial()).isFalse();
   }
 
   @Test
@@ -53,10 +54,11 @@ class RouteServiceTest {
     given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
         .willReturn(publicTransitResponse("OK", "bus-1"));
 
-    RouteDtos.RouteResponse result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
 
-    assertThat(result.walking().get("id").asText()).isEqualTo("walk-1");
-    assertThat(result.publicTransit().get("id").asText()).isEqualTo("bus-1");
+    assertThat(result.response().walking().get("id").asText()).isEqualTo("walk-1");
+    assertThat(result.response().publicTransit().get("id").asText()).isEqualTo("bus-1");
+    assertThat(result.partial()).isFalse();
   }
 
   @Test
@@ -66,10 +68,11 @@ class RouteServiceTest {
     given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
         .willReturn(publicTransitResponse("OK", "subway-1"));
 
-    RouteDtos.RouteResponse result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
 
-    assertThat(result.walking()).isNull();
-    assertThat(result.publicTransit().get("id").asText()).isEqualTo("subway-1");
+    assertThat(result.response().walking()).isNull();
+    assertThat(result.response().publicTransit().get("id").asText()).isEqualTo("subway-1");
+    assertThat(result.partial()).isFalse();
   }
 
   @Test
@@ -83,9 +86,10 @@ class RouteServiceTest {
     given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
         .willReturn(publicTransitResponseWithStep());
 
-    RouteDtos.RouteResponse result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
 
-    JsonNode publicTransit = result.publicTransit();
+    JsonNode publicTransit = result.response().publicTransit();
+    assertThat(result.partial()).isFalse();
     assertThat(publicTransit.path("properties").path("totalDistance").asInt()).isEqualTo(170);
     assertThat(publicTransit.path("properties").path("totalTime").asInt()).isEqualTo(17);
     assertThat(publicTransit.path("steps")).hasSize(3);
@@ -98,7 +102,29 @@ class RouteServiceTest {
   }
 
   @Test
-  void returnsRouteUnavailableWhenWalkingSegmentLookupFails() throws Exception {
+  void returnsPublicTransitRouteWithPartialStatusWhenSupplementalWalkingRouteIsUnavailable()
+      throws Exception {
+    given(kakaoRouteClient.fetchWalkingRoute(START_LNG, START_LAT, END_LNG, END_LAT))
+        .willReturn(walkingResponse("OK", "walk-1"));
+    given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
+        .willReturn(publicTransitResponseWithStep());
+    given(kakaoRouteClient.fetchWalkingRoute(START_LNG, START_LAT, BOARDING_LNG, BOARDING_LAT))
+        .willReturn(walkingResponse("ROUTE_RESULT_NOT_FOUND"));
+    given(kakaoRouteClient.fetchWalkingRoute(ALIGHTING_LNG, ALIGHTING_LAT, END_LNG, END_LAT))
+        .willReturn(walkingSegmentResponse(40, 4, "목적지까지 이동"));
+
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+
+    assertThat(result.partial()).isTrue();
+    assertThat(result.response().publicTransit().path("steps")).hasSize(2);
+    assertThat(result.response().publicTransit().path("properties").path("totalDistance").asInt())
+        .isEqualTo(140);
+    assertThat(result.response().publicTransit().path("properties").path("totalTime").asInt())
+        .isEqualTo(14);
+  }
+
+  @Test
+  void returnsPublicTransitRouteWithPartialStatusWhenWalkingSegmentLookupFails() throws Exception {
     given(kakaoRouteClient.fetchWalkingRoute(START_LNG, START_LAT, END_LNG, END_LAT))
         .willReturn(walkingResponse("OK", "walk-1"));
     given(kakaoRouteClient.fetchPublicTransitRoute(START_LNG, START_LAT, END_LNG, END_LAT))
@@ -106,12 +132,10 @@ class RouteServiceTest {
     given(kakaoRouteClient.fetchWalkingRoute(START_LNG, START_LAT, BOARDING_LNG, BOARDING_LAT))
         .willThrow(new RestClientException("walking route unavailable"));
 
-    assertThatThrownBy(() -> service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT))
-        .isInstanceOf(GeneralException.class)
-        .satisfies(
-            exception ->
-                assertThat(((GeneralException) exception).getCode())
-                    .isSameAs(ErrorStatus.ROUTE_UNAVAILABLE));
+    RouteDtos.RouteResult result = service().getRoute(START_LNG, START_LAT, END_LNG, END_LAT);
+
+    assertThat(result.partial()).isTrue();
+    assertThat(result.response().publicTransit().path("steps")).hasSize(1);
   }
 
   @Test

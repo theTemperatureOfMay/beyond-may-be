@@ -18,7 +18,9 @@ supersedes: ADR-0009
 - 대중교통 경로의 첫 탑승지 전·마지막 하차지 후 도보 구간이 없으면 도보 API로 각각 조회해
   `publicTransit.steps` 앞뒤에 `WALKING` 단계로 병합하고, 전체 거리·시간에 합산한다.
 - 도보와 대중교통 경로는 각각 없을 수 있으며, 둘 다 없으면 `ROUTE404` 예외를 반환한다.
-- 외부 길찾기 API 호출 실패는 `ROUTE503`으로 반환한다.
+- 최초 도보·대중교통 경로 조회가 실패하면 `ROUTE503`으로 반환한다. 대중교통 경로의
+  탑승 전·하차 후 보조 도보 조회가 실패해도 대중교통 경로는 HTTP 200으로 반환하며,
+  `ROUTE200_1`과 일부 도보 구간 누락 메시지를 함께 반환한다.
 - 경로 계산 결과와 폴리라인은 저장하지 않는다.
 - 20분 기준은 사용하지 않는다. 경로 유형의 존재 여부만으로 응답을 구성한다.
 
@@ -39,7 +41,7 @@ PostgreSQL `places`에서 사용하는 원칙은 [ADR-0003](0003-verified-place-
 
 - 검사 스킬: `change-impact-review`
 - 검사 일자: 2026-09-20
-- 결과: `통과`
+- 결과: 관련 범위 문서·코드 정합성 `통과`, 전체 테스트는 미실행
 - 근거: 카카오맵 공식 REST API 문서의 `/v2/routing/walk`·`/v2/routing/publictraffic`
   계약과 Controller·Service·Client·테스트·Postman 예시를 대조했다. 관련 테스트,
-  전체 테스트, `spotlessCheck`, 전체 `build`, `git diff --check`가 통과했다.
+  `spotlessCheck`, 테스트 제외 전체 `build`, `git diff --check`가 통과했다.

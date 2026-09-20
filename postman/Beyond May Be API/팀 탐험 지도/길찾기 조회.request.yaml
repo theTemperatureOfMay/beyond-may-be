@@ -1,0 +1,8 @@
+$kind: http-request
+description: "출발지와 도착지 사이의 카카오맵 도보·대중교통 길찾기 결과를 조회합니다. 인증 필요: `Authorization: Bearer {{accessToken}}`. 없는 경로 유형은 null이며 둘 다 없으면 ROUTE404를 반환합니다."
+url: "{{baseUrl}}/api/v1/routes?startLng=126.900000&startLat=35.100000&endLng=126.910000&endLat=35.110000"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+examples: ./.resources/길찾기 조회.resources/examples
+order: 8000

@@ -21,7 +21,7 @@ public class RouteService {
     this.kakaoRouteClient = kakaoRouteClient;
   }
 
-  public RouteDtos.RouteResponse getRoute(
+  public RouteDtos.RouteResult getRoute(
       BigDecimal startLng, BigDecimal startLat, BigDecimal endLng, BigDecimal endLat) {
     JsonNode walkingResponse;
     JsonNode publicTransitResponse;
@@ -35,18 +35,18 @@ public class RouteService {
 
     JsonNode walking = walkingRoute(walkingResponse);
     JsonNode publicTransit = publicTransitRoute(publicTransitResponse);
-    try {
-      if (publicTransit != null) {
-        publicTransit = mergeWalkingSegments(publicTransit, startLng, startLat, endLng, endLat);
-      }
-    } catch (RestClientException exception) {
-      throw new GeneralException(ErrorStatus.ROUTE_UNAVAILABLE);
+    boolean partial = false;
+    if (publicTransit != null) {
+      MergeResult mergeResult =
+          mergeWalkingSegments(publicTransit, startLng, startLat, endLng, endLat);
+      publicTransit = mergeResult.route();
+      partial = mergeResult.partial();
     }
 
     if (walking == null && publicTransit == null) {
       throw new GeneralException(ErrorStatus.ROUTE_NOT_FOUND);
     }
-    return new RouteDtos.RouteResponse(walking, publicTransit);
+    return new RouteDtos.RouteResult(new RouteDtos.RouteResponse(walking, publicTransit), partial);
   }
 
   private JsonNode walkingRoute(JsonNode response) {
@@ -65,7 +65,7 @@ public class RouteService {
     return routes != null && routes.isArray() && routes.size() > 0 ? routes.get(0) : null;
   }
 
-  private JsonNode mergeWalkingSegments(
+  private MergeResult mergeWalkingSegments(
       JsonNode route,
       BigDecimal startLng,
       BigDecimal startLat,
@@ -73,20 +73,20 @@ public class RouteService {
       BigDecimal endLat) {
     JsonNode steps = route.get("steps");
     if (steps == null || !steps.isArray() || steps.isEmpty()) {
-      return route;
+      return new MergeResult(route, false);
     }
 
     int firstTransitIndex = firstTransitStep(steps);
     int lastTransitIndex = lastTransitStep(steps);
     if (firstTransitIndex < 0) {
-      return route;
+      return new MergeResult(route, false);
     }
 
     JsonNode beforeBoarding = null;
     JsonNode afterAlighting = null;
     if (firstTransitIndex == 0) {
       beforeBoarding =
-          kakaoRouteClient.fetchWalkingRoute(
+          fetchSupplementalWalkingRoute(
               startLng,
               startLat,
               coordinate(steps.get(firstTransitIndex), 0, 0),
@@ -94,15 +94,15 @@ public class RouteService {
     }
     if (lastTransitIndex == steps.size() - 1) {
       afterAlighting =
-          kakaoRouteClient.fetchWalkingRoute(
+          fetchSupplementalWalkingRoute(
               coordinate(steps.get(lastTransitIndex), -1, 0),
               coordinate(steps.get(lastTransitIndex), -1, 1),
               endLng,
               endLat);
     }
 
-    JsonNode beforeBoardingRoute = walkingRoute(beforeBoarding);
-    JsonNode afterAlightingRoute = walkingRoute(afterAlighting);
+    JsonNode beforeBoardingRoute = beforeBoarding;
+    JsonNode afterAlightingRoute = afterAlighting;
     ObjectNode mergedRoute = (ObjectNode) route.deepCopy();
     ArrayNode mergedSteps = JsonNodeFactory.instance.arrayNode();
     addWalkingSteps(mergedSteps, beforeBoardingRoute);
@@ -123,7 +123,19 @@ public class RouteService {
               + routeTime(beforeBoardingRoute)
               + routeTime(afterAlightingRoute));
     }
-    return mergedRoute;
+    boolean partial =
+        (firstTransitIndex == 0 && beforeBoardingRoute == null)
+            || (lastTransitIndex == steps.size() - 1 && afterAlightingRoute == null);
+    return new MergeResult(mergedRoute, partial);
+  }
+
+  private JsonNode fetchSupplementalWalkingRoute(
+      BigDecimal startLng, BigDecimal startLat, BigDecimal endLng, BigDecimal endLat) {
+    try {
+      return walkingRoute(kakaoRouteClient.fetchWalkingRoute(startLng, startLat, endLng, endLat));
+    } catch (RestClientException exception) {
+      return null;
+    }
   }
 
   private int firstTransitStep(JsonNode steps) {
@@ -180,4 +192,6 @@ public class RouteService {
   private boolean isSuccessful(JsonNode response) {
     return response != null && "OK".equals(response.path("status").asText());
   }
+
+  private record MergeResult(JsonNode route, boolean partial) {}
 }
