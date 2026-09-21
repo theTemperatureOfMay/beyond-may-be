@@ -96,6 +96,10 @@ public class Course extends BaseEntity {
     this.aiRevisionCount++;
   }
 
+  public void rename(String title) {
+    this.title = title;
+  }
+
   public void markPlacesUpdated() {
     markUpdated();
   }
