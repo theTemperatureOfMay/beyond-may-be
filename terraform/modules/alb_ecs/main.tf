@@ -83,6 +83,7 @@ data "aws_iam_policy_document" "execution_secrets" {
       var.db_password_parameter_arn,
       var.groq_api_key_parameter_arn,
       var.tourism_api_key_parameter_arn,
+      var.kakao_rest_api_key_parameter_arn,
     ]
   }
 
@@ -158,6 +159,7 @@ resource "aws_ecs_task_definition" "this" {
         { name = "DB_PASSWORD", valueFrom = var.db_password_parameter_arn },
         { name = "GROQ_API_KEY", valueFrom = var.groq_api_key_parameter_arn },
         { name = "TOURISM_API_KEY", valueFrom = var.tourism_api_key_parameter_arn },
+        { name = "KAKAO_REST_API_KEY", valueFrom = var.kakao_rest_api_key_parameter_arn },
       ]
       logConfiguration = {
         logDriver = "awslogs"

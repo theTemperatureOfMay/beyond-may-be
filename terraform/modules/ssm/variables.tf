@@ -41,3 +41,9 @@ variable "tourism_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "kakao_rest_api_key" {
+  description = "Kakao Map 멀티모달 경로 API(REST) 키"
+  type        = string
+  sensitive   = true
+}

@@ -85,6 +85,10 @@ variable "tourism_api_key_parameter_arn" {
   type = string
 }
 
+variable "kakao_rest_api_key_parameter_arn" {
+  type = string
+}
+
 variable "tourism_api_base_url" {
   type = string
 }
