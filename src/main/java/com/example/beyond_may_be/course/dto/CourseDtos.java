@@ -55,7 +55,11 @@ public final class CourseDtos {
 
   public record PlaceOrderItem(Long placeId, int dayNumber, int visitOrder) {}
 
-  public record UpdatePlacesRequest(List<PlaceOrderItem> places) {}
+  public record UpdatePlacesRequest(String title, List<PlaceOrderItem> places) {
+    public UpdatePlacesRequest(List<PlaceOrderItem> places) {
+      this(null, places);
+    }
+  }
 
   public record ChatRequest(String message) {}
 

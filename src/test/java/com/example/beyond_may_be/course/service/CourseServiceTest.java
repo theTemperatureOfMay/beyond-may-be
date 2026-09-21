@@ -625,6 +625,7 @@ class CourseServiceTest {
     ReflectionTestUtils.setField(course, "updatedAt", previousUpdate);
     CourseDtos.UpdatePlacesRequest request =
         new CourseDtos.UpdatePlacesRequest(
+            "새로운 광주 여행",
             List.of(
                 new CourseDtos.PlaceOrderItem(3L, 1, 1),
                 new CourseDtos.PlaceOrderItem(1L, 1, 2),
@@ -632,6 +633,8 @@ class CourseServiceTest {
 
     CourseDtos.CourseDetailResponse response = courseService.editPlaces(10L, 1L, request);
 
+    assertThat(course.getTitle()).isEqualTo("새로운 광주 여행");
+    assertThat(response.title()).isEqualTo("새로운 광주 여행");
     assertThat(course.getUpdatedAt()).isAfter(previousUpdate);
 
     assertThat(response.places().stream().map(CourseDtos.CoursePlaceSummary::placeId).toList())

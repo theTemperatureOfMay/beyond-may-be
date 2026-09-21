@@ -339,6 +339,9 @@ public class CourseService {
   public CourseDtos.CourseDetailResponse editPlaces(
       Long courseId, Long userId, CourseDtos.UpdatePlacesRequest request) {
     Course course = getOwnedDraftCourse(courseId, userId);
+    if (request.title() != null) {
+      course.rename(request.title());
+    }
     List<CoursePlace> updated = replaceCoursePlaces(courseId, course, request.places());
     Map<Long, Place> placesById = loadPlacesById(updated);
     return CourseConverter.toCourseDetailResponse(course, updated, placesById);
