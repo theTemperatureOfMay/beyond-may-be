@@ -112,3 +112,9 @@ variable "tourism_popularity_api_base_url" {
   type        = string
   default     = "https://apis.data.go.kr/B551011/LocgoHubTarService1"
 }
+
+variable "kakao_rest_api_key" {
+  description = "Kakao Map 멀티모달 경로 API(REST) 키(ADR-0029). terraform.tfvars 또는 TF_VAR_kakao_rest_api_key로 전달한다 — 커밋하지 않는다."
+  type        = string
+  sensitive   = true
+}
