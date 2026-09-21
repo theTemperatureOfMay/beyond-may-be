@@ -27,3 +27,9 @@ resource "aws_ssm_parameter" "tourism_api_key" {
   type  = "SecureString"
   value = var.tourism_api_key
 }
+
+resource "aws_ssm_parameter" "kakao_rest_api_key" {
+  name  = "${var.name}/kakao/rest-api-key"
+  type  = "SecureString"
+  value = var.kakao_rest_api_key
+}
